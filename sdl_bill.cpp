@@ -7,10 +7,12 @@ Description: <empty>
 */
 
 #include "base_types.h"
-#include <stdlib.h>
+// #include "memory_arena.h"
+#include "memory_arena.cpp"
 
 #include <SDL2/SDL.h>
 #include <Windows.h>
+#include <stdarg.h>
 
 #if defined(_DEVELOPER_MODE)
 # if !SDL_VERSION_ATLEAST(2,0,17)
@@ -25,66 +27,173 @@ Description: <empty>
 # include "dev/imgui/imgui_impl_sdl.cpp"
 #endif // _DEVELOPER_MODE
 
-typedef struct MemArena
-{
-    void *base;
-    U64 size;
-    U64 pos;
-} MemArena;
+//
+//
+//
 
-MemArena MemArena_stdlib_make_mem_arena(U64 mem_size)
-{
-    MemArena result;
-    
-    result.base = malloc(mem_size);
-    result.size = mem_size;
-    result.pos = 0;
-    
-    MemoryZero(result.base, result.size);
-    
-    return result;
-}
-
-void MemArena_stdlib_free_mem_arena(MemArena *mem_arena)
-{
-    free(mem_arena->base);
-}
-
-void *MemArena_push(MemArena* mem_arena, U64 mem_size)
-{
-    void *result = 0;
-    if(mem_arena->pos + mem_size < mem_arena->size)
-    {
-        result = (void*)(((U8*)mem_arena->base) + mem_arena->pos);
-        mem_arena->pos += mem_size;
-    }
-    
-    return result;
-}
-
-void MemArena_pop(MemArena *mem_arena, U64 pos)
-{
-    if(mem_arena->pos > pos && pos >= 0)
-    {
-        mem_arena->pos = pos;
-    }
-}
-
-#define MemArena_PushStruct(mem_arena, T)       MemArena_push(mem_arena, sizeof(T))
-#define MemArena_PushArray(mem_arena, T, count) MemArena_push(mem_arena, sizeof(T) * count)
-
-void DrawSquare(SDL_Renderer *renderer, S32 x, S32 y, S32 w, S32 h)
+void drawSquare(SDL_Renderer *renderer, S32 x, S32 y, S32 w, S32 h)
 {
     SDL_Rect rect = {x, y, w, h};
-    
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderFillRect(renderer, &rect);
 }
 
-void GameUpdateAndRender()
+//
+//
+//
+
+typedef struct GameTime
 {
+    U64 start;
+    U64 end;
+    S64 dt;
+} GameTime;
+
+enum Renderer_Command
+{
+    RENDERER_COMMAND_DRAW_SQUARE,
     
+    RENDERER_COMMAND_COUNT,
+};
+
+#define RENDERER_COMMAND_SIZE 256
+
+typedef struct RendererCommands
+{
+    void *commands;
+    size_t pointer;
+    size_t size;
+} RendererCommands;
+
+
+void Renderer_pushDrawSquareCommand(RendererCommands *renderer_commands, S32 x, S32 y, S32 w, S32 h)
+{
+    size_t draw_square_command_size = sizeof(Renderer_Command);
+    size_t draw_square_arg_counter = 4;
+    size_t draw_square_arg_size = sizeof(S32);
+    
+    // NOTE(annad): Out of memory!
+    Assert(renderer_commands->pointer + 
+           draw_square_command_size + 
+           draw_square_arg_size * 
+           draw_square_arg_counter < renderer_commands->size);
+    
+    S32 *args_ptr = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+    args_ptr[0] = x;
+    args_ptr[1] = y;
+    args_ptr[2] = w;
+    args_ptr[3] = h;
+    
+    renderer_commands->pointer += (draw_square_arg_counter * draw_square_arg_size);
+    
+    // TODO(annad): use Renderer_Command* (pointer)
+    S32 *p_commands = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+    *p_commands = RENDERER_COMMAND_DRAW_SQUARE;
+    renderer_commands->pointer += draw_square_command_size;
+    
+#if defined(_DEVELOPER_MODE)
+    printf("[PUSH] ");
+    EvalPrint(renderer_commands->pointer);
+#endif
 }
+
+void Renderer_popDrawSquareCommand(SDL_Renderer *renderer, RendererCommands *renderer_commands)
+{
+    size_t draw_square_command_size = sizeof(Renderer_Command);
+    size_t draw_square_arg_counter = 4;
+    size_t draw_square_arg_size = sizeof(S32);
+    
+    renderer_commands->pointer -= draw_square_command_size;
+    S32 *p_command = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+    
+    // NOTE(annad): Error, this is not DrawSquareCommand!
+    Assert(*p_command == RENDERER_COMMAND_DRAW_SQUARE);
+    
+    renderer_commands->pointer -= (draw_square_arg_counter * draw_square_arg_size);
+    
+    S32 *args_ptr = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+    S32 x = args_ptr[0];
+    S32 y = args_ptr[1];
+    S32 w = args_ptr[2];
+    S32 h = args_ptr[3];
+    
+    SDL_Rect rect = {x, y, w, h};
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &rect);
+    
+#if defined(_DEVELOPER_MODE)
+    printf("[POP] ");
+    EvalPrint(renderer_commands->pointer);
+#endif 
+}
+
+void Renderer_PushCommand(RendererCommands *renderer_commands, 
+                          Renderer_Command renderer_command, ...)
+{
+    va_list argptr;
+    va_start(argptr, renderer_command);
+    
+    switch(renderer_command)
+    {
+        case RENDERER_COMMAND_DRAW_SQUARE:
+        {
+            S32 x = va_arg(argptr, S32);
+            S32 y = va_arg(argptr, S32);
+            S32 w = va_arg(argptr, S32);
+            S32 h = va_arg(argptr, S32);
+            
+            Renderer_pushDrawSquareCommand(renderer_commands, x, y, w, h);
+            
+            break;
+        }
+        
+        default: 
+        {
+            // NOTE(annad): Unknown command code.
+            Assert(false);
+        }
+    }
+    
+    va_end(argptr);
+}
+
+
+typedef struct GameState
+{
+    MemArena memory_arena;
+    B32 initialize_flag;
+} GameState;
+
+typedef struct GameMemory
+{
+    void *permanent_storage;
+    size_t permanent_storage_size;
+    
+    void *persistent_storage;
+    size_t persistent_storage_size;
+} GameMemory;
+
+globalv S32 mousePosX = 0;
+globalv S32 mousePosY = 0;
+
+void GameUpdateAndRender(GameMemory *game_memory, RendererCommands *renderer_commands)
+{
+    GameState *game_state = (GameState*)game_memory->permanent_storage;
+    if(game_state->initialize_flag == false)
+    {
+        MemArena *memory_arena = &game_state->memory_arena;
+        memory_arena->base = game_memory->persistent_storage;
+        memory_arena->size = game_memory->persistent_storage_size;
+        memory_arena->pos = 0;
+        
+        game_state->initialize_flag = true;
+    }
+    
+    // drawSquare(renderer, 0, 0, 100, 100);
+    Renderer_PushCommand(renderer_commands, RENDERER_COMMAND_DRAW_SQUARE, mousePosX, mousePosY, 100, 100);
+    // Renderer_pushDrawSquareCommand(renderer_commands, mousePosX, mousePosY, 100, 100);
+}
+
 
 const U8 WINDOW_TITLE[] = "billards";
 const U32 WINDOW_WIDTH = 960;
@@ -138,7 +247,9 @@ NOTE(annad):
     }
     
     
-    B32 Run = true;
+    B32 run = true;
+    U64 target_frames_per_seconds = 30;
+    S64 target_milliseconds_per_frame = 1000 / target_frames_per_seconds;
     SDL_Event event;
     
 #if defined(_DEVELOPER_MODE)
@@ -156,7 +267,52 @@ NOTE(annad):
     ImGui_ImplSDLRenderer_Init(renderer);
 #endif // _DEVELOPER_MODE
     
-    while(Run)
+    //
+    // dt
+    //
+    
+    GameTime game_time;
+    game_time.start = SDL_GetTicks();
+    game_time.end = game_time.start;
+    game_time.dt = game_time.end - game_time.start;
+    
+    //
+    // dt
+    //
+    
+    //
+    // memory
+    //
+    
+    GameMemory game_memory;
+    
+    game_memory.permanent_storage_size = KB(4);
+    game_memory.permanent_storage = malloc(game_memory.permanent_storage_size);
+    MemoryZero(game_memory.permanent_storage, game_memory.permanent_storage_size);
+    
+    game_memory.persistent_storage_size = MB(256);
+    game_memory.persistent_storage = malloc(game_memory.persistent_storage_size);
+    MemoryZero(game_memory.persistent_storage, game_memory.persistent_storage_size);
+    
+    //
+    // memory
+    //
+    
+    // 
+    // renderer
+    // 
+    
+    RendererCommands renderer_commands;
+    renderer_commands.size = RENDERER_COMMAND_SIZE;
+    renderer_commands.commands = malloc(renderer_commands.size);
+    MemoryZero(renderer_commands.commands, renderer_commands.size);
+    renderer_commands.pointer = 0;
+    
+    //
+    // renderer
+    //
+    
+    while(run)
     {
         SDL_RenderClear(renderer);
         SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
@@ -172,7 +328,38 @@ NOTE(annad):
                 // NOTE(annad): Alt+F4 work too.
                 case SDL_QUIT:
                 {
-                    Run = false;
+                    run = false;
+                    break;
+                }
+                
+                case SDL_KEYDOWN:
+                {
+                    switch(event.key.keysym.sym)
+                    {
+                        case SDLK_RETURN:
+                        {
+                            __debugbreak();
+                            break;
+                        }
+                    }
+                    
+                    break;
+                }
+                
+                case SDL_MOUSEBUTTONDOWN:
+                {
+                    break;
+                }
+                
+                case SDL_MOUSEBUTTONUP:
+                {
+                    break;
+                }
+                
+                case SDL_MOUSEMOTION:
+                {
+                    mousePosX = event.motion.x;
+                    mousePosY = event.motion.y;
                     break;
                 }
             }
@@ -184,24 +371,53 @@ NOTE(annad):
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         
-        
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        bool show_demo_window = true;
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+        /*         
+                // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+bool Dev_ImGui_showDemoWindow = true;
+                if (Dev_ImGui_showDemoWindow)
+                    ImGui::ShowDemoWindow(&Dev_ImGui_showDemoWindow);
+                 */
 #endif
-        
-        GameUpdateAndRender();
-        DrawSquare(renderer, 0, 0, 100, 100);
+        GameUpdateAndRender(&game_memory, &renderer_commands);
+        Renderer_popDrawSquareCommand(renderer, &renderer_commands);
         
 #if defined(_DEVELOPER_MODE)
         // Rendering
         ImGui::Render();
         ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
-        SDL_RenderPresent(renderer);
 #endif // _DEVELOPER_MODE
         
+        SDL_RenderPresent(renderer);
         SDL_UpdateWindowSurface(window);
+        
+        //
+        // time
+        //
+        
+        game_time.end = SDL_GetTicks();
+        game_time.dt = game_time.end - game_time.start;
+        S32 frame_delay_time = (Uint32)(target_milliseconds_per_frame - game_time.dt);
+        if(frame_delay_time > 0)
+        {
+            SDL_Delay((Uint32)frame_delay_time);
+        }
+        
+        game_time.end = SDL_GetTicks();
+        game_time.dt = game_time.end - game_time.start;
+        while(game_time.dt < target_milliseconds_per_frame)
+        {
+            game_time.end = SDL_GetTicks();
+            game_time.dt = game_time.end - game_time.start;
+        }
+        
+        F64 FPS = (1000.0f) / ((F64)(game_time.dt));
+        EvalPrintF(FPS);
+        
+        game_time.start = game_time.end;
+        
+        //
+        // time
+        //
     }
     
     SDL_DestroyRenderer(renderer);

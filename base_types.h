@@ -139,8 +139,8 @@ typedef void VoidFunc(void);
 #define Minimal(a, b) (((a) < (b)) ? (a) : (b))
 #define Maximal(a, b) (((a) > (b)) ? (b) : (a))
 
-#define global static
-#define local static
+#define globalv static
+#define localv static
 #define internal static
 
 #define c_linkage_begin extern "C" {
@@ -171,5 +171,18 @@ Min(sizeof(*(d)), sizeof(*(s))) * (c))
 #define EvalPrintAddr(x)  printf("%s = 0x%p\n",    #x, (void*)(&x))
 #define EvalPrintHex(x)   printf("%s = 0x%x\n",    #x, (unsigned int)(x))
 #define EvalPrintHexLL(x) printf("%s = 0x%llx\n",  #x, (unsigned long long)(x))
+
+//
+//
+//
+
+#define BYTE(x) (x)
+#define KB(x)   ((U64)(1024 * BYTE(x)))
+#define MB(x)   ((U64)(1024 * KB(x)))
+#define GB(x)   ((U64)(1024 * MB(x)))
+
+//
+//
+//
 
 #endif //BASE_TYPES_H
