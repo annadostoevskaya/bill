@@ -14,6 +14,8 @@ Description: <empty>
 #include <Windows.h>
 #include <stdarg.h>
 
+#include "bill_platform.h"
+
 #if defined(_DEVELOPER_MODE)
 # if !SDL_VERSION_ATLEAST(2,0,17)
 # error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
@@ -42,16 +44,10 @@ void drawSquare(SDL_Renderer *renderer, S32 x, S32 y, S32 w, S32 h)
 //
 //
 
-typedef struct GameTime
-{
-    U64 start;
-    U64 end;
-    S64 dt;
-} GameTime;
-
 enum Renderer_Command
 {
-    RENDERER_COMMAND_DRAW_SQUARE,
+    RENDERER_COMMAND_DRAW_FILL_RECT,
+    RENDERER_COMMAND_SET_RENDER_COLOR,
     
     RENDERER_COMMAND_COUNT,
 };
@@ -65,8 +61,7 @@ typedef struct RendererCommands
     size_t size;
 } RendererCommands;
 
-
-void Renderer_pushDrawSquareCommand(RendererCommands *renderer_commands, S32 x, S32 y, S32 w, S32 h)
+void Renderer_drawFillRect(RendererCommands *renderer_commands, S32 x, S32 y, S32 w, S32 h)
 {
     size_t draw_square_command_size = sizeof(Renderer_Command);
     size_t draw_square_arg_counter = 4;
@@ -88,7 +83,7 @@ void Renderer_pushDrawSquareCommand(RendererCommands *renderer_commands, S32 x, 
     
     // TODO(annad): use Renderer_Command* (pointer)
     S32 *p_commands = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
-    *p_commands = RENDERER_COMMAND_DRAW_SQUARE;
+    *p_commands = RENDERER_COMMAND_DRAW_FILL_RECT;
     renderer_commands->pointer += draw_square_command_size;
     
 #if defined(_DEVELOPER_MODE)
@@ -97,18 +92,42 @@ void Renderer_pushDrawSquareCommand(RendererCommands *renderer_commands, S32 x, 
 #endif
 }
 
-void Renderer_popDrawSquareCommand(SDL_Renderer *renderer, RendererCommands *renderer_commands)
+void Renderer_setRendererDrawColor(RendererCommands *renderer_commands, U8 r, U8 g, U8 b, U8 a)
 {
-    size_t draw_square_command_size = sizeof(Renderer_Command);
+    size_t command_size = sizeof(Renderer_Command);
+    size_t arg_counter = 4;
+    size_t arg_size = sizeof(U8);
+    
+    // NOTE(annad): Out of memory!
+    Assert(renderer_commands->pointer + 
+           command_size + 
+           arg_size * 
+           arg_counter < renderer_commands->size);
+    
+    U8 *args_ptr = (U8*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+    args_ptr[0] = r;
+    args_ptr[1] = g;
+    args_ptr[2] = b;
+    args_ptr[3] = a;
+    
+    renderer_commands->pointer += (arg_counter * arg_size);
+    
+    S32 *p_commands = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+    *p_commands = RENDERER_COMMAND_SET_RENDER_COLOR;
+    renderer_commands->pointer += command_size;
+    
+#if defined(_DEVELOPER_MODE)
+    printf("[PUSH] ");
+    EvalPrint(renderer_commands->pointer);
+#endif
+}
+
+void RendererCommands_SDL_drawFillRect(SDL_Renderer *renderer, RendererCommands *renderer_commands)
+{
     size_t draw_square_arg_counter = 4;
     size_t draw_square_arg_size = sizeof(S32);
     
-    renderer_commands->pointer -= draw_square_command_size;
-    S32 *p_command = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
-    
-    // NOTE(annad): Error, this is not DrawSquareCommand!
-    Assert(*p_command == RENDERER_COMMAND_DRAW_SQUARE);
-    
+    Assert(renderer_commands->pointer >= (draw_square_arg_counter * draw_square_arg_size));
     renderer_commands->pointer -= (draw_square_arg_counter * draw_square_arg_size);
     
     S32 *args_ptr = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
@@ -118,7 +137,6 @@ void Renderer_popDrawSquareCommand(SDL_Renderer *renderer, RendererCommands *ren
     S32 h = args_ptr[3];
     
     SDL_Rect rect = {x, y, w, h};
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderFillRect(renderer, &rect);
     
 #if defined(_DEVELOPER_MODE)
@@ -127,22 +145,107 @@ void Renderer_popDrawSquareCommand(SDL_Renderer *renderer, RendererCommands *ren
 #endif 
 }
 
-void Renderer_PushCommand(RendererCommands *renderer_commands, 
-                          Renderer_Command renderer_command, ...)
+void RendererCommand_SDL_setRendererDrawColor(SDL_Renderer *renderer, RendererCommands *renderer_commands)
+{
+    size_t arg_counter = 4;
+    size_t arg_size = sizeof(Uint8);
+    Assert(renderer_commands->pointer >= (arg_counter * arg_size));
+    renderer_commands->pointer -= (arg_counter * arg_size);
+    
+    Uint8 *args_ptr = (Uint8*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+    Uint8 r = args_ptr[0];
+    Uint8 g = args_ptr[1];
+    Uint8 b = args_ptr[2];
+    Uint8 a = args_ptr[3];
+    
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    
+#if defined(_DEVELOPER_MODE)
+    printf("[POP] ");
+    EvalPrint(renderer_commands->pointer);
+#endif 
+}
+
+void RendererCommands_SDL_pop(SDL_Renderer *renderer, RendererCommands *renderer_commands)
+{
+    while(renderer_commands->pointer > 0)
+    {
+        Assert(renderer_commands->pointer > sizeof(Renderer_Command));
+        
+        renderer_commands->pointer -= sizeof(Renderer_Command);
+        S32 *p_command = (S32*)(((U8*)renderer_commands->commands) + renderer_commands->pointer);
+        
+        switch(*p_command)
+        {
+            case RENDERER_COMMAND_DRAW_FILL_RECT:
+            {
+                RendererCommands_SDL_drawFillRect(renderer, renderer_commands);
+                break;
+            }
+            
+            case RENDERER_COMMAND_SET_RENDER_COLOR:
+            {
+                RendererCommand_SDL_setRendererDrawColor(renderer, renderer_commands);
+                break;
+            }
+            
+            default:
+            {
+                // NOTE(annad): Unknow renderer command!
+                Assert(false);
+            }
+        }
+    }
+    
+    Assert(renderer_commands->size > renderer_commands->pointer);
+}
+
+/* 
+typedef struct RGBA_t
+{
+    union
+    {
+        struct
+        {
+            U8 r;
+            U8 g;
+            U8 b;
+            U8 a;
+        };
+        
+        U8 E[4];
+    };
+} RGBA_t;
+ */
+
+void RendererCommands_push(RendererCommands *renderer_commands, 
+                           Renderer_Command renderer_command, ...)
 {
     va_list argptr;
     va_start(argptr, renderer_command);
     
     switch(renderer_command)
     {
-        case RENDERER_COMMAND_DRAW_SQUARE:
+        case RENDERER_COMMAND_DRAW_FILL_RECT:
         {
             S32 x = va_arg(argptr, S32);
             S32 y = va_arg(argptr, S32);
             S32 w = va_arg(argptr, S32);
             S32 h = va_arg(argptr, S32);
             
-            Renderer_pushDrawSquareCommand(renderer_commands, x, y, w, h);
+            Renderer_drawFillRect(renderer_commands, x, y, w, h);
+            
+            break;
+        }
+        
+        case RENDERER_COMMAND_SET_RENDER_COLOR:
+        {
+            U8 r = va_arg(argptr, U8);
+            U8 g = va_arg(argptr, U8);
+            U8 b = va_arg(argptr, U8);
+            U8 a = va_arg(argptr, U8);
+            
+            Renderer_setRendererDrawColor(renderer_commands, r, g, b, a);
             
             break;
         }
@@ -157,43 +260,7 @@ void Renderer_PushCommand(RendererCommands *renderer_commands,
     va_end(argptr);
 }
 
-
-typedef struct GameState
-{
-    MemArena memory_arena;
-    B32 initialize_flag;
-} GameState;
-
-typedef struct GameMemory
-{
-    void *permanent_storage;
-    size_t permanent_storage_size;
-    
-    void *persistent_storage;
-    size_t persistent_storage_size;
-} GameMemory;
-
-globalv S32 mousePosX = 0;
-globalv S32 mousePosY = 0;
-
-void GameUpdateAndRender(GameMemory *game_memory, RendererCommands *renderer_commands)
-{
-    GameState *game_state = (GameState*)game_memory->permanent_storage;
-    if(game_state->initialize_flag == false)
-    {
-        MemArena *memory_arena = &game_state->memory_arena;
-        memory_arena->base = game_memory->persistent_storage;
-        memory_arena->size = game_memory->persistent_storage_size;
-        memory_arena->pos = 0;
-        
-        game_state->initialize_flag = true;
-    }
-    
-    // drawSquare(renderer, 0, 0, 100, 100);
-    Renderer_PushCommand(renderer_commands, RENDERER_COMMAND_DRAW_SQUARE, mousePosX, mousePosY, 100, 100);
-    // Renderer_pushDrawSquareCommand(renderer_commands, mousePosX, mousePosY, 100, 100);
-}
-
+#include "bill.cpp"
 
 const U8 WINDOW_TITLE[] = "billards";
 const U32 WINDOW_WIDTH = 960;
@@ -201,6 +268,9 @@ const U32 WINDOW_HEIGHT = 540;
 
 int main(int, char**)
 {
+    printf(arge[1]);
+    
+    __debugbreak();
     /*
 NOTE(annad):
 1. SDL_RenderDrawRect
@@ -312,6 +382,15 @@ NOTE(annad):
     // renderer
     //
     
+    //
+    // input
+    //
+    GameInput game_input = {};
+    
+    //
+    // input
+    //
+    
     while(run)
     {
         SDL_RenderClear(renderer);
@@ -348,18 +427,104 @@ NOTE(annad):
                 
                 case SDL_MOUSEBUTTONDOWN:
                 {
+                    switch(event.button.button)
+                    {
+                        case SDL_BUTTON_LEFT:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_LEFT].enum_state = BUTTON_STATE_DOWN;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_LEFT].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_LEFT].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_MIDDLE:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_MID].enum_state = BUTTON_STATE_DOWN;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_MID].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_MID].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_RIGHT:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_RIGHT].enum_state = BUTTON_STATE_DOWN;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_RIGHT].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_RIGHT].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_X1:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X1].enum_state = BUTTON_STATE_DOWN;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X1].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X1].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_X2:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X2].enum_state = BUTTON_STATE_DOWN;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X2].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X2].click_pos.y = event.button.y;
+                            break;
+                        }
+                    }
+                    
                     break;
                 }
                 
                 case SDL_MOUSEBUTTONUP:
                 {
+                    switch(event.button.button)
+                    {
+                        case SDL_BUTTON_LEFT:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_LEFT].enum_state = BUTTON_STATE_UP;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_LEFT].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_LEFT].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_MIDDLE:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_MID].enum_state = BUTTON_STATE_UP;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_MID].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_MID].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_RIGHT:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_RIGHT].enum_state = BUTTON_STATE_UP;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_RIGHT].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_RIGHT].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_X1:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X1].enum_state = BUTTON_STATE_UP;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X1].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X1].click_pos.y = event.button.y;
+                            break;
+                        }
+                        
+                        case SDL_BUTTON_X2:
+                        {
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X2].enum_state = BUTTON_STATE_UP;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X2].click_pos.x = event.button.x;
+                            game_input.mouse.buttons_states[MOUSE_BUTTON_X2].click_pos.y = event.button.y;
+                            break;
+                        }
+                    }
+                    
                     break;
                 }
                 
                 case SDL_MOUSEMOTION:
                 {
-                    mousePosX = event.motion.x;
-                    mousePosY = event.motion.y;
+                    game_input.mouse.cursor_pos.x = event.motion.x;
+                    game_input.mouse.cursor_pos.y = event.motion.y;
                     break;
                 }
             }
@@ -373,13 +538,13 @@ NOTE(annad):
         
         /*         
                 // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-bool Dev_ImGui_showDemoWindow = true;
+                bool Dev_ImGui_showDemoWindow = true;
                 if (Dev_ImGui_showDemoWindow)
                     ImGui::ShowDemoWindow(&Dev_ImGui_showDemoWindow);
                  */
 #endif
-        GameUpdateAndRender(&game_memory, &renderer_commands);
-        Renderer_popDrawSquareCommand(renderer, &renderer_commands);
+        GameUpdateAndRender(&game_memory, &renderer_commands, &game_input, &game_time);
+        RendererCommands_SDL_pop(renderer, &renderer_commands);
         
 #if defined(_DEVELOPER_MODE)
         // Rendering
@@ -410,8 +575,9 @@ bool Dev_ImGui_showDemoWindow = true;
             game_time.dt = game_time.end - game_time.start;
         }
         
-        F64 FPS = (1000.0f) / ((F64)(game_time.dt));
-        EvalPrintF(FPS);
+        // F64 FPS = (1000.0f) / ((F64)(game_time.dt));
+        // printf("[FPS] ");
+        // EvalPrintF(FPS);
         
         game_time.start = game_time.end;
         
@@ -426,3 +592,4 @@ bool Dev_ImGui_showDemoWindow = true;
     
     return 0;
 }
+

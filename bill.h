@@ -9,4 +9,10 @@ Description: <empty>
 #ifndef BILL_H
 #define BILL_H
 
+typedef struct GameState
+{
+    MemArena memory_arena;
+    B32 initialize_flag;
+} GameState;
+
 #endif //BILL_H
