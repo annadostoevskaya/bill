@@ -9,8 +9,11 @@ Description: <empty>
 #include "bill_math.h"
 #include "bill.h"
 
-void GameUpdateAndRender(GameMemory *game_memory, RendererCommands *renderer_commands, GameInput *game_input, GameTime *game_time)
+void GameUpdateAndRender(GameMemory *game_memory, Renderer *renderer, GameInput *game_input, GameTime *game_time)
 {
+    (void)game_input;
+    (void)game_time;
+    
     GameState *game_state = (GameState*)game_memory->permanent_storage;
     if(game_state->initialize_flag == false)
     {
@@ -22,21 +25,60 @@ void GameUpdateAndRender(GameMemory *game_memory, RendererCommands *renderer_com
         game_state->initialize_flag = true;
     }
     
-    RendererCommands_push(renderer_commands, 
-                          RENDERER_COMMAND_SET_RENDER_COLOR,
-                          (U8)(game_input->mouse.cursor_pos.x), 
-                          (U8)(game_input->mouse.cursor_pos.x), 
-                          (U8)(game_input->mouse.cursor_pos.x),
-                          (U8)(game_input->mouse.cursor_pos.x));
+    RGBA_U8 color;
+    color.r = 0xff;
+    color.g = 0x00;
+    color.b = 0x00;
+    color.a = 0xff;
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_SET_RENDER_COLOR,
+                         &color);
     
-    RendererCommands_push(renderer_commands, 
-                          RENDERER_COMMAND_DRAW_FILL_RECT, 
-                          game_input->mouse.cursor_pos.x, 
-                          game_input->mouse.cursor_pos.y, 
-                          10, 10);
+    Rect rect;
+    rect.x = game_input->mouse.cursor_pos.x;
+    rect.y = game_input->mouse.cursor_pos.y;
+    rect.w = 100;
+    rect.h = 100;
     
-    EvalPrintB(isLittleEndian());
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_DRAW_FILL_RECT, 
+                         &rect);
     
-    EvalPrint(game_time->dt);
+    
+    color.r = 0x00;
+    color.g = 0x00;
+    color.b = 0xff;
+    color.a = 0xff;
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_SET_RENDER_COLOR,
+                         &color);
+    
+    
+    rect.x = game_input->mouse.cursor_pos.y;
+    rect.y = game_input->mouse.cursor_pos.x;
+    rect.w = 100;
+    rect.h = 100;
+    
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_DRAW_FILL_RECT, 
+                         &rect);
+    
+    
+    color.r = 0x00;
+    color.g = 0xff;
+    color.b = 0x00;
+    color.a = 0xff;
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_SET_RENDER_COLOR,
+                         &color);
+    
+    rect.x = (S32)sqrt(game_input->mouse.cursor_pos.y * game_input->mouse.cursor_pos.y + game_input->mouse.cursor_pos.x * game_input->mouse.cursor_pos.x);
+    rect.y = rect.x;
+    rect.w = 100;
+    rect.h = 100;
+    
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_DRAW_FILL_RECT, 
+                         &rect);
 }
 
