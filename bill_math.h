@@ -9,10 +9,109 @@ Description: <empty>
 #ifndef BILL_MATH_H
 #define BILL_MATH_H
 
-typedef struct Vec2S32
+#include <math.h>
+
+#define MATH_PI 3.14159265359f
+#define MATH_TAU 6.28318530718f
+
+template <typename T>
+struct Vec2
 {
-    S32 x;
-    S32 y;
-} Vec2S32;
+    T x, y;
+    
+    Vec2<T>& operator+=(const Vec2<T>& a)
+    {
+        this->x += a.x;
+        this->y += a.y;
+        return *this;
+    }
+    
+    Vec2<T>& operator-=(const Vec2<T>& a)
+    {
+        this->x -= a.x;
+        this->y -= a.y;
+        return *this;
+    }
+    
+    Vec2<T>& operator*=(const T& a)
+    {
+        this->x *= a;
+        this->y *= a;
+        return *this;
+    }
+    
+    Vec2<T>& operator/=(const T& a)
+    {
+        this->x /= a;
+        this->y /= a;
+        return *this;
+    }
+    
+    Vec2<T>& operator-(const T& a)
+    {
+        this->x /= a;
+        this->y /= a;
+        return *this;
+    }
+    
+    inline F64 getLength()
+    {
+        return (F64)sqrt((double)(this->y * this->y + this->x * this->x));
+    }
+    
+    inline T innerProduct(const Vec2<T>& a)
+    {
+        return this->x * a.x + this->y * a.y;
+    }
+};
+
+template<typename T>
+Vec2<T> operator/(Vec2<T> a, const T b)
+{
+    return (a /= b);
+}
+
+template<typename T>
+Vec2<T> operator*(Vec2<T> a, const T b)
+{
+    return (a *= b);
+}
+
+template<typename T>
+Vec2<T> operator+(Vec2<T> a, const Vec2<T>& b)
+{
+    return (a += b);
+}
+
+template<typename T>
+Vec2<T> operator-(Vec2<T> a, const Vec2<T>& b)
+{
+    return (a -= b);
+}
+
+F32 square(F32 x)
+{
+    return x * x;
+}
+
+F32 turnCos(F32 x)
+{
+    return (F32)cos(MATH_TAU * x);
+}
+
+F32 defaultCos(F32 x)
+{
+    return (F32)cos(x);
+}
+
+F32 defaultSin(F32 x)
+{
+    return (F32)sin(x);
+}
+
+F32 defaultArcTan(F32 x)
+{
+    return (F32)atan(x);
+}
 
 #endif //BILL_MATH_H

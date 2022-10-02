@@ -12,6 +12,13 @@ pushd build
 
 @REM TODO(annad): /SUBSYSTEM:CONSOLE, we must switch to :WINDOWS for release!
 
+%SRC%/dev/ctime/ctime.exe -begin bill.ctm
+
 cl %CL_OPTS% %SRC%\sdl_bill.cpp -Fesdl_bill.exe -I%SDL_INC_PATH%^
   /link /LIBPATH:%SDL_LIB_PATH% SDL2main.lib SDL2.lib shell32.lib /SUBSYSTEM:CONSOLE
+
+set LastError=%ERRORLEVEL%
+
+%SRC%/dev/ctime/ctime.exe -end bill.ctm %LastError%
+
 popd
