@@ -161,13 +161,17 @@ NOTE(annad):
     //
     
     GameMemory game_memory;
-    
     game_memory.permanent_storage_size = KB(4);
-    game_memory.permanent_storage = malloc(game_memory.permanent_storage_size);
+    game_memory.persistent_storage_size = MB(256);
+    
+    void *common_mem_pull = malloc(game_memory.permanent_storage_size 
+                                   + game_memory.persistent_storage_size
+                                   + RENDERER_COMMAND_BUFFER_SIZE);
+    
+    game_memory.permanent_storage = common_mem_pull;
     MemoryZero(game_memory.permanent_storage, game_memory.permanent_storage_size);
     
-    game_memory.persistent_storage_size = MB(256);
-    game_memory.persistent_storage = malloc(game_memory.persistent_storage_size);
+    game_memory.persistent_storage = ((U8*)common_mem_pull) + game_memory.permanent_storage_size;
     MemoryZero(game_memory.persistent_storage, game_memory.persistent_storage_size);
     
     //
@@ -180,7 +184,9 @@ NOTE(annad):
     
     Renderer renderer = {};
     renderer.commands.size = RENDERER_COMMAND_BUFFER_SIZE;
-    renderer.commands.commands = malloc(renderer.commands.size);
+    renderer.commands.commands = ((U8*)common_mem_pull) 
+        + game_memory.permanent_storage_size 
+        + game_memory.persistent_storage_size;
     MemoryZero(renderer.commands.commands, renderer.commands.size);
     renderer.commands.peak_ptr = 0;
     renderer.commands.queue_ptr = 0;
@@ -278,20 +284,17 @@ NOTE(annad):
                             break;
                         }
                         
-                        
                         case SDLK_s:
                         {
                             game_input.keyboard.keys[INPUT_KEYBOARD_KEYS_S] = INPUT_BUTTON_STATE_DOWN;
                             break;
                         }
                         
-                        
                         case SDLK_a:
                         {
                             game_input.keyboard.keys[INPUT_KEYBOARD_KEYS_A] = INPUT_BUTTON_STATE_DOWN;
                             break;
                         }
-                        
                         
                         case SDLK_d:
                         {

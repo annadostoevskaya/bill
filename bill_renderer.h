@@ -9,6 +9,8 @@ Description: <empty>
 #ifndef BILL_RENDERER_H
 #define BILL_RENDERER_H
 
+#include "base_types.h"
+
 // NOTE(annad): Define it for print PUSH & POP operations.
 // #define _BILL_RENDERER_DEBUG_MODE 1
 
@@ -17,11 +19,13 @@ enum Renderer_Command
     RENDERER_COMMAND_NULL = 0,
     RENDERER_COMMAND_DRAW_FILL_RECT,
     RENDERER_COMMAND_SET_RENDER_COLOR,
+    RENDERER_COMMAND_DRAW_POINT,
+    RENDERER_COMMAND_DRAW_LINE,
     
     RENDERER_COMMAND_COUNT,
 };
 
-#define RENDERER_COMMAND_BUFFER_SIZE 0xff
+#define RENDERER_COMMAND_BUFFER_SIZE BYTE(0xff)
 
 typedef struct RendererCommands
 {

@@ -60,7 +60,7 @@ enum Input_Keyboard_Keys
 
 typedef struct GameInputMouseButtonState
 {
-    Vec2<S32> click_pos;
+    Vec2Dim<S32> click_pos;
     union
     {
         Input_Button_State enum_state;
@@ -71,7 +71,7 @@ typedef struct GameInputMouseButtonState
 typedef struct GameInputMouse
 {
     GameInputMouseButtonState buttons_states[INPUT_MOUSE_BUTTON_COUNT];
-    Vec2<S32> cursor_pos;
+    Vec2Dim<S32> cursor_pos;
 } GameInputMouse;
 
 typedef struct GameInputKeyboard

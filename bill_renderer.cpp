@@ -61,6 +61,56 @@ void Renderer_setRendererDrawColor(Renderer *renderer, RGBA_U8 *color)
 #endif
 }
 
+void Renderer_drawPoint(Renderer *renderer, S32 *x, S32 *y)
+{
+    RendererCommands *renderer_commands = &renderer->commands;
+    // NOTE(annad): Out of memory!
+    Assert(renderer_commands->size > renderer_commands->peak_ptr + 
+           (2 * sizeof(S32)) +
+           sizeof(Renderer_Command));
+    
+    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_DRAW_POINT);
+    renderer_commands->peak_ptr += sizeof(Renderer_Command);
+    
+    S32 *args_ptr = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    args_ptr[0] = *x;
+    args_ptr[1] = *y;
+    renderer_commands->peak_ptr += (2 * sizeof(S32));
+    
+#if defined(_BILL_RENDERER_DEBUG_MODE)
+# if defined(_DEVELOPER_MODE)
+    printf("[PUSH] ");
+    EvalPrint(renderer_commands->peak_ptr);
+# endif
+#endif
+}
+
+void Renderer_drawLine(Renderer *renderer, 
+                       S32 *x1, S32 *y1, S32 *x2, S32 *y2)
+{
+    RendererCommands *renderer_commands = &renderer->commands;
+    // NOTE(annad): Out of memory!
+    Assert(renderer_commands->size > renderer_commands->peak_ptr + 
+           (4 * sizeof(S32)) +
+           sizeof(Renderer_Command));
+    
+    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_DRAW_LINE);
+    renderer_commands->peak_ptr += sizeof(Renderer_Command);
+    
+    S32 *args_ptr = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    args_ptr[0] = *x1;
+    args_ptr[1] = *y1;
+    args_ptr[2] = *x2;
+    args_ptr[3] = *y2;
+    renderer_commands->peak_ptr += (4 * sizeof(S32));
+    
+#if defined(_BILL_RENDERER_DEBUG_MODE)
+# if defined(_DEVELOPER_MODE)
+    printf("[PUSH] ");
+    EvalPrint(renderer_commands->peak_ptr);
+# endif
+#endif
+}
 
 void Renderer_pushCommand(Renderer *renderer, 
                           Renderer_Command command, ...)
@@ -81,6 +131,24 @@ void Renderer_pushCommand(Renderer *renderer,
         {
             RGBA_U8 *color = va_arg(argptr, RGBA_U8*);
             Renderer_setRendererDrawColor(renderer, color);
+            break;
+        }
+        
+        case RENDERER_COMMAND_DRAW_POINT:
+        {
+            S32 x = va_arg(argptr, S32);
+            S32 y = va_arg(argptr, S32);
+            Renderer_drawPoint(renderer, &x, &y);
+            break;
+        }
+        
+        case RENDERER_COMMAND_DRAW_LINE:
+        {
+            S32 x1 = va_arg(argptr, S32);
+            S32 y1 = va_arg(argptr, S32);
+            S32 x2 = va_arg(argptr, S32);
+            S32 y2 = va_arg(argptr, S32);
+            Renderer_drawLine(renderer, &x1, &y1, &x2, &y2);
             break;
         }
         

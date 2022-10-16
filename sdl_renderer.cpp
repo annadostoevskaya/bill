@@ -34,8 +34,7 @@ void Renderer_SDL_drawFillRect(SDL_Renderer *sdl_renderer, Renderer *renderer)
 #endif
 }
 
-void Renderer_SDL_setRendererDrawColor(SDL_Renderer *sdl_renderer, 
-                                       Renderer *renderer)
+void Renderer_SDL_setRendererDrawColor(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of executable memory side!
@@ -49,6 +48,50 @@ void Renderer_SDL_setRendererDrawColor(SDL_Renderer *sdl_renderer,
     
     renderer_commands->queue_ptr += (sizeof(Uint8) * 4);
     SDL_SetRenderDrawColor(sdl_renderer, r, g, b, a);
+#if defined(_BILL_RENDERER_DEBUG_MODE)
+# if defined(_DEVELOPER_MODE)
+    printf("[POP] ");
+    EvalPrint(renderer_commands->queue_ptr);
+# endif 
+#endif
+}
+
+void Renderer_SDL_drawPoint(SDL_Renderer *sdl_renderer, Renderer *renderer)
+{
+    RendererCommands *renderer_commands = &renderer->commands;
+    // NOTE(annad): Out of executable memory side!
+    Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (2 * sizeof(S32)));
+    
+    S32 *args_ptr = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    S32 x = args_ptr[0];
+    S32 y = args_ptr[1];
+    
+    renderer_commands->queue_ptr += (2 * sizeof(S32));
+    SDL_RenderDrawPoint(sdl_renderer, x, y);
+    
+#if defined(_BILL_RENDERER_DEBUG_MODE)
+# if defined(_DEVELOPER_MODE)
+    printf("[POP] ");
+    EvalPrint(renderer_commands->queue_ptr);
+# endif 
+#endif
+}
+
+void Renderer_SDL_drawLine(SDL_Renderer *sdl_renderer, Renderer *renderer)
+{
+    RendererCommands *renderer_commands = &renderer->commands;
+    // NOTE(annad): Out of executable memory side!
+    Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (4 * sizeof(S32)));
+    
+    S32 *args_ptr = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    S32 x1 = args_ptr[0];
+    S32 y1 = args_ptr[1];
+    S32 x2 = args_ptr[2];
+    S32 y2 = args_ptr[3];
+    
+    renderer_commands->queue_ptr += (4 * sizeof(S32));
+    SDL_RenderDrawLine(sdl_renderer, x1, y1, x2, y2);
+    
 #if defined(_BILL_RENDERER_DEBUG_MODE)
 # if defined(_DEVELOPER_MODE)
     printf("[POP] ");
@@ -80,6 +123,18 @@ void Renderer_SDL_execute(SDL_Renderer *sdl_renderer,
             case RENDERER_COMMAND_SET_RENDER_COLOR:
             {
                 Renderer_SDL_setRendererDrawColor(sdl_renderer, renderer);
+                break;
+            }
+            
+            case RENDERER_COMMAND_DRAW_POINT:
+            {
+                Renderer_SDL_drawPoint(sdl_renderer, renderer);
+                break;
+            }
+            
+            case RENDERER_COMMAND_DRAW_LINE:
+            {
+                Renderer_SDL_drawLine(sdl_renderer, renderer);
                 break;
             }
             

@@ -10,19 +10,11 @@ Description: <empty>
 #include "bill_math.h"
 #include "bill.h"
 
-void DEBUG_drawWhiteLine(Renderer *renderer, Vec2<S32> a, Vec2<S32> b)
+template <typename T>
+struct Matrix3x3
 {
-    RGBA_U8 color = { 0xee, 0xee, 0xee, 0xee };
-    Rect rect = {a.x, a.y, b.x - a.x, b.y - a.y};
-    
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_SET_RENDER_COLOR,
-                         &color);
-    
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_DRAW_FILL_RECT, 
-                         &rect);
-}
+    T e[3][3];
+};
 
 void GameUpdateAndRender(GameMemory *game_memory, 
                          Renderer *renderer, 
@@ -31,6 +23,22 @@ void GameUpdateAndRender(GameMemory *game_memory,
 {
     (void)game_input;
     (void)game_time;
+    
+    Matrix3x3<S32> mtrx = {
+        {
+            {110, 110, 0}, 
+            {120, 100,  0}, 
+            {130,  90,  0}
+        }
+    };
+    
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                         mtrx.e[0][0], mtrx.e[0][1], 
+                         mtrx.e[1][0], mtrx.e[1][1]);
+    
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_POINT, 
+                         mtrx.e[2][0], mtrx.e[2][1]);
+    
     
     GameState *game_state = (GameState*)game_memory->permanent_storage;
     if(game_state->initialize_flag == false)
@@ -43,9 +51,9 @@ void GameUpdateAndRender(GameMemory *game_memory,
         game_state->initialize_flag = true;
     }
     
-    globalv Vec2<F32> playerPos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f)};
-    globalv Vec2<F32> playerVel = {};
-    Vec2<F32> playerAcc = {};
+    globalv Vec2Dim<F32> playerPos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f)};
+    globalv Vec2Dim<F32> playerVel = {};
+    Vec2Dim<F32> playerAcc = {};
     F32 playerSpeed = 2500.0f;
     
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_S])
@@ -90,11 +98,16 @@ void GameUpdateAndRender(GameMemory *game_memory,
     // TODO(annad): ODE!!!
     // x''(t) = -N * x'(t), N = m * omega
     playerAcc += (playerVel * (-3.0f));
-    Vec2<F32> newPlayerPos = {};
+    Vec2Dim<F32> newPlayerPos = {};
     F32 dt = (((F32)game_time->dt / 1000.0f));
     
     newPlayerPos = playerPos + (((playerAcc * 0.5f * square(dt))) + (playerVel * dt));
     playerVel += playerAcc * dt; 
+    
+    S32 playerWidth = 50;
+    S32 playerHeight = 50;
+    S32 collidePointX = (S32)(newPlayerPos.x) + (playerWidth / 2);
+    S32 collidePointY = (S32)(newPlayerPos.y) + (playerHeight / 2);
     
     if(newPlayerPos.x > renderer->context.width - 50 || newPlayerPos.x < 0 ||
        newPlayerPos.y > renderer->context.height - 50 || newPlayerPos.y < 0)
@@ -106,7 +119,7 @@ void GameUpdateAndRender(GameMemory *game_memory,
         // I subtract this vector from the velocity vector to correct the 
         // direction.
         
-        Vec2<F32> wall;
+        Vec2Dim<F32> wall = {};
         
         if(newPlayerPos.x < 0)
         {
@@ -128,21 +141,30 @@ void GameUpdateAndRender(GameMemory *game_memory,
             wall = {0.0f, -1.0f};
         }
         
-        playerVel = playerVel - wall * (1.0f * playerVel.innerProduct(wall));
+        playerVel -= wall * (2.0f * playerVel.innerProduct(wall));
+        EvalPrint(playerVel.x);
+        EvalPrint(playerVel.y);
+        
         newPlayerPos = playerPos + (((playerAcc * 0.5f * square(dt))) + (playerVel * dt));
-        playerVel += playerAcc * dt; 
     }
     
-    DEBUG_drawWhiteLine(renderer, Vec2<S32>{0, 10}, Vec2<S32>{renderer->context.width, 10});
-    DEBUG_drawWhiteLine(renderer, Vec2<S32>{10, 0}, Vec2<S32>{10, renderer->context.height});
-    DEBUG_drawWhiteLine(renderer, Vec2<S32>{0, renderer->context.height - 10}, Vec2<S32>{renderer->context.width, renderer->context.height - 10});
-    DEBUG_drawWhiteLine(renderer, Vec2<S32>{renderer->context.width - 10, 0}, Vec2<S32>{renderer->context.width - 10, renderer->context.height});
-    
     playerPos = newPlayerPos;
+    
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                         0, 10, renderer->context.width, 10);
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                         10, 0, 10, renderer->context.height);
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                         0, renderer->context.height - 10, 
+                         renderer->context.width, renderer->context.height - 10);
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                         renderer->context.width - 10, 0,
+                         renderer->context.width - 10, renderer->context.height);
     
     // EvalPrintF(playerVel.getLength());
     
     RGBA_U8 color{0xff, 0x0, 0x0, 0xff};
+    RGBA_U8 color2{0x00, 0xaa, 0x0, 0xff};
     Renderer_pushCommand(renderer, 
                          RENDERER_COMMAND_SET_RENDER_COLOR,
                          &color);
@@ -150,9 +172,18 @@ void GameUpdateAndRender(GameMemory *game_memory,
     S32 playerPosXOnScreen = (S32)(playerPos.x);
     S32 playerPosYOnScreen = (S32)(playerPos.y);
     
-    Rect rect{playerPosXOnScreen, playerPosYOnScreen, 50, 50};
+    Rect rect{playerPosXOnScreen, playerPosYOnScreen, playerWidth, playerHeight};
+    Rect rect2{collidePointX, collidePointY, 3, 3};
     Renderer_pushCommand(renderer, 
                          RENDERER_COMMAND_DRAW_FILL_RECT, 
                          &rect);
+    
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_SET_RENDER_COLOR,
+                         &color2);
+    
+    Renderer_pushCommand(renderer, 
+                         RENDERER_COMMAND_DRAW_FILL_RECT, 
+                         &rect2);
 }
 

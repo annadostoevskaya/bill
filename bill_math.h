@@ -15,39 +15,45 @@ Description: <empty>
 #define MATH_TAU 6.28318530718f
 
 template <typename T>
-struct Vec2
+struct Point2Dim
+{
+    T x, y;
+};
+
+template <typename T>
+struct Vec2Dim
 {
     T x, y;
     
-    Vec2<T>& operator+=(const Vec2<T>& a)
+    Vec2Dim<T>& operator+=(const Vec2Dim<T>& a)
     {
         this->x += a.x;
         this->y += a.y;
         return *this;
     }
     
-    Vec2<T>& operator-=(const Vec2<T>& a)
+    Vec2Dim<T>& operator-=(const Vec2Dim<T>& a)
     {
         this->x -= a.x;
         this->y -= a.y;
         return *this;
     }
     
-    Vec2<T>& operator*=(const T& a)
+    Vec2Dim<T>& operator*=(const T& a)
     {
         this->x *= a;
         this->y *= a;
         return *this;
     }
     
-    Vec2<T>& operator/=(const T& a)
+    Vec2Dim<T>& operator/=(const T& a)
     {
         this->x /= a;
         this->y /= a;
         return *this;
     }
     
-    Vec2<T>& operator-(const T& a)
+    Vec2Dim<T>& operator-(const T& a)
     {
         this->x /= a;
         this->y /= a;
@@ -59,32 +65,32 @@ struct Vec2
         return (F64)sqrt((double)(this->y * this->y + this->x * this->x));
     }
     
-    inline T innerProduct(const Vec2<T>& a)
+    inline T innerProduct(const Vec2Dim<T>& a)
     {
         return this->x * a.x + this->y * a.y;
     }
 };
 
 template<typename T>
-Vec2<T> operator/(Vec2<T> a, const T b)
+Vec2Dim<T> operator/(Vec2Dim<T> a, const T b)
 {
     return (a /= b);
 }
 
 template<typename T>
-Vec2<T> operator*(Vec2<T> a, const T b)
+Vec2Dim<T> operator*(Vec2Dim<T> a, const T b)
 {
     return (a *= b);
 }
 
 template<typename T>
-Vec2<T> operator+(Vec2<T> a, const Vec2<T>& b)
+Vec2Dim<T> operator+(Vec2Dim<T> a, const Vec2Dim<T>& b)
 {
     return (a += b);
 }
 
 template<typename T>
-Vec2<T> operator-(Vec2<T> a, const Vec2<T>& b)
+Vec2Dim<T> operator-(Vec2Dim<T> a, const Vec2Dim<T>& b)
 {
     return (a -= b);
 }
@@ -115,3 +121,4 @@ F32 defaultArcTan(F32 x)
 }
 
 #endif //BILL_MATH_H
+
