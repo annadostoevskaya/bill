@@ -27,12 +27,7 @@ void Renderer_drawFillRect(Renderer *renderer, Rect *rect)
     args_ptr[3] = rect->h;
     renderer_commands->peak_ptr += sizeof(Rect);
     
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[PUSH] ");
-    EvalPrint(renderer_commands->peak_ptr);
-# endif
-#endif
+    LogRendererPush("RENDERER_COMMAND_DRAW_FILL_RECT", renderer_commands->peak_ptr);
 }
 
 void Renderer_setRendererDrawColor(Renderer *renderer, RGBA_U8 *color)
@@ -53,12 +48,7 @@ void Renderer_setRendererDrawColor(Renderer *renderer, RGBA_U8 *color)
     args_ptr[3] = color->a;
     renderer_commands->peak_ptr += sizeof(RGBA_U8);
     
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[PUSH] ");
-    EvalPrint(renderer_commands->peak_ptr);
-# endif
-#endif
+    LogRendererPush("RENDERER_COMMAND_SET_RENDER_COLOR", renderer_commands->peak_ptr);
 }
 
 void Renderer_drawPoint(Renderer *renderer, S32 *x, S32 *y)
@@ -77,12 +67,7 @@ void Renderer_drawPoint(Renderer *renderer, S32 *x, S32 *y)
     args_ptr[1] = *y;
     renderer_commands->peak_ptr += (2 * sizeof(S32));
     
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[PUSH] ");
-    EvalPrint(renderer_commands->peak_ptr);
-# endif
-#endif
+    LogRendererPush("RENDERER_COMMAND_DRAW_POINT", renderer_commands->peak_ptr);
 }
 
 void Renderer_drawLine(Renderer *renderer, 
@@ -104,12 +89,27 @@ void Renderer_drawLine(Renderer *renderer,
     args_ptr[3] = *y2;
     renderer_commands->peak_ptr += (4 * sizeof(S32));
     
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[PUSH] ");
-    EvalPrint(renderer_commands->peak_ptr);
-# endif
-#endif
+    LogRendererPush("RENDERER_COMMAND_DRAW_LINE", renderer_commands->peak_ptr);
+}
+
+void Renderer_drawCircle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
+{
+    RendererCommands *renderer_commands = &renderer->commands;
+    // NOTE(annad): Out of memory!
+    Assert(renderer_commands->size > renderer_commands->peak_ptr + 
+           (3 * sizeof(S32)) +
+           sizeof(Renderer_Command));
+    
+    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_DRAW_CIRCLE);
+    renderer_commands->peak_ptr += sizeof(Renderer_Command);
+    
+    S32 *args_ptr = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    args_ptr[0] = *x;
+    args_ptr[1] = *y;
+    args_ptr[2] = *r;
+    renderer_commands->peak_ptr += (3 * sizeof(S32));
+    
+    LogRendererPush("RENDERER_COMMAND_DRAW_CIRCLE", renderer_commands->peak_ptr);
 }
 
 void Renderer_pushCommand(Renderer *renderer, 
@@ -149,6 +149,20 @@ void Renderer_pushCommand(Renderer *renderer,
             S32 x2 = va_arg(argptr, S32);
             S32 y2 = va_arg(argptr, S32);
             Renderer_drawLine(renderer, &x1, &y1, &x2, &y2);
+            break;
+        }
+        
+        case RENDERER_COMMAND_DRAW_FILL_CIRCLE:
+        {
+            
+        }
+        
+        case RENDERER_COMMAND_DRAW_CIRCLE:
+        {
+            S32 x = va_arg(argptr, S32);
+            S32 y = va_arg(argptr, S32);
+            S32 r = va_arg(argptr, S32);
+            Renderer_drawCircle(renderer, &x, &y, &r);
             break;
         }
         

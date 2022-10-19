@@ -26,12 +26,7 @@ void Renderer_SDL_drawFillRect(SDL_Renderer *sdl_renderer, Renderer *renderer)
     SDL_Rect rect = {x, y, w, h};
     SDL_RenderFillRect(sdl_renderer, &rect);
     
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[POP] ");
-    EvalPrint(renderer_commands->queue_ptr);
-# endif 
-#endif
+    LogRendererPop("RENDERER_COMMAND_DRAW_FILL_RECT", renderer_commands->queue_ptr);
 }
 
 void Renderer_SDL_setRendererDrawColor(SDL_Renderer *sdl_renderer, Renderer *renderer)
@@ -48,12 +43,8 @@ void Renderer_SDL_setRendererDrawColor(SDL_Renderer *sdl_renderer, Renderer *ren
     
     renderer_commands->queue_ptr += (sizeof(Uint8) * 4);
     SDL_SetRenderDrawColor(sdl_renderer, r, g, b, a);
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[POP] ");
-    EvalPrint(renderer_commands->queue_ptr);
-# endif 
-#endif
+    
+    LogRendererPop("RENDERER_COMMAND_SET_RENDER_COLOR", renderer_commands->queue_ptr);
 }
 
 void Renderer_SDL_drawPoint(SDL_Renderer *sdl_renderer, Renderer *renderer)
@@ -69,12 +60,7 @@ void Renderer_SDL_drawPoint(SDL_Renderer *sdl_renderer, Renderer *renderer)
     renderer_commands->queue_ptr += (2 * sizeof(S32));
     SDL_RenderDrawPoint(sdl_renderer, x, y);
     
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[POP] ");
-    EvalPrint(renderer_commands->queue_ptr);
-# endif 
-#endif
+    LogRendererPop("RENDERER_COMMAND_DRAW_POINT", renderer_commands->queue_ptr);
 }
 
 void Renderer_SDL_drawLine(SDL_Renderer *sdl_renderer, Renderer *renderer)
@@ -92,12 +78,64 @@ void Renderer_SDL_drawLine(SDL_Renderer *sdl_renderer, Renderer *renderer)
     renderer_commands->queue_ptr += (4 * sizeof(S32));
     SDL_RenderDrawLine(sdl_renderer, x1, y1, x2, y2);
     
-#if defined(_BILL_RENDERER_DEBUG_MODE)
-# if defined(_DEVELOPER_MODE)
-    printf("[POP] ");
-    EvalPrint(renderer_commands->queue_ptr);
-# endif 
-#endif
+    LogRendererPop("RENDERER_COMMAND_DRAW_LINE", renderer_commands->queue_ptr);
+}
+
+void Renderer_SDL_drawCircle(SDL_Renderer *sdl_renderer, Renderer *renderer)
+{
+    RendererCommands *renderer_commands = &renderer->commands;
+    // NOTE(annad): Out of executable memory side!
+    Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (3 * sizeof(S32)));
+    
+    S32 *args_ptr = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    S32 centreX = args_ptr[0];
+    S32 centreY = args_ptr[1];
+    S32 r = args_ptr[2];
+    
+    //
+    // Midpoint Circle Algorithm.
+    //
+    
+    S32 d = 2 * r;
+    S32 x = (r - 1);
+    S32 y = 0;
+    S32 tx = 1; 
+    S32 ty = 1;
+    S32 err = (tx - d);
+    
+    while(x >= y)
+    {
+        SDL_RenderDrawPoint(sdl_renderer, centreX + x, centreY - y);
+        SDL_RenderDrawPoint(sdl_renderer, centreX + x, centreY + y);
+        SDL_RenderDrawPoint(sdl_renderer, centreX - x, centreY - y);
+        SDL_RenderDrawPoint(sdl_renderer, centreX - x, centreY + y);
+        SDL_RenderDrawPoint(sdl_renderer, centreX + y, centreY - x);
+        SDL_RenderDrawPoint(sdl_renderer, centreX + y, centreY + x);
+        SDL_RenderDrawPoint(sdl_renderer, centreX - y, centreY - x);
+        SDL_RenderDrawPoint(sdl_renderer, centreX - y, centreY + x);
+        
+        if(err <= 0)
+        {
+            ++y; 
+            err += ty;
+            ty += 2;
+        }
+        
+        if(err > 0)
+        {
+            --x;
+            tx += 2;
+            err += (tx - d);
+        }
+    }
+    
+    //
+    // Midpoint Circle Algorithm.
+    //
+    
+    renderer_commands->queue_ptr += (3 * sizeof(S32));
+    
+    LogRendererPop("RENDERER_COMMAND_DRAW_CIRCLE", renderer_commands->queue_ptr);
 }
 
 void Renderer_SDL_execute(SDL_Renderer *sdl_renderer, 
@@ -135,6 +173,17 @@ void Renderer_SDL_execute(SDL_Renderer *sdl_renderer,
             case RENDERER_COMMAND_DRAW_LINE:
             {
                 Renderer_SDL_drawLine(sdl_renderer, renderer);
+                break;
+            }
+            
+            case RENDERER_COMMAND_DRAW_FILL_CIRCLE:
+            {
+                
+            }
+            
+            case RENDERER_COMMAND_DRAW_CIRCLE:
+            {
+                Renderer_SDL_drawCircle(sdl_renderer, renderer);
                 break;
             }
             

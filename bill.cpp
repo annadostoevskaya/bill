@@ -95,7 +95,9 @@ void GameUpdateAndRender(GameMemory *game_memory,
     // v0 += at;
     playerAcc *= playerSpeed; // m/s^2
     
-    // TODO(annad): ODE!!!
+    // TODO(annad): ODE!!
+    // TODO(annad): We need to find coef. of 
+    // friction of the billiard ball on the table.
     // x''(t) = -N * x'(t), N = m * omega
     playerAcc += (playerVel * (-3.0f));
     Vec2Dim<F32> newPlayerPos = {};
@@ -104,10 +106,10 @@ void GameUpdateAndRender(GameMemory *game_memory,
     newPlayerPos = playerPos + (((playerAcc * 0.5f * square(dt))) + (playerVel * dt));
     playerVel += playerAcc * dt; 
     
-    S32 playerWidth = 50;
-    S32 playerHeight = 50;
-    S32 collidePointX = (S32)(newPlayerPos.x) + (playerWidth / 2);
-    S32 collidePointY = (S32)(newPlayerPos.y) + (playerHeight / 2);
+    // S32 playerWidth = 50;
+    // S32 playerHeight = 50;
+    // S32 collidePointX = (S32)(newPlayerPos.x) + (playerWidth / 2);
+    // S32 collidePointY = (S32)(newPlayerPos.y) + (playerHeight / 2);
     
     if(newPlayerPos.x > renderer->context.width - 50 || newPlayerPos.x < 0 ||
        newPlayerPos.y > renderer->context.height - 50 || newPlayerPos.y < 0)
@@ -169,21 +171,7 @@ void GameUpdateAndRender(GameMemory *game_memory,
                          RENDERER_COMMAND_SET_RENDER_COLOR,
                          &color);
     
-    S32 playerPosXOnScreen = (S32)(playerPos.x);
-    S32 playerPosYOnScreen = (S32)(playerPos.y);
-    
-    Rect rect{playerPosXOnScreen, playerPosYOnScreen, playerWidth, playerHeight};
-    Rect rect2{collidePointX, collidePointY, 3, 3};
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_DRAW_FILL_RECT, 
-                         &rect);
-    
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_SET_RENDER_COLOR,
-                         &color2);
-    
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_DRAW_FILL_RECT, 
-                         &rect2);
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
+                         (S32)playerPos.x, (S32)playerPos.y, 50);
 }
 
