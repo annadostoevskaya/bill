@@ -12,7 +12,8 @@ Description: <empty>
 typedef struct GameState
 {
     MemArena memory_arena;
-    B32 initialize_flag;
+    B16 initialize_flag;
+    B16 debugPauseGame;
 } GameState;
 
 #endif //BILL_H

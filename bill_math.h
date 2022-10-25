@@ -9,10 +9,8 @@ Description: <empty>
 #ifndef BILL_MATH_H
 #define BILL_MATH_H
 
+#include "base_types.h"
 #include <math.h>
-
-#define MATH_PI 3.14159265359f
-#define MATH_TAU 6.28318530718f
 
 template <typename T>
 struct Point2Dim
@@ -102,7 +100,12 @@ F32 square(F32 x)
 
 F32 turnCos(F32 x)
 {
-    return (F32)cos(MATH_TAU * x);
+    return (F32)cos(TAU_F32 * x);
+}
+
+F32 turnSin(F32 x)
+{
+    return (F32)sin(TAU_F32 * x);
 }
 
 F32 defaultCos(F32 x)
@@ -115,9 +118,42 @@ F32 defaultSin(F32 x)
     return (F32)sin(x);
 }
 
+F32 defaultArcSin(F32 x)
+{
+    return (F32)(asin(x));
+}
+
 F32 defaultArcTan(F32 x)
 {
     return (F32)atan(x);
+}
+
+union F32_S32
+{
+    F32 f32;
+    S32 s32;
+};
+
+F32 f32Abs(F32 x)
+{
+    F32_S32 temp;
+    temp.f32 = x;
+    
+    if(isLittleEndian())
+    {
+        temp.s32 = temp.s32 & 0x7fffffff;
+    }
+    else
+    {
+        temp.s32 = temp.s32 & 0xffffff7f;
+    }
+    
+    return temp.f32;
+}
+
+S32 f32Round(F32 x)
+{
+    return lround(x);
 }
 
 #endif //BILL_MATH_H

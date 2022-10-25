@@ -107,6 +107,8 @@ typedef void VoidFunc(void);
 #define MAX_U64 ((U64)(0xffffffffffffffffllu))
 #define PI_F32  ((F32)(3.14159265359f))
 #define PI_F64  ((F64)(3.14159265359f))
+#define TAU_F32  ((F32)(6.28318530718f))
+#define TAU_F64  ((F64)(6.28318530718f))
 
 ////////////////////////////////
 // NOTE(annad): base_marco_helpers.h
@@ -168,7 +170,7 @@ Min(sizeof(*(d)), sizeof(*(s))) * (c))
 #define EvalPrintLL(x)    printf("%s = %lld\n",    #x, (S64)(x))
 #define EvalPrintU(x)     printf("%s = %u\n",      #x, (U32)(x))
 #define EvalPrintULL(x)   printf("%s = %llu\n",    #x, (U64)(x))
-#define EvalPrintF(x)     printf("%s = %e [%f]\n", #x, (F64)(x), (F64)(x))
+#define EvalPrintF(x)     printf("%s = %f [%e]\n", #x, (F64)(x), (F64)(x))
 #define EvalPrintB(x)     printf("%s = %s\n",      #x, (char*)((x) ? "true" : "false"))
 #define EvalPrintS(x)     printf("%s = %s\n",      #x, (char*)(x))
 #define EvalPrintAddr(x)  printf("%s = 0x%p\n",    #x, (void*)(&x))

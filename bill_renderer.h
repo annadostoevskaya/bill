@@ -13,7 +13,6 @@ Description: <empty>
 
 // NOTE(annad): Define it for print PUSH & POP operations.
 // #define _BILL_RENDERER_DEBUG_MODE 1
-#define _BILL_RENDERER_DEBUG_MODE 1
 
 // TODO(annad): beautify output, example:
 // [PUSH] COMMAND_NAME --------------- 4
@@ -47,7 +46,7 @@ enum Renderer_Command
     RENDERER_COMMAND_COUNT,
 };
 
-#define RENDERER_COMMAND_BUFFER_SIZE BYTE(0xff)
+#define RENDERER_COMMAND_BUFFER_SIZE BYTE(2 * 0xff)
 
 typedef struct RendererCommands
 {
