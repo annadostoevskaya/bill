@@ -141,7 +141,7 @@ void Renderer_SDL_drawCircle(SDL_Renderer *sdl_renderer, Renderer *renderer)
 void Renderer_SDL_execute(SDL_Renderer *sdl_renderer, 
                           Renderer *renderer)
 {
-    RendererCommands *renderer_commands = &renderer->commands;
+    RendererCommands *renderer_commands = &(renderer->commands);
     renderer_commands->queue_ptr = 0;
     while(renderer_commands->queue_ptr < renderer_commands->peak_ptr)
     {

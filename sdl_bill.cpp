@@ -52,18 +52,10 @@ typedef struct RGBA_U8
 
 typedef struct Rect
 {
-    union
-    {
-        struct 
-        {
-            S32 x;
-            S32 y;
-            S32 w;
-            S32 h;
-        };
-        
-        S32 e[4];
-    };
+    S32 x;
+    S32 y;
+    S32 w;
+    S32 h;
 } Rect;
 
 #include "sdl_renderer.cpp"

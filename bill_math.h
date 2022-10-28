@@ -123,6 +123,11 @@ F32 defaultArcSin(F32 x)
     return (F32)(asin(x));
 }
 
+F32 defaultArcCos(F32 x)
+{
+    return (F32)(acos(x));
+}
+
 F32 defaultArcTan(F32 x)
 {
     return (F32)atan(x);

@@ -120,102 +120,20 @@ void GameUpdateAndRender(GameMemory *game_memory,
         ballNumber2Vel += ballNumber2Acc * dt;
         
         Vec2Dim<F32> temp = newPlayerPos - ballNumber2Pos;
-        if(temp.getLength() <= (2.0f * (F32)constBallRadius))
+        if(temp.getLength() < (2.0f * (F32)constBallRadius))
         {
-            printf("[ COLLIDE ]\n");
+            Vec2Dim<F32> S = ballNumber2Pos - playerPos;
+            F32 cos = playerVel.innerProduct(S) / (S.getLength() * playerVel.getLength());
+            F32 v = playerVel.getLength() * cos;
+            F32 s = S.getLength() - 2.0f * (F32)constBallRadius;
+            // F32 a = 0.5f * playerAcc.getLength();
+            // F32 t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a);
+            F32 t = s / v;
             
-            F64 s = (playerPos - ballNumber2Pos).getLength() - (2 * constBallRadius);
-            F64 v = playerVel.getLength();
-            F64 t = s / v;
+            newPlayerPos = playerPos + (playerVel * t);
+            // newPlayerVel = playerVel + playerAcc * t;
             
-            EvalPrintF(s);
-            EvalPrintF(v);
-            EvalPrintF(t);
-            
-            newPlayerPos = playerPos + playerVel * t; // ik
-            
-            Vec2Dim<F32> tempPos = newPlayerPos;
-            temp = tempPos - ballNumber2Pos;
-            S32 collideTryes = 0;
-            while((temp.getLength() > (2.0f * (F32)constBallRadius)) && (collideTryes < 4))
-            {
-                printf("[ DID'T COLLIDE ]\n");
-                
-                EvalPrintF(s);
-                EvalPrintF(v);
-                EvalPrintF(t);
-                
-                s = (tempPos - ballNumber2Pos).getLength() - (2 * constBallRadius);
-                v = playerVel.getLength();
-                t = s / v;
-                
-                newPlayerPos = tempPos + playerVel * t;
-                
-                tempPos = newPlayerPos;
-                temp = tempPos - ballNumber2Pos;
-                collideTryes++;
-            }
-            
-            if((temp.getLength() > (2.0f * (F32)constBallRadius)))
-            {
-                printf("[ DID'T COLLIDE ]\n");
-            }
-            
-            // find new VELOCITY and new DIRECTION!
-            // the distance between the balls on the projection 
-            // to the normal of the vector between the balls.
-            if(f32Abs(playerVel.x) >= f32Abs(playerVel.y))
-            {
-                deltaD = (newPlayerPos.y - ballNumber2Pos.y);
-            }
-            else
-            {
-                deltaD = (newPlayerPos.x - ballNumber2Pos.x);
-            }
-            
-            if(deltaD == 0.0f)
-            {
-                ballNumber2Vel = newPlayerVel;
-                ballNumber2Acc = playerAcc;
-                newPlayerVel = {0.0f, 0.0f};
-            }
-            else
-            {
-                F32 angleInRadians = f32Abs(deltaD) / ((F32)2*constBallRadius);
-                F32 angleTurn = ((angleInRadians + PI_F32 / 2.0f) / PI_F32);
-                EvalPrintF(deltaD);
-                EvalPrintF(angleTurn);
-                
-                F32 angleDegrees = angleTurn * 180.0f - 180.0f;
-                EvalPrintF(angleDegrees);
-                
-                Vec2Dim<F32> delta = (newPlayerPos - ballNumber2Pos);
-                Vec2Dim<F32> directionBall = {f32Abs(delta.x) / f32Abs(delta.getLength()), 
-                    f32Abs(delta.y) / f32Abs(delta.getLength())};
-                
-                F32 ballLinerarCoefficient = (f32Abs(deltaD) / (F32)constBallRadius);
-                ballNumber2Vel = directionBall * ballLinerarCoefficient * playerVel.getLength();
-                ballNumber2Acc = playerAcc;
-                
-                //              |x|
-                //              |y|
-                // | cos0 sin0|  x*cos0 + x*sin0
-                // |-sin0 cos0| -y*sin0 + y*cos0
-                
-                Vec2Dim<F32> playerDirection = {
-                    directionBall.x, -directionBall.y
-                        // directionBall.x * turnCos(angleTurn) + directionBall.x * turnSin(angleTurn),
-                        // directionBall.y * (-turnSin(angleTurn)) + directionBall.y * turnCos(angleTurn),
-                };
-                
-                DEBUG_playerDirection = playerDirection;
-                DEBUG_ballDirection = directionBall;
-                
-                F32 playerLinerarCoefficient = (1.0f - ballLinerarCoefficient);
-                newPlayerVel = playerDirection * playerLinerarCoefficient * playerVel.getLength();
-                newPlayerVel += (playerAcc * dt);
-            }
-            // game_state->debugPauseGame = true;
+            game_state->debugPauseGame = true;
         }
         
         playerVel = newPlayerVel;
@@ -297,7 +215,6 @@ void GameUpdateAndRender(GameMemory *game_memory,
                          (S32)(ballNumber2Pos.x + ballNumber2Vel.x), 
                          (S32)(ballNumber2Pos.y + ballNumber2Vel.y));
     
-    
     RGBA_U8 color5{20, 20, 255, 0xff};
     Renderer_pushCommand(renderer, 
                          RENDERER_COMMAND_SET_RENDER_COLOR,
@@ -309,7 +226,7 @@ void GameUpdateAndRender(GameMemory *game_memory,
                          (S32)(ballNumber2Pos.x + 100 * DEBUG_ballDirection.x), 
                          (S32)(ballNumber2Pos.y + 100 * DEBUG_ballDirection.y));
     
-    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
+    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE,
                          (S32)playerPos.x, 
                          (S32)playerPos.y, 
                          (S32)(playerPos.x + 100 * DEBUG_playerDirection.x), 
@@ -356,9 +273,7 @@ void GameUpdateAndRender(GameMemory *game_memory,
                                  (S32)playerPos.y, 
                                  (S32)ballNumber2Pos.x + (S32)(deltaD), 
                                  (S32)ballNumber2Pos.y);
-            
         }
-        
         
         Renderer_pushCommand(renderer, 
                              RENDERER_COMMAND_SET_RENDER_COLOR,
