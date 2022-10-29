@@ -54,9 +54,9 @@ void GameUpdateAndRender(GameMemory *game_memory,
     {
         game_state->debugPauseGame = false;
         ballNumber2Pos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f) - 150.0f};
-        ballNumber2Vel = {};
         playerPos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f)};
         playerVel = {};
+        ballNumber2Vel = {};
     }
     
     if(!game_state->debugPauseGame)
@@ -84,12 +84,6 @@ void GameUpdateAndRender(GameMemory *game_memory,
         if((playerAcc.x != 0.0f) && (playerAcc.y != 0.0f))
         {
             playerAcc *= 0.70710678118f;
-        }
-        
-        if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
-        {
-            game_state->debugPauseGame = false;
-            playerPos = {};
         }
         
         // NOTE(annad):
@@ -122,18 +116,44 @@ void GameUpdateAndRender(GameMemory *game_memory,
         Vec2Dim<F32> temp = newPlayerPos - ballNumber2Pos;
         if(temp.getLength() < (2.0f * (F32)constBallRadius))
         {
+            // TODO(annad): Use t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a)!!!
+            // NOTE(annad): Recalc position!
             Vec2Dim<F32> S = ballNumber2Pos - playerPos;
             F32 cos = playerVel.innerProduct(S) / (S.getLength() * playerVel.getLength());
             F32 v = playerVel.getLength() * cos;
             F32 s = S.getLength() - 2.0f * (F32)constBallRadius;
-            // F32 a = 0.5f * playerAcc.getLength();
+            F32 a = 0.5f * playerAcc.getLength();
             // F32 t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a);
+            F32 D = (F32)sqrt(square(v) - (4*a*(s)));
+            F32 t2 = f32Abs((-v + D) / (2.0f * a)); (void)t2;
             F32 t = s / v;
+            // __debugbreak();
+            // newPlayerPos = playerPos + (playerVel * t);
             
-            newPlayerPos = playerPos + (playerVel * t);
+            newPlayerPos = playerPos + (((playerAcc * 0.5f * square(t))) + 
+                                        (playerVel * t));
+            newPlayerVel = playerVel + playerAcc * t;
+            
             // newPlayerVel = playerVel + playerAcc * t;
             
-            game_state->debugPauseGame = true;
+            // NOTE(annad): Recalc of Velocity!
+            // __debugbreak();
+            Vec2Dim<F32> directV1 = {S.x / S.getLength(), S.y / S.getLength()};
+            Vec2Dim<F32> directV2 = {directV1.y, -directV1.x};
+            
+            DEBUG_ballDirection = directV1;
+            DEBUG_playerDirection = directV2;
+            
+            F32 cos_v1 = newPlayerVel.innerProduct(directV1) / (newPlayerVel.getLength() * directV1.getLength());
+            F32 v1 = newPlayerVel.getLength() * cos_v1;
+            
+            F32 cos_v2 = newPlayerVel.innerProduct(directV2) / (directV2.getLength() * newPlayerVel.getLength());
+            F32 v2 = newPlayerVel.getLength() * cos_v2;
+            
+            ballNumber2Vel = directV1 * v1;
+            newPlayerVel = (directV2) * v2;
+            
+            // game_state->debugPauseGame = true;
         }
         
         playerVel = newPlayerVel;
@@ -175,6 +195,7 @@ void GameUpdateAndRender(GameMemory *game_memory,
                         
                         newPlayerPos = playerPos + (((playerAcc * 0.5f * square(dt))) + (playerVel * dt));
                          */
+            
         }
         playerPos = newPlayerPos;
     }
