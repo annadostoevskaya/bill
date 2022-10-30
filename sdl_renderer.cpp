@@ -8,14 +8,14 @@ Description: <empty>
 
 #include "bill_renderer.h"
 
-void Renderer_SDL_drawFillRect(SDL_Renderer *sdl_renderer, Renderer *renderer)
+void renderer_sdl_draw_fill_rect(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     
     // NOTE(annad): Out of executable memory!
     Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (sizeof(S32) * 4));
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_queue_ptr(renderer_commands));
     S32 x = args_ptr[0];
     S32 y = args_ptr[1];
     S32 w = args_ptr[2];
@@ -29,13 +29,13 @@ void Renderer_SDL_drawFillRect(SDL_Renderer *sdl_renderer, Renderer *renderer)
     LogRendererPop("RENDERER_COMMAND_DRAW_FILL_RECT", renderer_commands->queue_ptr);
 }
 
-void Renderer_SDL_setRendererDrawColor(SDL_Renderer *sdl_renderer, Renderer *renderer)
+void renderer_sdl_set_renderer_draw_color(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of executable memory side!
     Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (sizeof(Uint8) * 4));
     
-    Uint8 *args_ptr = (Uint8*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    Uint8 *args_ptr = (Uint8*)(renderer_commands_get_current_queue_ptr(renderer_commands));
     Uint8 r = args_ptr[0];
     Uint8 g = args_ptr[1];
     Uint8 b = args_ptr[2];
@@ -47,13 +47,13 @@ void Renderer_SDL_setRendererDrawColor(SDL_Renderer *sdl_renderer, Renderer *ren
     LogRendererPop("RENDERER_COMMAND_SET_RENDER_COLOR", renderer_commands->queue_ptr);
 }
 
-void Renderer_SDL_drawPoint(SDL_Renderer *sdl_renderer, Renderer *renderer)
+void renderer_sdl_draw_point(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of executable memory side!
     Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (2 * sizeof(S32)));
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_queue_ptr(renderer_commands));
     S32 x = args_ptr[0];
     S32 y = args_ptr[1];
     
@@ -63,13 +63,13 @@ void Renderer_SDL_drawPoint(SDL_Renderer *sdl_renderer, Renderer *renderer)
     LogRendererPop("RENDERER_COMMAND_DRAW_POINT", renderer_commands->queue_ptr);
 }
 
-void Renderer_SDL_drawLine(SDL_Renderer *sdl_renderer, Renderer *renderer)
+void renderer_sdl_draw_line(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of executable memory side!
     Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (4 * sizeof(S32)));
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_queue_ptr(renderer_commands));
     S32 x1 = args_ptr[0];
     S32 y1 = args_ptr[1];
     S32 x2 = args_ptr[2];
@@ -81,13 +81,13 @@ void Renderer_SDL_drawLine(SDL_Renderer *sdl_renderer, Renderer *renderer)
     LogRendererPop("RENDERER_COMMAND_DRAW_LINE", renderer_commands->queue_ptr);
 }
 
-void Renderer_SDL_drawCircle(SDL_Renderer *sdl_renderer, Renderer *renderer)
+void renderer_sdl_draw_circle(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of executable memory side!
     Assert(renderer_commands->peak_ptr >= renderer_commands->queue_ptr + (3 * sizeof(S32)));
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_queue_ptr(renderer_commands));
     S32 centreX = args_ptr[0];
     S32 centreY = args_ptr[1];
     S32 r = args_ptr[2];
@@ -138,7 +138,7 @@ void Renderer_SDL_drawCircle(SDL_Renderer *sdl_renderer, Renderer *renderer)
     LogRendererPop("RENDERER_COMMAND_DRAW_CIRCLE", renderer_commands->queue_ptr);
 }
 
-void Renderer_SDL_execute(SDL_Renderer *sdl_renderer, 
+void renderer_sdl_execute(SDL_Renderer *sdl_renderer, 
                           Renderer *renderer)
 {
     RendererCommands *renderer_commands = &(renderer->commands);
@@ -148,31 +148,31 @@ void Renderer_SDL_execute(SDL_Renderer *sdl_renderer,
         // NOTE(annad): Out of executable side
         Assert(renderer_commands->peak_ptr > renderer_commands->queue_ptr + sizeof(Renderer_Command));
         
-        S32 *p_command = (S32*)(RendererCommands_getCurrentQueuePtr(renderer_commands));
+        S32 *p_command = (S32*)(renderer_commands_get_current_queue_ptr(renderer_commands));
         renderer_commands->queue_ptr += sizeof(Renderer_Command);
         switch(*p_command)
         {
             case RENDERER_COMMAND_DRAW_FILL_RECT:
             {
-                Renderer_SDL_drawFillRect(sdl_renderer, renderer);
+                renderer_sdl_draw_fill_rect(sdl_renderer, renderer);
                 break;
             }
             
             case RENDERER_COMMAND_SET_RENDER_COLOR:
             {
-                Renderer_SDL_setRendererDrawColor(sdl_renderer, renderer);
+                renderer_sdl_set_renderer_draw_color(sdl_renderer, renderer);
                 break;
             }
             
             case RENDERER_COMMAND_DRAW_POINT:
             {
-                Renderer_SDL_drawPoint(sdl_renderer, renderer);
+                renderer_sdl_draw_point(sdl_renderer, renderer);
                 break;
             }
             
             case RENDERER_COMMAND_DRAW_LINE:
             {
-                Renderer_SDL_drawLine(sdl_renderer, renderer);
+                renderer_sdl_draw_line(sdl_renderer, renderer);
                 break;
             }
             
@@ -183,7 +183,7 @@ void Renderer_SDL_execute(SDL_Renderer *sdl_renderer,
             
             case RENDERER_COMMAND_DRAW_CIRCLE:
             {
-                Renderer_SDL_drawCircle(sdl_renderer, renderer);
+                renderer_sdl_draw_circle(sdl_renderer, renderer);
                 break;
             }
             

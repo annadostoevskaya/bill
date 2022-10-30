@@ -418,8 +418,8 @@ NOTE(annad):
                  */
 # endif // _DEV_IMGUI_MODE
 #endif 
-        GameUpdateAndRender(&game_memory, &renderer, &game_input, &game_time);
-        Renderer_SDL_execute(sdl_renderer, &renderer);
+        game_update_and_render(&game_memory, &renderer, &game_input, &game_time);
+        renderer_sdl_execute(sdl_renderer, &renderer);
         
 #if defined(_DEVELOPER_MODE)
 # if defined(_DEV_IMGUI_MODE)

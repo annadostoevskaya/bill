@@ -86,3 +86,4 @@ typedef struct GameInput
 } GameInput;
 
 #endif // BILL_PLATFORM_H
+

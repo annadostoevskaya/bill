@@ -67,19 +67,20 @@ typedef struct Renderer
     RendererContext context;
 } Renderer;
 
-inline U8 *RendererCommands_getCurrentPeakPtr(RendererCommands *renderer_commands)
+inline U8 *renderer_commands_get_current_peak_ptr(RendererCommands *renderer_commands)
 {
     return (((U8*)renderer_commands->commands) + renderer_commands->peak_ptr);
 }
 
-inline U8 *RendererCommands_getCurrentQueuePtr(RendererCommands *renderer_commands)
+inline U8 *renderer_commands_get_current_queue_ptr(RendererCommands *renderer_commands)
 {
     return (((U8*)renderer_commands->commands) + renderer_commands->queue_ptr);
 }
 
-inline void RendererCommands_insertCommandInQueue(RendererCommands *renderer_commands, Renderer_Command command)
+inline void renderer_commands_insert_command_in_queue(RendererCommands *renderer_commands, 
+                                                      Renderer_Command command)
 {
-    S32 *p_commands = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    S32 *p_commands = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
     *p_commands = command;
 }
 

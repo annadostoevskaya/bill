@@ -13,7 +13,7 @@ typedef struct GameState
 {
     MemArena memory_arena;
     B16 initialize_flag;
-    B16 debugPauseGame;
+    B16 DEBUG_pause_game;
 } GameState;
 
 #endif //BILL_H

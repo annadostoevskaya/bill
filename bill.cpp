@@ -10,16 +10,10 @@ Description: <empty>
 #include "bill_math.h"
 #include "bill.h"
 
-typedef struct Circle
-{
-    S32 r;
-    Point2Dim<S32> pos;
-} Circle;
-
-void GameUpdateAndRender(GameMemory *game_memory, 
-                         Renderer *renderer, 
-                         GameInput *game_input, 
-                         GameTime *game_time)
+void game_update_and_render(GameMemory *game_memory, 
+                            Renderer *renderer, 
+                            GameInput *game_input, 
+                            GameTime *game_time)
 {
     (void)game_input;
     (void)game_time;
@@ -33,7 +27,7 @@ void GameUpdateAndRender(GameMemory *game_memory,
         memory_arena->pos = 0;
         
         game_state->initialize_flag = true;
-        game_state->debugPauseGame = false;
+        game_state->DEBUG_pause_game = false;
     }
     
     localv Vec2Dim<F32> ballNumber2Pos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f) - 150};
@@ -52,14 +46,14 @@ void GameUpdateAndRender(GameMemory *game_memory,
     
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
-        game_state->debugPauseGame = false;
+        game_state->DEBUG_pause_game = false;
         ballNumber2Pos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f) - 150.0f};
         playerPos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f)};
         playerVel = {};
         ballNumber2Vel = {};
     }
     
-    if(!game_state->debugPauseGame)
+    if(!game_state->DEBUG_pause_game)
     {
         if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_S])
         {
@@ -153,7 +147,7 @@ void GameUpdateAndRender(GameMemory *game_memory,
             ballNumber2Vel = directV1 * v1;
             newPlayerVel = (directV2) * v2;
             
-            // game_state->debugPauseGame = true;
+            // game_state->DEBUG_pause_game = true;
         }
         
         playerVel = newPlayerVel;
@@ -201,116 +195,116 @@ void GameUpdateAndRender(GameMemory *game_memory,
     }
     
     RGBA_U8 color{0xff, 0x0, 0x0, 0xff};
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_SET_RENDER_COLOR,
-                         &color);
+    renderer_push_command(renderer, 
+                          RENDERER_COMMAND_SET_RENDER_COLOR,
+                          &color);
     
-    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
-                         (S32)f32Round(playerPos.x), 
-                         (S32)f32Round(playerPos.y), 
-                         constBallRadius);
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
+                          (S32)f32Round(playerPos.x), 
+                          (S32)f32Round(playerPos.y), 
+                          constBallRadius);
     
     RGBA_U8 color2{0x00, 0xff, 0x0, 0xff};
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_SET_RENDER_COLOR,
-                         &color2);
-    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
-                         (S32)ballNumber2Pos.x, 
-                         (S32)ballNumber2Pos.y, 
-                         constBallRadius);
+    renderer_push_command(renderer, 
+                          RENDERER_COMMAND_SET_RENDER_COLOR,
+                          &color2);
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
+                          (S32)ballNumber2Pos.x, 
+                          (S32)ballNumber2Pos.y, 
+                          constBallRadius);
     
     RGBA_U8 color3{100, 50, 130, 0xff};
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_SET_RENDER_COLOR,
-                         &color3);
+    renderer_push_command(renderer, 
+                          RENDERER_COMMAND_SET_RENDER_COLOR,
+                          &color3);
     
-    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                         (S32)playerPos.x, 
-                         (S32)playerPos.y, 
-                         (S32)(playerPos.x + playerVel.x), 
-                         (S32)(playerPos.y + playerVel.y));
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                          (S32)playerPos.x, 
+                          (S32)playerPos.y, 
+                          (S32)(playerPos.x + playerVel.x), 
+                          (S32)(playerPos.y + playerVel.y));
     
-    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                         (S32)ballNumber2Pos.x, 
-                         (S32)ballNumber2Pos.y, 
-                         (S32)(ballNumber2Pos.x + ballNumber2Vel.x), 
-                         (S32)(ballNumber2Pos.y + ballNumber2Vel.y));
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                          (S32)ballNumber2Pos.x, 
+                          (S32)ballNumber2Pos.y, 
+                          (S32)(ballNumber2Pos.x + ballNumber2Vel.x), 
+                          (S32)(ballNumber2Pos.y + ballNumber2Vel.y));
     
     RGBA_U8 color5{20, 20, 255, 0xff};
-    Renderer_pushCommand(renderer, 
-                         RENDERER_COMMAND_SET_RENDER_COLOR,
-                         &color5);
+    renderer_push_command(renderer, 
+                          RENDERER_COMMAND_SET_RENDER_COLOR,
+                          &color5);
     
-    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                         (S32)ballNumber2Pos.x, 
-                         (S32)ballNumber2Pos.y, 
-                         (S32)(ballNumber2Pos.x + 100 * DEBUG_ballDirection.x), 
-                         (S32)(ballNumber2Pos.y + 100 * DEBUG_ballDirection.y));
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                          (S32)ballNumber2Pos.x, 
+                          (S32)ballNumber2Pos.y, 
+                          (S32)(ballNumber2Pos.x + 100 * DEBUG_ballDirection.x), 
+                          (S32)(ballNumber2Pos.y + 100 * DEBUG_ballDirection.y));
     
-    Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE,
-                         (S32)playerPos.x, 
-                         (S32)playerPos.y, 
-                         (S32)(playerPos.x + 100 * DEBUG_playerDirection.x), 
-                         (S32)(playerPos.y + 100 * DEBUG_playerDirection.y));
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE,
+                          (S32)playerPos.x, 
+                          (S32)playerPos.y, 
+                          (S32)(playerPos.x + 100 * DEBUG_playerDirection.x), 
+                          (S32)(playerPos.y + 100 * DEBUG_playerDirection.y));
     
-    if(game_state->debugPauseGame)
+    if(game_state->DEBUG_pause_game)
     {
         RGBA_U8 color4{0xff, 0xff, 0xff, 0xff};
-        Renderer_pushCommand(renderer, 
-                             RENDERER_COMMAND_SET_RENDER_COLOR,
-                             &color4);
+        renderer_push_command(renderer, 
+                              RENDERER_COMMAND_SET_RENDER_COLOR,
+                              &color4);
         
-        Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                             (S32)playerPos.x, 
-                             (S32)playerPos.y, 
-                             (S32)(ballNumber2Pos.x), 
-                             (S32)(ballNumber2Pos.y));
+        renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                              (S32)playerPos.x, 
+                              (S32)playerPos.y, 
+                              (S32)(ballNumber2Pos.x), 
+                              (S32)(ballNumber2Pos.y));
         
         if(f32Abs(playerVel.x) >= f32Abs(playerVel.y))
         {
-            Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                 (S32)ballNumber2Pos.x, 
-                                 (S32)ballNumber2Pos.y + (S32)(deltaD), 
-                                 (S32)ballNumber2Pos.x, 
-                                 (S32)ballNumber2Pos.y);
+            renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                                  (S32)ballNumber2Pos.x, 
+                                  (S32)ballNumber2Pos.y + (S32)(deltaD), 
+                                  (S32)ballNumber2Pos.x, 
+                                  (S32)ballNumber2Pos.y);
             
             
-            Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                 (S32)playerPos.x, 
-                                 (S32)playerPos.y, 
-                                 (S32)ballNumber2Pos.x, 
-                                 (S32)ballNumber2Pos.y + (S32)(deltaD));
+            renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                                  (S32)playerPos.x, 
+                                  (S32)playerPos.y, 
+                                  (S32)ballNumber2Pos.x, 
+                                  (S32)ballNumber2Pos.y + (S32)(deltaD));
         }
         else
         {
-            Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                 (S32)ballNumber2Pos.x + (S32)(deltaD), 
-                                 (S32)ballNumber2Pos.y, 
-                                 (S32)ballNumber2Pos.x, 
-                                 (S32)ballNumber2Pos.y);
+            renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                                  (S32)ballNumber2Pos.x + (S32)(deltaD), 
+                                  (S32)ballNumber2Pos.y, 
+                                  (S32)ballNumber2Pos.x, 
+                                  (S32)ballNumber2Pos.y);
             
-            Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                 (S32)playerPos.x, 
-                                 (S32)playerPos.y, 
-                                 (S32)ballNumber2Pos.x + (S32)(deltaD), 
-                                 (S32)ballNumber2Pos.y);
+            renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                                  (S32)playerPos.x, 
+                                  (S32)playerPos.y, 
+                                  (S32)ballNumber2Pos.x + (S32)(deltaD), 
+                                  (S32)ballNumber2Pos.y);
         }
         
-        Renderer_pushCommand(renderer, 
-                             RENDERER_COMMAND_SET_RENDER_COLOR,
-                             &color5);
+        renderer_push_command(renderer, 
+                              RENDERER_COMMAND_SET_RENDER_COLOR,
+                              &color5);
         
-        Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                             (S32)ballNumber2Pos.x, 
-                             (S32)ballNumber2Pos.y, 
-                             (S32)(ballNumber2Pos.x + 100 * DEBUG_ballDirection.x), 
-                             (S32)(ballNumber2Pos.y + 100 * DEBUG_ballDirection.y));
+        renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                              (S32)ballNumber2Pos.x, 
+                              (S32)ballNumber2Pos.y, 
+                              (S32)(ballNumber2Pos.x + 100 * DEBUG_ballDirection.x), 
+                              (S32)(ballNumber2Pos.y + 100 * DEBUG_ballDirection.y));
         
-        Renderer_pushCommand(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                             (S32)playerPos.x, 
-                             (S32)playerPos.y, 
-                             (S32)(playerPos.x + 100 * DEBUG_playerDirection.x), 
-                             (S32)(playerPos.y + 100 * DEBUG_playerDirection.y));
+        renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
+                              (S32)playerPos.x, 
+                              (S32)playerPos.y, 
+                              (S32)(playerPos.x + 100 * DEBUG_playerDirection.x), 
+                              (S32)(playerPos.y + 100 * DEBUG_playerDirection.y));
     }
 }
 

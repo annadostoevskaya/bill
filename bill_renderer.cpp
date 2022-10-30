@@ -8,7 +8,7 @@ Description: <empty>
 
 #include "bill_renderer.h"
 
-void Renderer_drawFillRect(Renderer *renderer, Rect *rect)
+void renderer_draw_fill_rect(Renderer *renderer, Rect *rect)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of memory!
@@ -17,10 +17,10 @@ void Renderer_drawFillRect(Renderer *renderer, Rect *rect)
            sizeof(Renderer_Command) +
            sizeof(Rect));
     
-    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_DRAW_FILL_RECT);
+    renderer_commands_insert_command_in_queue(renderer_commands, RENDERER_COMMAND_DRAW_FILL_RECT);
     renderer_commands->peak_ptr += sizeof(Renderer_Command);
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
     args_ptr[0] = rect->x;
     args_ptr[1] = rect->y;
     args_ptr[2] = rect->w;
@@ -30,7 +30,7 @@ void Renderer_drawFillRect(Renderer *renderer, Rect *rect)
     LogRendererPush("RENDERER_COMMAND_DRAW_FILL_RECT", renderer_commands->peak_ptr);
 }
 
-void Renderer_setRendererDrawColor(Renderer *renderer, RGBA_U8 *color)
+void renderer_set_renderer_draw_color(Renderer *renderer, RGBA_U8 *color)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of memory!
@@ -38,10 +38,10 @@ void Renderer_setRendererDrawColor(Renderer *renderer, RGBA_U8 *color)
            sizeof(RGBA_U8) +
            sizeof(Renderer_Command));
     
-    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_SET_RENDER_COLOR);
+    renderer_commands_insert_command_in_queue(renderer_commands, RENDERER_COMMAND_SET_RENDER_COLOR);
     renderer_commands->peak_ptr += sizeof(Renderer_Command);
     
-    U8 *args_ptr = (U8*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    U8 *args_ptr = (U8*)(renderer_commands_get_current_peak_ptr(renderer_commands));
     args_ptr[0] = color->r;
     args_ptr[1] = color->g;
     args_ptr[2] = color->b;
@@ -51,7 +51,7 @@ void Renderer_setRendererDrawColor(Renderer *renderer, RGBA_U8 *color)
     LogRendererPush("RENDERER_COMMAND_SET_RENDER_COLOR", renderer_commands->peak_ptr);
 }
 
-void Renderer_drawPoint(Renderer *renderer, S32 *x, S32 *y)
+void renderer_draw_point(Renderer *renderer, S32 *x, S32 *y)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of memory!
@@ -59,10 +59,10 @@ void Renderer_drawPoint(Renderer *renderer, S32 *x, S32 *y)
            (2 * sizeof(S32)) +
            sizeof(Renderer_Command));
     
-    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_DRAW_POINT);
+    renderer_commands_insert_command_in_queue(renderer_commands, RENDERER_COMMAND_DRAW_POINT);
     renderer_commands->peak_ptr += sizeof(Renderer_Command);
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
     args_ptr[0] = *x;
     args_ptr[1] = *y;
     renderer_commands->peak_ptr += (2 * sizeof(S32));
@@ -70,8 +70,8 @@ void Renderer_drawPoint(Renderer *renderer, S32 *x, S32 *y)
     LogRendererPush("RENDERER_COMMAND_DRAW_POINT", renderer_commands->peak_ptr);
 }
 
-void Renderer_drawLine(Renderer *renderer, 
-                       S32 *x1, S32 *y1, S32 *x2, S32 *y2)
+void renderer_draw_line(Renderer *renderer, 
+                        S32 *x1, S32 *y1, S32 *x2, S32 *y2)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of memory!
@@ -79,10 +79,10 @@ void Renderer_drawLine(Renderer *renderer,
            (4 * sizeof(S32)) +
            sizeof(Renderer_Command));
     
-    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_DRAW_LINE);
+    renderer_commands_insert_command_in_queue(renderer_commands, RENDERER_COMMAND_DRAW_LINE);
     renderer_commands->peak_ptr += sizeof(Renderer_Command);
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
     args_ptr[0] = *x1;
     args_ptr[1] = *y1;
     args_ptr[2] = *x2;
@@ -92,7 +92,7 @@ void Renderer_drawLine(Renderer *renderer,
     LogRendererPush("RENDERER_COMMAND_DRAW_LINE", renderer_commands->peak_ptr);
 }
 
-void Renderer_drawCircle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
+void renderer_draw_circle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
 {
     RendererCommands *renderer_commands = &renderer->commands;
     // NOTE(annad): Out of memory!
@@ -100,10 +100,10 @@ void Renderer_drawCircle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
            (3 * sizeof(S32)) +
            sizeof(Renderer_Command));
     
-    RendererCommands_insertCommandInQueue(renderer_commands, RENDERER_COMMAND_DRAW_CIRCLE);
+    renderer_commands_insert_command_in_queue(renderer_commands, RENDERER_COMMAND_DRAW_CIRCLE);
     renderer_commands->peak_ptr += sizeof(Renderer_Command);
     
-    S32 *args_ptr = (S32*)(RendererCommands_getCurrentPeakPtr(renderer_commands));
+    S32 *args_ptr = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
     args_ptr[0] = *x;
     args_ptr[1] = *y;
     args_ptr[2] = *r;
@@ -112,8 +112,8 @@ void Renderer_drawCircle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
     LogRendererPush("RENDERER_COMMAND_DRAW_CIRCLE", renderer_commands->peak_ptr);
 }
 
-void Renderer_pushCommand(Renderer *renderer, 
-                          Renderer_Command command, ...)
+void renderer_push_command(Renderer *renderer, 
+                           Renderer_Command command, ...)
 {
     va_list argptr;
     va_start(argptr, command);
@@ -123,14 +123,14 @@ void Renderer_pushCommand(Renderer *renderer,
         case RENDERER_COMMAND_DRAW_FILL_RECT:
         {
             Rect *rect = va_arg(argptr, Rect*);
-            Renderer_drawFillRect(renderer, rect);
+            renderer_draw_fill_rect(renderer, rect);
             break;
         }
         
         case RENDERER_COMMAND_SET_RENDER_COLOR:
         {
             RGBA_U8 *color = va_arg(argptr, RGBA_U8*);
-            Renderer_setRendererDrawColor(renderer, color);
+            renderer_set_renderer_draw_color(renderer, color);
             break;
         }
         
@@ -138,7 +138,7 @@ void Renderer_pushCommand(Renderer *renderer,
         {
             S32 x = va_arg(argptr, S32);
             S32 y = va_arg(argptr, S32);
-            Renderer_drawPoint(renderer, &x, &y);
+            renderer_draw_point(renderer, &x, &y);
             break;
         }
         
@@ -148,13 +148,15 @@ void Renderer_pushCommand(Renderer *renderer,
             S32 y1 = va_arg(argptr, S32);
             S32 x2 = va_arg(argptr, S32);
             S32 y2 = va_arg(argptr, S32);
-            Renderer_drawLine(renderer, &x1, &y1, &x2, &y2);
+            renderer_draw_line(renderer, &x1, &y1, &x2, &y2);
             break;
         }
         
         case RENDERER_COMMAND_DRAW_FILL_CIRCLE:
         {
-            
+            // NOTE(annad): Not implement!
+            Assert(false);
+            break;
         }
         
         case RENDERER_COMMAND_DRAW_CIRCLE:
@@ -162,7 +164,7 @@ void Renderer_pushCommand(Renderer *renderer,
             S32 x = va_arg(argptr, S32);
             S32 y = va_arg(argptr, S32);
             S32 r = va_arg(argptr, S32);
-            Renderer_drawCircle(renderer, &x, &y, &r);
+            renderer_draw_circle(renderer, &x, &y, &r);
             break;
         }
         
