@@ -110,6 +110,9 @@ void game_update_and_render(GameMemory *game_memory,
         Vec2Dim<F32> temp = newPlayerPos - ballNumber2Pos;
         if(temp.getLength() < (2.0f * (F32)constBallRadius))
         {
+            // IMPORTANT(Saiel): You suck, rewrite this.
+            
+            
             // TODO(annad): Use t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a)!!!
             // NOTE(annad): Recalc position!
             Vec2Dim<F32> S = ballNumber2Pos - playerPos;
