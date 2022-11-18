@@ -1,8 +1,8 @@
 /* 
 Author: github.com/annadostoevskaya
+
 File: bill.cpp
 Date: September 24th 2022 8:05 pm 
-
 Description: <empty>
 */
 
@@ -18,6 +18,8 @@ void game_update_and_render(GameMemory *game_memory,
     (void)game_input;
     (void)game_time;
     
+    S32 const_ball_radius = 10;
+    
     GameState *game_state = (GameState*)game_memory->permanent_storage;
     if(game_state->initialize_flag == false)
     {
@@ -26,12 +28,26 @@ void game_update_and_render(GameMemory *game_memory,
         memory_arena->size = game_memory->persistent_storage_size;
         memory_arena->pos = 0;
         
+        for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
+        {
+            F32 pos_x = (F32)(2 * const_ball_radius * i);
+            F32 pos_y = (F32)const_ball_radius;
+            Ball *ball = &game_state->ball[i];
+            ball->pos = {
+                pos_x,
+                pos_y,
+            };
+            ball->vel = {};
+            ball->acc = {};
+        }
+        
         game_state->initialize_flag = true;
         game_state->DEBUG_pause_game = false;
     }
     
-    localv Vec2Dim<F32> ballNumber2Pos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f) - 150};
-    localv Vec2Dim<F32> ballNumber2Vel = {};
+    Ball *ball = &game_state->ball[0];
+    // MemArena *memory_arena = &game_state->memory_arena;
+    
     Vec2Dim<F32> ballNumber2Acc = {};
     
     localv Vec2Dim<F32> DEBUG_playerDirection = {};
@@ -42,15 +58,16 @@ void game_update_and_render(GameMemory *game_memory,
     Vec2Dim<F32> playerAcc = {};
     F32 playerSpeed = 2500.0f;
     
-    S32 constBallRadius = 50;
-    
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
         game_state->DEBUG_pause_game = false;
-        ballNumber2Pos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f) - 150.0f};
+        ball->pos = {
+            ((F32)renderer->context.width / 2.0f),
+            ((F32)renderer->context.height / 2.0f) - 150.0f
+        };
         playerPos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f)};
         playerVel = {};
-        ballNumber2Vel = {};
+        ball->vel = {};
     }
     
     if(!game_state->DEBUG_pause_game)
@@ -102,23 +119,23 @@ void game_update_and_render(GameMemory *game_memory,
                                     (playerVel * dt));
         newPlayerVel = playerVel + playerAcc * dt;
         
-        ballNumber2Acc += (ballNumber2Vel * (-3.0f));
-        ballNumber2Pos += (((ballNumber2Acc * 0.5f * square(dt))) + 
-                           (ballNumber2Vel * dt));
-        ballNumber2Vel += ballNumber2Acc * dt;
+        ballNumber2Acc += (ball->vel * (-3.0f));
+        ball->pos += (((ballNumber2Acc * 0.5f * square(dt))) + 
+                      (ball->vel * dt));
+        ball->vel += ballNumber2Acc * dt;
         
-        Vec2Dim<F32> temp = newPlayerPos - ballNumber2Pos;
-        if(temp.getLength() < (2.0f * (F32)constBallRadius))
+        Vec2Dim<F32> temp = newPlayerPos - ball->pos;
+        if(temp.getLength() < (2.0f * (F32)const_ball_radius))
         {
             // IMPORTANT(Saiel): You suck, rewrite this.
             
             
             // TODO(annad): Use t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a)!!!
             // NOTE(annad): Recalc position!
-            Vec2Dim<F32> S = ballNumber2Pos - playerPos;
+            Vec2Dim<F32> S = ball->pos - playerPos;
             F32 cos = playerVel.innerProduct(S) / (S.getLength() * playerVel.getLength());
             F32 v = playerVel.getLength() * cos;
-            F32 s = S.getLength() - 2.0f * (F32)constBallRadius;
+            F32 s = S.getLength() - 2.0f * (F32)const_ball_radius;
             F32 a = 0.5f * playerAcc.getLength();
             // F32 t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a);
             F32 D = (F32)sqrt(square(v) - (4*a*(s)));
@@ -147,7 +164,7 @@ void game_update_and_render(GameMemory *game_memory,
             F32 cos_v2 = newPlayerVel.innerProduct(directV2) / (directV2.getLength() * newPlayerVel.getLength());
             F32 v2 = newPlayerVel.getLength() * cos_v2;
             
-            ballNumber2Vel = directV1 * v1;
+            ball->vel = directV1 * v1;
             newPlayerVel = (directV2) * v2;
             
             // game_state->DEBUG_pause_game = true;
@@ -205,16 +222,22 @@ void game_update_and_render(GameMemory *game_memory,
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
                           (S32)f32Round(playerPos.x), 
                           (S32)f32Round(playerPos.y), 
-                          constBallRadius);
+                          const_ball_radius);
     
     RGBA_U8 color2{0x00, 0xff, 0x0, 0xff};
     renderer_push_command(renderer, 
                           RENDERER_COMMAND_SET_RENDER_COLOR,
                           &color2);
-    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
-                          (S32)ballNumber2Pos.x, 
-                          (S32)ballNumber2Pos.y, 
-                          constBallRadius);
+    
+    
+    for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
+    {
+        Ball *iter_ball = &game_state->ball[i];
+        renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
+                              (S32)iter_ball->pos.x, 
+                              (S32)iter_ball->pos.y, 
+                              const_ball_radius);
+    }
     
     RGBA_U8 color3{100, 50, 130, 0xff};
     renderer_push_command(renderer, 
@@ -228,10 +251,10 @@ void game_update_and_render(GameMemory *game_memory,
                           (S32)(playerPos.y + playerVel.y));
     
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                          (S32)ballNumber2Pos.x, 
-                          (S32)ballNumber2Pos.y, 
-                          (S32)(ballNumber2Pos.x + ballNumber2Vel.x), 
-                          (S32)(ballNumber2Pos.y + ballNumber2Vel.y));
+                          (S32)ball->pos.x, 
+                          (S32)ball->pos.y, 
+                          (S32)(ball->pos.x + ball->vel.x), 
+                          (S32)(ball->pos.y + ball->vel.y));
     
     RGBA_U8 color5{20, 20, 255, 0xff};
     renderer_push_command(renderer, 
@@ -239,10 +262,10 @@ void game_update_and_render(GameMemory *game_memory,
                           &color5);
     
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                          (S32)ballNumber2Pos.x, 
-                          (S32)ballNumber2Pos.y, 
-                          (S32)(ballNumber2Pos.x + 100 * DEBUG_ballDirection.x), 
-                          (S32)(ballNumber2Pos.y + 100 * DEBUG_ballDirection.y));
+                          (S32)ball->pos.x, 
+                          (S32)ball->pos.y, 
+                          (S32)(ball->pos.x + 100 * DEBUG_ballDirection.x), 
+                          (S32)(ball->pos.y + 100 * DEBUG_ballDirection.y));
     
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE,
                           (S32)playerPos.x, 
@@ -260,37 +283,37 @@ void game_update_and_render(GameMemory *game_memory,
         renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
                               (S32)playerPos.x, 
                               (S32)playerPos.y, 
-                              (S32)(ballNumber2Pos.x), 
-                              (S32)(ballNumber2Pos.y));
+                              (S32)(ball->pos.x), 
+                              (S32)(ball->pos.y));
         
         if(f32Abs(playerVel.x) >= f32Abs(playerVel.y))
         {
             renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                  (S32)ballNumber2Pos.x, 
-                                  (S32)ballNumber2Pos.y + (S32)(deltaD), 
-                                  (S32)ballNumber2Pos.x, 
-                                  (S32)ballNumber2Pos.y);
+                                  (S32)ball->pos.x, 
+                                  (S32)ball->pos.y + (S32)(deltaD), 
+                                  (S32)ball->pos.x, 
+                                  (S32)ball->pos.y);
             
             
             renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
                                   (S32)playerPos.x, 
                                   (S32)playerPos.y, 
-                                  (S32)ballNumber2Pos.x, 
-                                  (S32)ballNumber2Pos.y + (S32)(deltaD));
+                                  (S32)ball->pos.x, 
+                                  (S32)ball->pos.y + (S32)(deltaD));
         }
         else
         {
             renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                  (S32)ballNumber2Pos.x + (S32)(deltaD), 
-                                  (S32)ballNumber2Pos.y, 
-                                  (S32)ballNumber2Pos.x, 
-                                  (S32)ballNumber2Pos.y);
+                                  (S32)ball->pos.x + (S32)(deltaD), 
+                                  (S32)ball->pos.y, 
+                                  (S32)ball->pos.x, 
+                                  (S32)ball->pos.y);
             
             renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
                                   (S32)playerPos.x, 
                                   (S32)playerPos.y, 
-                                  (S32)ballNumber2Pos.x + (S32)(deltaD), 
-                                  (S32)ballNumber2Pos.y);
+                                  (S32)ball->pos.x + (S32)(deltaD), 
+                                  (S32)ball->pos.y);
         }
         
         renderer_push_command(renderer, 
@@ -298,10 +321,10 @@ void game_update_and_render(GameMemory *game_memory,
                               &color5);
         
         renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                              (S32)ballNumber2Pos.x, 
-                              (S32)ballNumber2Pos.y, 
-                              (S32)(ballNumber2Pos.x + 100 * DEBUG_ballDirection.x), 
-                              (S32)(ballNumber2Pos.y + 100 * DEBUG_ballDirection.y));
+                              (S32)ball->pos.x, 
+                              (S32)ball->pos.y, 
+                              (S32)(ball->pos.x + 100 * DEBUG_ballDirection.x), 
+                              (S32)(ball->pos.y + 100 * DEBUG_ballDirection.y));
         
         renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
                               (S32)playerPos.x, 
