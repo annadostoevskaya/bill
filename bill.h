@@ -12,20 +12,22 @@ Description: <empty>
 enum Ball_Enum 
 {
     BALL_ENUM_WHITE = 0,
-    BALL_ENUM_1,
     BALL_ENUM_2,
     BALL_ENUM_3,
     BALL_ENUM_4,
     BALL_ENUM_5,
     BALL_ENUM_6,
     BALL_ENUM_7,
+    BALL_ENUM_8,
+    BALL_ENUM_9,
     
-    BALL_ENUM_COUNT
+    BALL_ENUM_COUNT,
+    
+    BALL_ENUM_UNDEFINED
 };
 
 struct Ball
 {
-    Vec2Dim<F32> acc;
     Vec2Dim<F32> vel;
     Vec2Dim<F32> pos;
 };

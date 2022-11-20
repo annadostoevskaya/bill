@@ -10,6 +10,17 @@ Description: <empty>
 #include "bill_math.h"
 #include "bill.h"
 
+// TODO(annad): Refactoring...
+
+B32 balls_is_collide(Vec2Dim<F32> *ball_a_pos, 
+                     Vec2Dim<F32> *ball_b_pos, 
+                     F32 radius)
+{
+    F32 distance = (*ball_a_pos - *ball_b_pos).getLength();
+    return distance < (2.0f * radius);
+}
+
+
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer, 
                             GameInput *game_input, 
@@ -18,7 +29,7 @@ void game_update_and_render(GameMemory *game_memory,
     (void)game_input;
     (void)game_time;
     
-    S32 const_ball_radius = 10;
+    S32 const_ball_radius = 20;
     
     GameState *game_state = (GameState*)game_memory->permanent_storage;
     if(game_state->initialize_flag == false)
@@ -34,41 +45,48 @@ void game_update_and_render(GameMemory *game_memory,
             F32 pos_y = (F32)const_ball_radius;
             Ball *ball = &game_state->ball[i];
             ball->pos = {
-                pos_x,
-                pos_y,
+                pos_x + renderer->context.width / 2,
+                pos_y + renderer->context.height / 2,
             };
             ball->vel = {};
-            ball->acc = {};
         }
         
         game_state->initialize_flag = true;
         game_state->DEBUG_pause_game = false;
     }
     
-    Ball *ball = &game_state->ball[0];
+    Ball *white_ball = &game_state->ball[BALL_ENUM_WHITE];
+    Ball *ball = &game_state->ball[BALL_ENUM_2];
+    
     // MemArena *memory_arena = &game_state->memory_arena;
     
     Vec2Dim<F32> ballNumber2Acc = {};
     
     localv Vec2Dim<F32> DEBUG_playerDirection = {};
     localv Vec2Dim<F32> DEBUG_ballDirection = {};
-    localv Vec2Dim<F32> playerPos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f)};
-    localv Vec2Dim<F32> playerVel = {};
+    
     localv F32 deltaD = 0.0f;
-    Vec2Dim<F32> playerAcc = {};
+    
     F32 playerSpeed = 2500.0f;
     
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
+        for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
+        {
+            F32 pos_x = (F32)(2 * const_ball_radius * i);
+            F32 pos_y = (F32)const_ball_radius;
+            game_state->ball[i].pos = {
+                pos_x + renderer->context.width / 2,
+                pos_y + renderer->context.height / 2,
+            };
+            game_state->ball[i].vel = {};
+        }
+        
+        
         game_state->DEBUG_pause_game = false;
-        ball->pos = {
-            ((F32)renderer->context.width / 2.0f),
-            ((F32)renderer->context.height / 2.0f) - 150.0f
-        };
-        playerPos = {((F32)renderer->context.width / 2.0f), ((F32)renderer->context.height / 2.0f)};
-        playerVel = {};
-        ball->vel = {};
     }
+    
+    Vec2Dim<F32> playerAcc = {};
     
     if(!game_state->DEBUG_pause_game)
     {
@@ -110,108 +128,61 @@ void game_update_and_render(GameMemory *game_memory,
         // TODO(annad): We need to find coef. of 
         // friction of the billiard ball on the table.
         // x''(t) = -N * x'(t), N = m * omega
-        playerAcc += (playerVel * (-3.0f));
+        playerAcc += (white_ball->vel * (-3.0f));
         Vec2Dim<F32> newPlayerPos = {};
         Vec2Dim<F32> newPlayerVel = {};
         F32 dt = (((F32)game_time->dt / 1000.0f));
         
-        newPlayerPos = playerPos + (((playerAcc * 0.5f * square(dt))) + 
-                                    (playerVel * dt));
-        newPlayerVel = playerVel + playerAcc * dt;
+        newPlayerPos = white_ball->pos + (((playerAcc * 0.5f * square(dt))) + 
+                                          (white_ball->vel * dt));
+        newPlayerVel = white_ball->vel + playerAcc * dt;
         
-        ballNumber2Acc += (ball->vel * (-3.0f));
-        ball->pos += (((ballNumber2Acc * 0.5f * square(dt))) + 
-                      (ball->vel * dt));
-        ball->vel += ballNumber2Acc * dt;
-        
-        Vec2Dim<F32> temp = newPlayerPos - ball->pos;
-        if(temp.getLength() < (2.0f * (F32)const_ball_radius))
+        for(S32 j = BALL_ENUM_2; j < BALL_ENUM_COUNT; j += 1)
         {
-            // IMPORTANT(Saiel): You suck, rewrite this.
+            ball = &game_state->ball[j];
+            ballNumber2Acc = {};
+            ballNumber2Acc += (ball->vel * (-3.0f));
+            ball->pos += (((ballNumber2Acc * 0.5f * square(dt))) + 
+                          (ball->vel * dt));
+            ball->vel += ballNumber2Acc * dt;
             
-            
-            // TODO(annad): Use t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a)!!!
-            // NOTE(annad): Recalc position!
-            Vec2Dim<F32> S = ball->pos - playerPos;
-            F32 cos = playerVel.innerProduct(S) / (S.getLength() * playerVel.getLength());
-            F32 v = playerVel.getLength() * cos;
-            F32 s = S.getLength() - 2.0f * (F32)const_ball_radius;
-            F32 a = 0.5f * playerAcc.getLength();
-            // F32 t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a);
-            F32 D = (F32)sqrt(square(v) - (4*a*(s)));
-            F32 t2 = f32Abs((-v + D) / (2.0f * a)); (void)t2;
-            F32 t = s / v;
-            // __debugbreak();
-            // newPlayerPos = playerPos + (playerVel * t);
-            
-            newPlayerPos = playerPos + (((playerAcc * 0.5f * square(t))) + 
-                                        (playerVel * t));
-            newPlayerVel = playerVel + playerAcc * t;
-            
-            // newPlayerVel = playerVel + playerAcc * t;
-            
-            // NOTE(annad): Recalc of Velocity!
-            // __debugbreak();
-            Vec2Dim<F32> directV1 = {S.x / S.getLength(), S.y / S.getLength()};
-            Vec2Dim<F32> directV2 = {directV1.y, -directV1.x};
-            
-            DEBUG_ballDirection = directV1;
-            DEBUG_playerDirection = directV2;
-            
-            F32 cos_v1 = newPlayerVel.innerProduct(directV1) / (newPlayerVel.getLength() * directV1.getLength());
-            F32 v1 = newPlayerVel.getLength() * cos_v1;
-            
-            F32 cos_v2 = newPlayerVel.innerProduct(directV2) / (directV2.getLength() * newPlayerVel.getLength());
-            F32 v2 = newPlayerVel.getLength() * cos_v2;
-            
-            ball->vel = directV1 * v1;
-            newPlayerVel = (directV2) * v2;
-            
-            // game_state->DEBUG_pause_game = true;
+            if(balls_is_collide(&newPlayerPos, &ball->pos, (F32)const_ball_radius))
+            {
+                // IMPORTANT(Saiel): You suck, rewrite this.
+                // TODO(annad): Use t = (-v + (F32)sqrt(square(v) - (4*a*s))) / (2.0f * a)!!!
+                // NOTE(annad): Recalc position!
+                Vec2Dim<F32> S = ball->pos - white_ball->pos;
+                F32 cos = white_ball->vel.innerProduct(S) / (S.getLength() * white_ball->vel.getLength());
+                F32 v = white_ball->vel.getLength() * cos;
+                F32 s = S.getLength() - 2.0f * (F32)const_ball_radius;
+                F32 a = 0.5f * playerAcc.getLength();
+                F32 D = (F32)sqrt(square(v) - (4*a*(s)));
+                F32 t = f32Abs((-v + D) / (2.0f * a));
+                // newPlayerPos = playerPos + (white_ball->vel * t);
+                newPlayerPos = white_ball->pos + (((playerAcc * 0.5f * square(t))) + 
+                                                  (white_ball->vel * t));
+                newPlayerVel = white_ball->vel + playerAcc * t;
+                // newPlayerVel = white_ball->vel + playerAcc * t;
+                // NOTE(annad): Recalc of Velocity!
+                Vec2Dim<F32> directV1 = {S.x / S.getLength(), S.y / S.getLength()};
+                Vec2Dim<F32> directV2 = {directV1.y, -directV1.x};
+                
+                DEBUG_ballDirection = directV1;
+                DEBUG_playerDirection = directV2;
+                
+                F32 cos_v1 = newPlayerVel.innerProduct(directV1) / (newPlayerVel.getLength() * directV1.getLength());
+                F32 v1 = newPlayerVel.getLength() * cos_v1;
+                
+                F32 cos_v2 = newPlayerVel.innerProduct(directV2) / (directV2.getLength() * newPlayerVel.getLength());
+                F32 v2 = newPlayerVel.getLength() * cos_v2;
+                
+                ball->vel = directV1 * v1;
+                newPlayerVel = (directV2) * v2;
+            }
         }
         
-        playerVel = newPlayerVel;
-        
-        if(newPlayerPos.x > renderer->context.width - 50 || newPlayerPos.x < 0 ||
-           newPlayerPos.y > renderer->context.height - 50 || newPlayerPos.y < 0)
-        {
-            // NOTE(annad):
-            // I get the scalar multiplication of the velocity vector by the 
-            // normal vector to the wall. Then I multiply the scalar by the 
-            // wall normal vector to get the direction correction vector. After 
-            // I subtract this vector from the velocity vector to correct the 
-            // direction.
-            
-            /*             
-                        Vec2Dim<F32> wall = {};
-                        
-                        if(newPlayerPos.x < 0)
-                        {
-                            wall = {1.0f, 0.0f};
-                        }
-                        
-                        if(newPlayerPos.x > renderer->context.width - 50)
-                        {
-                            wall = {-1.0f, 0.0f};
-                        }
-                        
-                        if(newPlayerPos.y < 0)
-                        {
-                            wall = {0.0f, 1.0f};
-                        }
-                        
-                        if(newPlayerPos.y > renderer->context.height - 50)
-                        {
-                            wall = {0.0f, -1.0f};
-                        }
-                        
-                        playerVel -= wall * (2.0f * playerVel.innerProduct(wall));
-                        
-                        newPlayerPos = playerPos + (((playerAcc * 0.5f * square(dt))) + (playerVel * dt));
-                         */
-            
-        }
-        playerPos = newPlayerPos;
+        white_ball->vel = newPlayerVel;
+        white_ball->pos = newPlayerPos;
     }
     
     RGBA_U8 color{0xff, 0x0, 0x0, 0xff};
@@ -220,19 +191,28 @@ void game_update_and_render(GameMemory *game_memory,
                           &color);
     
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
-                          (S32)f32Round(playerPos.x), 
-                          (S32)f32Round(playerPos.y), 
+                          (S32)f32Round(white_ball->pos.x), 
+                          (S32)f32Round(white_ball->pos.y), 
                           const_ball_radius);
-    
-    RGBA_U8 color2{0x00, 0xff, 0x0, 0xff};
-    renderer_push_command(renderer, 
-                          RENDERER_COMMAND_SET_RENDER_COLOR,
-                          &color2);
-    
     
     for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
     {
         Ball *iter_ball = &game_state->ball[i];
+        if(i == BALL_ENUM_WHITE)
+        {
+            RGBA_U8 c = {0xff, 0xff, 0xff, 0xff};
+            renderer_push_command(renderer, 
+                                  RENDERER_COMMAND_SET_RENDER_COLOR,
+                                  &c);
+            
+        }
+        else
+        {
+            RGBA_U8 c = {0x00, 0xff, 0x0, 0xff};
+            renderer_push_command(renderer, 
+                                  RENDERER_COMMAND_SET_RENDER_COLOR,
+                                  &c);
+        }
         renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
                               (S32)iter_ball->pos.x, 
                               (S32)iter_ball->pos.y, 
@@ -245,10 +225,10 @@ void game_update_and_render(GameMemory *game_memory,
                           &color3);
     
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                          (S32)playerPos.x, 
-                          (S32)playerPos.y, 
-                          (S32)(playerPos.x + playerVel.x), 
-                          (S32)(playerPos.y + playerVel.y));
+                          (S32)white_ball->pos.x, 
+                          (S32)white_ball->pos.y, 
+                          (S32)(white_ball->pos.x + white_ball->vel.x), 
+                          (S32)(white_ball->pos.y + white_ball->vel.y));
     
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
                           (S32)ball->pos.x, 
@@ -268,10 +248,10 @@ void game_update_and_render(GameMemory *game_memory,
                           (S32)(ball->pos.y + 100 * DEBUG_ballDirection.y));
     
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE,
-                          (S32)playerPos.x, 
-                          (S32)playerPos.y, 
-                          (S32)(playerPos.x + 100 * DEBUG_playerDirection.x), 
-                          (S32)(playerPos.y + 100 * DEBUG_playerDirection.y));
+                          (S32)white_ball->pos.x, 
+                          (S32)white_ball->pos.y, 
+                          (S32)(white_ball->pos.x + 100 * DEBUG_playerDirection.x), 
+                          (S32)(white_ball->pos.y + 100 * DEBUG_playerDirection.y));
     
     if(game_state->DEBUG_pause_game)
     {
@@ -281,12 +261,12 @@ void game_update_and_render(GameMemory *game_memory,
                               &color4);
         
         renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                              (S32)playerPos.x, 
-                              (S32)playerPos.y, 
+                              (S32)white_ball->pos.x, 
+                              (S32)white_ball->pos.y, 
                               (S32)(ball->pos.x), 
                               (S32)(ball->pos.y));
         
-        if(f32Abs(playerVel.x) >= f32Abs(playerVel.y))
+        if(f32Abs(white_ball->vel.x) >= f32Abs(white_ball->vel.y))
         {
             renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
                                   (S32)ball->pos.x, 
@@ -296,8 +276,8 @@ void game_update_and_render(GameMemory *game_memory,
             
             
             renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                  (S32)playerPos.x, 
-                                  (S32)playerPos.y, 
+                                  (S32)white_ball->pos.x, 
+                                  (S32)white_ball->pos.y, 
                                   (S32)ball->pos.x, 
                                   (S32)ball->pos.y + (S32)(deltaD));
         }
@@ -310,8 +290,8 @@ void game_update_and_render(GameMemory *game_memory,
                                   (S32)ball->pos.y);
             
             renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                                  (S32)playerPos.x, 
-                                  (S32)playerPos.y, 
+                                  (S32)white_ball->pos.x, 
+                                  (S32)white_ball->pos.y, 
                                   (S32)ball->pos.x + (S32)(deltaD), 
                                   (S32)ball->pos.y);
         }
@@ -327,10 +307,10 @@ void game_update_and_render(GameMemory *game_memory,
                               (S32)(ball->pos.y + 100 * DEBUG_ballDirection.y));
         
         renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE, 
-                              (S32)playerPos.x, 
-                              (S32)playerPos.y, 
-                              (S32)(playerPos.x + 100 * DEBUG_playerDirection.x), 
-                              (S32)(playerPos.y + 100 * DEBUG_playerDirection.y));
+                              (S32)white_ball->pos.x, 
+                              (S32)white_ball->pos.y, 
+                              (S32)(white_ball->pos.x + 100 * DEBUG_playerDirection.x), 
+                              (S32)(white_ball->pos.y + 100 * DEBUG_playerDirection.y));
     }
 }
 
