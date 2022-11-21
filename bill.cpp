@@ -47,40 +47,41 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> ball_a_acc, F
     // setting or pass to func.
     // NOTE(annad): Recalculate positions in collision.
     Vec2Dim<F32> delta_pos = ball_b->pos - ball_a->pos;
-    F32 cos_fi = ball_a->vel.innerProduct(delta_pos)
-        / delta_pos.getLength()
-        * ball_a->vel.getLength();
+    F32 cos_fi = ball_a->vel.innerProduct(delta_pos) 
+        / (delta_pos.getLength() * ball_a->vel.getLength());
     F32 v = ball_a->vel.getLength() * cos_fi;
     F32 s = delta_pos.getLength() - 2.0f * BALL_RADIUS;
-    F32 a = 0.5f * ball_a_acc.getLength();
-    // TODO(annad): math, sqrt
-    F32 discriminant = (F32)sqrt(square(v) - 4 * a * s);
-    F32 t = f32Abs((-v + discriminant) / (2.0f * a));
+    
+    // TODO(annad): IT'S FUCKING BULLSHIT!!!
+    // F32 a = 0.5f * ball_a_acc.getLength();
+    // F32 discriminant = (F32)sqrt(square(v) - 4 * a * s); // TODO(annad): math, sqrt
+    // F32 t = f32Abs((-v + discriminant) / (2.0f * a));
+    F32 t = s / v;
+    
+    
     // NOTE(annad): Recalculate velocity after collision.
     ball_a->pos += (ball_a_acc * 0.5f * square(t) + ball_a->vel * t);
     ball_a->vel += (ball_a_acc * t);
-    Vec2Dim<F32> direct_a = {
+    Vec2Dim<F32> direct_b = {
         delta_pos.x / delta_pos.getLength(),
         delta_pos.y / delta_pos.getLength()
     };
-    Vec2Dim<F32> direct_b = {
-        direct_a.y, 
-        -direct_a.x,
+    Vec2Dim<F32> direct_a = {
+        direct_b.y, 
+        -direct_b.x,
     };
+    F32 result_vel = ball_a->vel.getLength();
     F32 cos_direct_a = ball_a->vel.innerProduct(direct_a)
-        / ball_a->vel.getLength()
-        * direct_a.getLength();
+        / (result_vel * direct_a.getLength());
     F32 cos_direct_b = ball_a->vel.innerProduct(direct_b)
-        / ball_a->vel.getLength()
-        * direct_b.getLength();
+        / (result_vel * direct_b.getLength());
     
     // NOTE(annad): Apply
-    ball_a->vel = direct_a * ball_a->vel.getLength() * cos_direct_a;
-    ball_b->vel += direct_b * ball_a->vel.getLength() * cos_direct_b;
-
-    dt -= t;
-
+    ball_a->vel = direct_a * result_vel * cos_direct_a;
+    ball_b->vel += direct_b * result_vel * cos_direct_b;
+    
     // TODO(annad): Continues calculate or stop?......
+    dt -= t;
 }
 
 void game_update_and_render(GameMemory *game_memory, 
@@ -173,25 +174,26 @@ void game_update_and_render(GameMemory *game_memory,
             {
                 ball_acc = ball_control_acc; // TODO(annad): Remove this.
             }
-
+            
             Ball updated_ball_a = update_ball(ball_a, ball_acc, dt);
             for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
             {
-                if(i == j) 
+                if(i != j) 
                 {
-                    break;
-                }
-                
-                Ball *ball_b = &game_state->ball[j];
-                if(balls_is_collide(&updated_ball_a.pos, &ball_b->pos))
-                {
-                    __debugbreak();
-                    balls_collide_handle(ball_a, ball_b, ball_acc, dt);
-                    updated_ball_a = *ball_a;
+                    Ball *ball_b = &game_state->ball[j];
+                    if(balls_is_collide(&updated_ball_a.pos, &ball_b->pos))
+                    {
+                        balls_collide_handle(ball_a, ball_b, ball_acc, dt);
+                        updated_ball_a = *ball_a;
+                    }
                 }
             }
             
             *ball_a = updated_ball_a;
+            printf("============\n");
+            EvalPrint(ball_a->pos.x);
+            EvalPrint(ball_a->pos.y);
+            printf("============\n");
         }
     }
     
