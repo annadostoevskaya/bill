@@ -33,14 +33,14 @@ Ball update_ball(Ball *ball, Vec2Dim<F32> acc, F32 dt)
 }
 
 // TODO(annad): Refactoring...
-B32 balls_is_collide(Vec2Dim<F32> *ball_a_pos, Vec2Dim<F32> *ball_b_pos)
+B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
 {
-    F32 distance = (*ball_a_pos - *ball_b_pos).getLength();
+    F32 distance = (ball_a->pos - ball_b->pos).getLength();
     return distance < (2.0f * BALL_RADIUS);
 }
 
 
-void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> ball_a_acc, F32 dt)
+void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> ball_a_acc, F32 *dt)
 {
     // TODO(annad): All acceleration params must 
     // work in function with explicit
@@ -79,9 +79,7 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> ball_a_acc, F
     // NOTE(annad): Apply
     ball_a->vel = direct_a * result_vel * cos_direct_a;
     ball_b->vel += direct_b * result_vel * cos_direct_b;
-    
-    // TODO(annad): Continues calculate or stop?......
-    dt -= t;
+    *dt = *dt - t;
 }
 
 void game_update_and_render(GameMemory *game_memory, 
@@ -169,31 +167,31 @@ void game_update_and_render(GameMemory *game_memory,
         for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
         {
             Ball *ball_a = &game_state->ball[i];
-            Vec2Dim<F32> ball_acc = {};
+            Vec2Dim<F32> ball_a_acc = {};
             if(i == BALL_ENUM_WHITE) 
             {
-                ball_acc = ball_control_acc; // TODO(annad): Remove this.
+                ball_a_acc = ball_control_acc; // TODO(annad): Remove this.
             }
             
-            Ball updated_ball_a = update_ball(ball_a, ball_acc, dt);
+            Ball updated_ball_a = update_ball(ball_a, ball_a_acc, dt);
             for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
             {
                 if(i != j) 
                 {
                     Ball *ball_b = &game_state->ball[j];
-                    if(balls_is_collide(&updated_ball_a.pos, &ball_b->pos))
+                    if(balls_is_collide(&updated_ball_a, ball_b))
                     {
-                        balls_collide_handle(ball_a, ball_b, ball_acc, dt);
-                        updated_ball_a = *ball_a;
+                        Ball copy_ball_a = *ball_a;
+                        Ball copy_ball_b = *ball_b;
+                        F32 copy_dt = dt;
+                        balls_collide_handle(&copy_ball_a, &copy_ball_b, ball_a_acc, &copy_dt);
+                        updated_ball_a = copy_ball_a;
+                        *ball_b = copy_ball_b;
                     }
                 }
             }
             
             *ball_a = updated_ball_a;
-            printf("============\n");
-            EvalPrint(ball_a->pos.x);
-            EvalPrint(ball_a->pos.y);
-            printf("============\n");
         }
     }
     
