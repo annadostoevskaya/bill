@@ -177,73 +177,6 @@ Min(sizeof(*(d)), sizeof(*(s))) * (c))
 #define EvalPrintHex(x)   printf("%s = 0x%x\n",    #x, (unsigned int)(x))
 #define EvalPrintHexLL(x) printf("%s = 0x%llx\n",  #x, (unsigned long long)(x))
 
-/* 
-#define EvalPrint(x)      EvalPrintImpl(x)
-#define EvalPrintS32(x)   printf("%s = %d\n",      #x, (S32)(x))
-#define EvalPrintS64(x)   printf("%s = %lld\n",    #x, (S64)(x))
-#define EvalPrintU32(x)   printf("%s = %u\n",      #x, (U32)(x))
-#define EvalPrintU64(x)   printf("%s = %llu\n",    #x, (U64)(x))
-#define EvalPrintF64(x)   printf("%s = %e [%f]\n", #x, (F64)(x), (F64)(x))
-#define EvalPrintB(x)     printf("%s = %s\n",      #x, (char*)((x) ? "true" : "false"))
-#define EvalPrintS(x)     printf("%s = %s\n",      #x, (char*)(x))
-#define EvalPrintAddr(x)  printf("%s = 0x%p\n",    #x, (void*)(&x))
-#define EvalPrintHex(x)   printf("%s = 0x%x\n",    #x, (unsigned int)(x))
-#define EvalPrintHexLL(x) printf("%s = 0x%llx\n",  #x, (unsigned long long)(x))
-
-template<typename T1, typename T2>
-struct is_same {
-    static bool value = false;
-};
-
-template<typename T>
-struct is_same<T, T> {
-     static const bool value = true;
-};
-
-template<typename T1, typename T2>
-using is_same_v<T1, T2> = is_same<T1, T2>::value;
-
-
-
-template <typename T>
-void EvalPrintImpl(T msg)
-{
-    if(constexpr(std::is_same_v<T, S32>))
-    {
-        EvalPrintS32(msg);
-    }
-    else if(constexpr(std::is_same_v<T, S64>))
-    {
-        EvalPrintS64(msg);
-    }
-    else if(constexpr(std::is_same_v<T, U32>))
-    {
-        EvalPrintU32(msg);
-    }
-    else if(constexpr(std::is_same_v<T, U64>))
-    {
-        EvalPrintU64(msg);
-    }
-    else if(constexpr(std::is_same_v<T, F64>))
-    {
-        EvalPrintF64(msg);
-    }
-    else if(constexpr(std::is_same_v<T, B8>) 
-            || constexpr(std::is_same_v<T, B32>))
-    {
-        EvalPrintB(msg);
-    }
-    else if(constexpr(std::is_same_v<T, char*>))
-    {
-        EvalPrintS(msg);
-    }
-    else
-    {
-        // NOTE(annad): Unknow type for printing.
-        Assert(false);
-    }
-}
-*/
 //
 //
 //
@@ -264,5 +197,11 @@ B8 isLittleEndian()
     
     return (p_temp[0] == 0x42);
 }
+
+//
+//
+//
+
+
 
 #endif //BASE_TYPES_H
