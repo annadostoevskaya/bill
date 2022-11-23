@@ -28,6 +28,7 @@ enum Ball_Enum
 
 struct Ball
 {
+    Ball_Enum id;
     Vec2Dim<F32> vel;
     Vec2Dim<F32> pos;
 };

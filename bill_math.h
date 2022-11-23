@@ -118,6 +118,11 @@ F32 defaultSin(F32 x)
     return (F32)sin(x);
 }
 
+F32 defaultCsc(F32 x)
+{
+    return 1.0f / (F32)sin(x);
+}
+
 F32 defaultArcSin(F32 x)
 {
     return (F32)(asin(x));

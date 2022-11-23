@@ -38,7 +38,6 @@ B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
     return distance < (2.0f * BALL_RADIUS);
 }
 
-
 void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc, F32 *dt)
 {
     printf("======================[ COLLISION HANDLE START ]==========================\n");
@@ -56,8 +55,24 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc, 
     }
     else
     {
+        // NOTE(annad): Get distance between collide points
+        // s(fi) = 2r * csc(fi) * sin( arcsin(2r*S*csc(fi)) +  fi), 
+        // fi - angle between Vec(B - A), Vec(Velocity)
+        // r - ball radius
+        // S - |B - A|
+        F32 fi_angle = defaultArcCos(cos_fi);
+
+        F32 side_a = 2.0f * BALL_RADIUS;
+        F32 side_b = delta_pos.getLength();
+        F32 sin_a = defaultSin(defaultArcCos(cos_fi));
+        F32 sin_c = defaultSin(defaultArcSin((side_a * side_b) / defaultArcSin(sin_a)) + defaultArcSin(sin_c));
+
+        F32 omega_angle = defaultArcSin(2.0f * BALL_RADIUS * delta_pos.getLength() * defaultCsc(fi_angle)) + fi_angle;
+        F32 side_c = (side_a / sin_a) * sin_c;
+        F32 s = side_c;
+        __debugbreak();
         F32 v = ball_a->vel.getLength() * cos_fi;
-        F32 s = delta_pos.getLength() - 2.0f * BALL_RADIUS; 
+        // F32 s = delta_pos.getLength() - 2.0f * BALL_RADIUS; 
         // TODO(annad): IT'S FUCKING BULLSHIT!!!
         F32 a = 0.5f * ball_a_acc->getLength();
         F32 discriminant = (F32)sqrt(square(v) - 4 * a * s);
@@ -115,6 +130,7 @@ void game_update_and_render(GameMemory *game_memory,
             F32 pos_x = (F32)(2 * const_ball_radius * i);
             F32 pos_y = (F32)const_ball_radius;
             Ball *ball = &game_state->ball[i];
+            ball->id = (Ball_Enum)i;
             ball->pos = {
                 pos_x + renderer->context.width / 2,
                 pos_y + renderer->context.height / 2,
@@ -185,7 +201,7 @@ void game_update_and_render(GameMemory *game_memory,
             
             ball_a_acc = ball_a_acc * BALL_SPEED + ball_a->vel * (-BALL_FRICTION);
             Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt);
-            for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
+            for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
             {
                 if(i != j) 
                 {
