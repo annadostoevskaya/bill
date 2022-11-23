@@ -38,7 +38,10 @@ B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
     return distance < (2.0f * BALL_RADIUS);
 }
 
-void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc, F32 *dt)
+void balls_collide_handle(Ball *ball_a, 
+                          Ball *ball_b, 
+                          Vec2Dim<F32> *ball_a_acc, 
+                          F32 *dt)
 {
     printf("======================[ COLLISION HANDLE START ]==========================\n");
     // TODO(annad): All acceleration params must 
@@ -60,22 +63,37 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc, 
         // fi - angle between Vec(B - A), Vec(Velocity)
         // r - ball radius
         // S - |B - A|
-        F32 fi_angle = defaultArcCos(cos_fi);
+        F32 s = 0.0f;
+        const F32 epsilon = 0.001f;
+        if(f32Abs(cos_fi  - 1.0f) < epsilon)
+        {
+            s = delta_pos.getLength() - (2.0f * BALL_RADIUS);
+        }
+        else
+        {
+            // F32 cos_fi = ball_a->vel.innerProduct(delta_pos) 
+            // / (delta_pos.getLength() * ball_a->vel.getLength());
+            F32 fi_angle = defaultArcCos(cos_fi);
+            F32 side_a = 2.0f * BALL_RADIUS; // 40.0f
+            F32 side_b = delta_pos.getLength(); // |B - A|
+            F32 sin_a = defaultSin(fi_angle);
+            F32 sin_b = (sin_a / side_a) * side_b;
+            F32 sin_c = defaultSin(defaultArcSin(sin_b) - fi_angle);
+            F32 side_c = (side_a / sin_a) * sin_c;
+            s = side_c;
+            EvalPrintF(side_a);
+            EvalPrintF(side_b);
+            EvalPrintF(side_c);
+            EvalPrintF(sin_a);
+            EvalPrintF(sin_b);
+            EvalPrintF(sin_c);
+        }
         
-        F32 side_a = 2.0f * BALL_RADIUS;
-        F32 side_b = delta_pos.getLength();
-        F32 sin_a = defaultSin(fi_angle);
-        F32 sin_b = (sin_a / side_a) * side_b;
-        F32 sin_c = defaultSin(PI_F32 - defaultArcSin(sin_a) 
-                               + defaultArcSin(sin_b));
-        F32 side_c = (side_a / sin_a) * sin_c;
-        F32 s = side_c;
-        __debugbreak();
-        F32 v = ball_a->vel.getLength() * cos_fi;
-        // F32 s = delta_pos.getLength() - 2.0f * BALL_RADIUS; 
+        F32 v = ball_a->vel.getLength();
         // TODO(annad): IT'S FUCKING BULLSHIT!!!
         F32 a = 0.5f * ball_a_acc->getLength();
-        F32 discriminant = (F32)sqrt(square(v) - 4 * a * s);
+        F32 discriminant = (F32)sqrt(square(v) - 4.0f * a * s);
+        Assert(discriminant == discriminant);
         // TODO(annad): math, sqrt
         F32 t = f32Abs((-v + discriminant) / (2.0f * a));
         // F32 t = s / v;
@@ -129,8 +147,8 @@ void game_update_and_render(GameMemory *game_memory,
         {
             F32 pos_x = (F32)(2 * const_ball_radius * i);
             F32 pos_y = (F32)const_ball_radius;
-            Ball *ball = &game_state->ball[i];
-            ball->id = (Ball_Enum)i;
+            Ball *ball = &(game_state->balls[i]);
+            ball->id = i;
             ball->pos = {
                 pos_x + renderer->context.width / 2,
                 pos_y + renderer->context.height / 2,
@@ -150,11 +168,11 @@ void game_update_and_render(GameMemory *game_memory,
         {
             F32 pos_x = (F32)(2 * const_ball_radius * i);
             F32 pos_y = (F32)const_ball_radius;
-            game_state->ball[i].pos = {
+            game_state->balls[i].pos = {
                 pos_x + renderer->context.width / 2,
                 pos_y + renderer->context.height / 2,
             };
-            game_state->ball[i].vel = {};
+            game_state->balls[i].vel = {};
         }
         
         game_state->DEBUG_pause_game = false;
@@ -192,7 +210,7 @@ void game_update_and_render(GameMemory *game_memory,
         F32 dt = (((F32)game_time->dt / 1000.0f));
         for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
         {
-            Ball *ball_a = &game_state->ball[i];
+            Ball *ball_a = &game_state->balls[i];
             Vec2Dim<F32> ball_a_acc = {};
             if(i == BALL_ENUM_WHITE) 
             {
@@ -203,25 +221,24 @@ void game_update_and_render(GameMemory *game_memory,
             Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt);
             for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
             {
-                if(i != j) 
+                Ball *ball_b = &game_state->balls[j];
+                if(balls_is_collide(&updated_ball_a, ball_b))
                 {
-                    Ball *ball_b = &game_state->ball[j];
-                    if(balls_is_collide(&updated_ball_a, ball_b))
-                    {
-                        Ball copy_ball_a = *ball_a;
-                        Ball copy_ball_b = *ball_b;
-                        F32 copy_dt = dt;
-                        balls_collide_handle(&copy_ball_a, &copy_ball_b, &ball_a_acc, &copy_dt);
-                        updated_ball_a = copy_ball_a;
-                        *ball_b = copy_ball_b;
-                    }
+                    Ball copy_ball_a = *ball_a;
+                    Ball copy_ball_b = *ball_b;
+                    F32 copy_dt = dt;
+                    balls_collide_handle(&copy_ball_a, &copy_ball_b, &ball_a_acc, &copy_dt);
+                    updated_ball_a = copy_ball_a;
+                    *ball_b = copy_ball_b;
                 }
             }
+            
+            updated_ball_a.id = ball_a->id;
             *ball_a = updated_ball_a;
         }
     }
     
-    Ball *white_ball = &game_state->ball[BALL_ENUM_WHITE];
+    Ball *white_ball = &game_state->balls[BALL_ENUM_WHITE];
     
     RGBA_U8 color{0xff, 0x0, 0x0, 0xff};
     renderer_push_command(renderer, 
@@ -234,7 +251,7 @@ void game_update_and_render(GameMemory *game_memory,
     
     for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
     {
-        Ball *iter_ball = &game_state->ball[i];
+        Ball *iter_ball = &game_state->balls[i];
         if(i == BALL_ENUM_WHITE)
         {
             RGBA_U8 c = {0xff, 0xff, 0xff, 0xff};

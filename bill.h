@@ -28,7 +28,7 @@ enum Ball_Enum
 
 struct Ball
 {
-    Ball_Enum id;
+    S32 id;
     Vec2Dim<F32> vel;
     Vec2Dim<F32> pos;
 };
@@ -36,7 +36,7 @@ struct Ball
 struct GameState
 {
     MemArena memory_arena;
-    Ball ball[BALL_ENUM_COUNT];
+    Ball balls[BALL_ENUM_COUNT];
     
     B16 initialize_flag;
     B16 DEBUG_pause_game;
