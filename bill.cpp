@@ -61,13 +61,13 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc, 
         // r - ball radius
         // S - |B - A|
         F32 fi_angle = defaultArcCos(cos_fi);
-
+        
         F32 side_a = 2.0f * BALL_RADIUS;
         F32 side_b = delta_pos.getLength();
-        F32 sin_a = defaultSin(defaultArcCos(cos_fi));
-        F32 sin_c = defaultSin(defaultArcSin((side_a * side_b) / defaultArcSin(sin_a)) + defaultArcSin(sin_c));
-
-        F32 omega_angle = defaultArcSin(2.0f * BALL_RADIUS * delta_pos.getLength() * defaultCsc(fi_angle)) + fi_angle;
+        F32 sin_a = defaultSin(fi_angle);
+        F32 sin_b = (sin_a / side_a) * side_b;
+        F32 sin_c = defaultSin(PI_F32 - defaultArcSin(sin_a) 
+                               + defaultArcSin(sin_b));
         F32 side_c = (side_a / sin_a) * sin_c;
         F32 s = side_c;
         __debugbreak();

@@ -1,4 +1,4 @@
-version(2);
+cd version(2);
 project_name = "sdl_bill.exe";
 patterns = {
 "*.c",
