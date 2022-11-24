@@ -38,23 +38,19 @@ B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
     return distance < (2.0f * BALL_RADIUS);
 }
 
-void balls_collide_handle(Ball *ball_a, 
-                          Ball *ball_b, 
-                          Vec2Dim<F32> *ball_a_acc, 
-                          F32 *dt)
+
+F32 dt_before_collide(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc)
 {
-    printf("======================[ COLLISION HANDLE START ]==========================\n");
-    // TODO(annad): All acceleration params must 
-    // work in function with explicit
-    // setting or pass to func.
-    // NOTE(annad): Recalculate positions in collision.
+    F32 t = 0.0f;
+    
     Vec2Dim<F32> delta_pos = ball_b->pos - ball_a->pos;
-    F32 cos_fi = ball_a->vel.innerProduct(delta_pos) / (delta_pos.getLength() * ball_a->vel.getLength());
+    F32 cos_fi = ball_a->vel.innerProduct(delta_pos) 
+        / (delta_pos.getLength() * ball_a->vel.getLength());
     if(cos_fi != cos_fi) // TODO(annad): is_infinity()?
     {
         // TODO(annad): I don’t quite understand what can be done with this, 
         // but this case means that all the power of the ball has been absorbed.
-        *dt = 0.0f;
+        t = 0.0f;
     }
     else
     {
@@ -73,56 +69,62 @@ void balls_collide_handle(Ball *ball_a,
         {
             // F32 cos_fi = ball_a->vel.innerProduct(delta_pos) 
             // / (delta_pos.getLength() * ball_a->vel.getLength());
-            F32 fi_angle = defaultArcCos(cos_fi);
-            F32 side_a = 2.0f * BALL_RADIUS; // 40.0f
+            F32 fi_angle = defaultArcCos(cos_fi); // angle delta_pos,v
+            F32 side_a = 2.0f * BALL_RADIUS; // 2r 
             F32 side_b = delta_pos.getLength(); // |B - A|
             F32 sin_a = defaultSin(fi_angle);
             F32 sin_b = (sin_a / side_a) * side_b;
             F32 sin_c = defaultSin(defaultArcSin(sin_b) - fi_angle);
-            F32 side_c = (side_a / sin_a) * sin_c;
+            F32 side_c = (side_a / sin_a) * sin_c; // s before collide
             s = side_c;
-            EvalPrintF(side_a);
-            EvalPrintF(side_b);
-            EvalPrintF(side_c);
-            EvalPrintF(sin_a);
-            EvalPrintF(sin_b);
-            EvalPrintF(sin_c);
+            Assert(s == s); // TODO(annad): Collision order!
+            Assert(s > 0.0f);
         }
         
         F32 v = ball_a->vel.getLength();
-        // TODO(annad): IT'S FUCKING BULLSHIT!!!
         F32 a = 0.5f * ball_a_acc->getLength();
         F32 discriminant = (F32)sqrt(square(v) - 4.0f * a * s);
         Assert(discriminant == discriminant);
         // TODO(annad): math, sqrt
-        F32 t = f32Abs((-v + discriminant) / (2.0f * a));
-        // F32 t = s / v;
-        // NOTE(annad): Recalculate velocity after collision.
-        ball_a->pos += ((*ball_a_acc) * 0.5f * square(t) + ball_a->vel * t);
-        ball_a->vel += ((*ball_a_acc) * t);
-        Vec2Dim<F32> direct_b = {
-            delta_pos.x / delta_pos.getLength(),
-            delta_pos.y / delta_pos.getLength()
-        };
-        Vec2Dim<F32> direct_a = {
-            direct_b.y, 
-            -direct_b.x,
-        };
-        F32 result_vel = ball_a->vel.getLength();
-        F32 cos_direct_a = ball_a->vel.innerProduct(direct_a)
-            / (result_vel * direct_a.getLength());
-        F32 cos_direct_b = ball_a->vel.innerProduct(direct_b)
-            / (result_vel * direct_b.getLength());
-        // NOTE(annad): Apply
-        ball_a->vel = direct_a * result_vel * cos_direct_a;
-        ball_b->vel += direct_b * result_vel * cos_direct_b;
-        *dt = *dt - t;
-        
-        EvalPrintF(ball_a->vel.x);
-        EvalPrintF(ball_a->vel.y);
-        EvalPrintF(t);
+        t = (v - discriminant) / (2.0f * a); // NOTE(annad): what is t < 0.0f?
     }
-    printf("======================[  COLLISION HANDLE END  ]=========================\n\n\n\n");
+    
+    return t;
+}
+
+
+void balls_collide_handle(Ball *ball_a, 
+                          Ball *ball_b, 
+                          Vec2Dim<F32> *ball_a_acc, 
+                          F32 *t)
+{
+    *t = dt_before_collide(ball_a, ball_b, ball_a_acc);
+    if(*t == 0.0f) 
+    {
+        return;
+    }
+    
+    Vec2Dim<F32> delta_pos = ball_b->pos - ball_a->pos;
+    Assert(*t >= 0.0f);
+    // NOTE(annad): Recalculate velocity after collision.
+    ball_a->pos += ((*ball_a_acc) * 0.5f * square(*t) + ball_a->vel * (*t));
+    ball_a->vel += ((*ball_a_acc) * (*t));
+    Vec2Dim<F32> direct_b = {
+        delta_pos.x / delta_pos.getLength(),
+        delta_pos.y / delta_pos.getLength()
+    };
+    Vec2Dim<F32> direct_a = {
+        direct_b.y, 
+        -direct_b.x,
+    };
+    F32 result_vel = ball_a->vel.getLength();
+    F32 cos_direct_a = ball_a->vel.innerProduct(direct_a)
+        / (result_vel * direct_a.getLength());
+    F32 cos_direct_b = ball_a->vel.innerProduct(direct_b)
+        / (result_vel * direct_b.getLength());
+    // NOTE(annad): Apply
+    ball_a->vel = direct_a * result_vel * cos_direct_a;
+    ball_b->vel += direct_b * result_vel * cos_direct_b;
 }
 
 void game_update_and_render(GameMemory *game_memory, 
@@ -219,21 +221,30 @@ void game_update_and_render(GameMemory *game_memory,
             
             ball_a_acc = ball_a_acc * BALL_SPEED + ball_a->vel * (-BALL_FRICTION);
             Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt);
+            updated_ball_a.id = ball_a->id;
             for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
             {
-                Ball *ball_b = &game_state->balls[j];
+                /*                 
+                                Ball *ball_b = &(game_state->balls[j]);
+                                if(balls_is_collide(&updated_ball_a, ball_b))
+                                {    
+                                    Ball copy_ball_a = *ball_a;
+                                    Ball copy_ball_b = *ball_b;
+                                    F32 copy_dt = dt;
+                                    balls_collide_handle(&copy_ball_a, &copy_ball_b, &ball_a_acc, &copy_dt);
+                                    updated_ball_a = copy_ball_a;
+                                    *ball_b = copy_ball_b;
+                                }
+*/
+                
+                Ball *ball_b = &(game_state->balls[j]);
                 if(balls_is_collide(&updated_ball_a, ball_b))
                 {
-                    Ball copy_ball_a = *ball_a;
-                    Ball copy_ball_b = *ball_b;
-                    F32 copy_dt = dt;
-                    balls_collide_handle(&copy_ball_a, &copy_ball_b, &ball_a_acc, &copy_dt);
-                    updated_ball_a = copy_ball_a;
-                    *ball_b = copy_ball_b;
+                    F32 t = dt_before_collide(&updated_ball_a, ball_b, &ball_a_acc);
+                    EvalPrintF(t);
                 }
             }
             
-            updated_ball_a.id = ball_a->id;
             *ball_a = updated_ball_a;
         }
     }
