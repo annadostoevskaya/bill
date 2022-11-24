@@ -25,7 +25,7 @@ Ball update_ball(Ball *ball, Vec2Dim<F32> *acc, F32 dt)
     // TODO(annad): We need to find coef. of 
     // friction of the billiard ball on the table.
     // x''(t) = -N * x'(t), N = m * omega
-    Ball updated_ball;
+    Ball updated_ball = *ball;
     updated_ball.pos = ball->pos + (*acc) * 0.5f * square(dt) + ball->vel * dt;
     updated_ball.vel = ball->vel + (*acc) * dt;
     return updated_ball;
@@ -93,22 +93,10 @@ F32 dt_before_collide(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc)
 }
 
 
-void balls_collide_handle(Ball *ball_a, 
-                          Ball *ball_b, 
-                          Vec2Dim<F32> *ball_a_acc, 
-                          F32 *t)
+void balls_collide_handle(Ball *ball_a, Ball *ball_b)
 {
-    *t = dt_before_collide(ball_a, ball_b, ball_a_acc);
-    if(*t == 0.0f) 
-    {
-        return;
-    }
-    
     Vec2Dim<F32> delta_pos = ball_b->pos - ball_a->pos;
-    Assert(*t >= 0.0f);
     // NOTE(annad): Recalculate velocity after collision.
-    ball_a->pos += ((*ball_a_acc) * 0.5f * square(*t) + ball_a->vel * (*t));
-    ball_a->vel += ((*ball_a_acc) * (*t));
     Vec2Dim<F32> direct_b = {
         delta_pos.x / delta_pos.getLength(),
         delta_pos.y / delta_pos.getLength()
@@ -221,10 +209,9 @@ void game_update_and_render(GameMemory *game_memory,
             
             ball_a_acc = ball_a_acc * BALL_SPEED + ball_a->vel * (-BALL_FRICTION);
             Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt);
-            updated_ball_a.id = ball_a->id;
             for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
             {
-                /*                 
+                    /*                 
                                 Ball *ball_b = &(game_state->balls[j]);
                                 if(balls_is_collide(&updated_ball_a, ball_b))
                                 {    
@@ -235,13 +222,22 @@ void game_update_and_render(GameMemory *game_memory,
                                     updated_ball_a = copy_ball_a;
                                     *ball_b = copy_ball_b;
                                 }
-*/
+                    */
                 
                 Ball *ball_b = &(game_state->balls[j]);
                 if(balls_is_collide(&updated_ball_a, ball_b))
                 {
-                    F32 t = dt_before_collide(&updated_ball_a, ball_b, &ball_a_acc);
+                    F32 t = dt_before_collide(ball_a, ball_b, &ball_a_acc);
+
+        const F32 epsilon = 0.001f;
+        if(f32Abs(cos_fi  - 1.0f) < epsilon)
+                    if()
+                    {
+
+                    }
                     EvalPrintF(t);
+                    updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
+                    balls_collide_handle(&updated_ball_a, ball_b);
                 }
             }
             
