@@ -124,7 +124,6 @@ void game_update_and_render(GameMemory *game_memory,
     (void)game_time;
     
     S32 const_ball_radius = 20;
-    
     GameState *game_state = (GameState*)game_memory->permanent_storage;
     if(game_state->initialize_flag == false)
     {
@@ -132,26 +131,25 @@ void game_update_and_render(GameMemory *game_memory,
         memory_arena->base = game_memory->persistent_storage;
         memory_arena->size = game_memory->persistent_storage_size;
         memory_arena->pos = 0;
-        
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
+
+        for(S32 i = 0, j = 0; i < BALL_ENUM_COUNT; i++, j = (i + 1) / 3)
         {
-            F32 pos_x = (F32)(2 * const_ball_radius * i);
-            F32 pos_y = (F32)const_ball_radius;
             Ball *ball = &(game_state->balls[i]);
             ball->id = i;
-            ball->pos = {
-                pos_x + renderer->context.width / 2,
-                pos_y + renderer->context.height / 2,
-            };
+            j = i / 3;
+            F32 pos_x = (F32)(renderer->context.width / 2);
+            F32 pos_y = (F32)(renderer->context.height / 2);
+            pos_y -= (j * const_ball_radius * 2.0f);
+            pos_x += ((i - j - 4) * const_ball_radius * 2.0f);
+            ball->pos = { pos_x, pos_y };
             ball->vel = {};
         }
-        
+
         game_state->initialize_flag = true;
         game_state->DEBUG_pause_game = false;
     }
     
     // MemArena *memory_arena = &game_state->memory_arena;
-    
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
         for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
@@ -217,8 +215,8 @@ void game_update_and_render(GameMemory *game_memory,
                 {
                     F32 t = dt_before_collide(ball_a, ball_b, &ball_a_acc);
                     dts_before_collide[i][j] = t;
-                    // updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
-                    // balls_collide_handle(&updated_ball_a, ball_b);
+                    updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
+                    balls_collide_handle(&updated_ball_a, ball_b);
                 }
             }
             
@@ -233,8 +231,7 @@ void game_update_and_render(GameMemory *game_memory,
             printf("%f ", dts_before_collide[i][j]);
         }
         printf("\n");
-    }
-    
+    }    
     
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
     {
@@ -242,7 +239,7 @@ void game_update_and_render(GameMemory *game_memory,
         {
             if(dts_before_collide[i][j] != 0.0f)
             {
-                __debugbreak();
+                // __debugbreak();
             }
         }
     }
