@@ -228,16 +228,20 @@ void game_update_and_render(GameMemory *game_memory,
                 if(balls_is_collide(&updated_ball_a, ball_b))
                 {
                     F32 t = dt_before_collide(ball_a, ball_b, &ball_a_acc);
-
-        const F32 epsilon = 0.001f;
-        if(f32Abs(cos_fi  - 1.0f) < epsilon)
-                    if()
-                    {
-
-                    }
-                    EvalPrintF(t);
                     updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
                     balls_collide_handle(&updated_ball_a, ball_b);
+
+                    // TODO(annad): MOVE FROM THIS BLOCK ON BLOCK UPDATE_BALL!!!!
+                    // printf("======start======\n");
+                    // F32 t = dt;
+                   // while(t > 0.00001f)
+                    //{    
+                        //EvalPrintF(t);
+                        //t = t - dt_before_collide(ball_a, ball_b, &ball_a_acc);
+                       // updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
+                       // balls_collide_handle(&updated_ball_a, ball_b);
+                    // }
+                    /// printf("========end=====\n");
                 }
             }
             
