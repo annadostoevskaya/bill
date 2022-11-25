@@ -169,7 +169,7 @@ void game_update_and_render(GameMemory *game_memory,
     }
     
     Vec2Dim<F32> ball_control_acc = {};
-    
+    F32 dts_before_collide[BALL_ENUM_COUNT][BALL_ENUM_COUNT] = {};
     if(!game_state->DEBUG_pause_game)
     {
         if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_S])
@@ -204,50 +204,49 @@ void game_update_and_render(GameMemory *game_memory,
             Vec2Dim<F32> ball_a_acc = {};
             if(i == BALL_ENUM_WHITE) 
             {
-                ball_a_acc = ball_control_acc; // TODO(annad): Remove this.
+                ball_a_acc = ball_control_acc * BALL_SPEED; // TODO(annad): Remove this.
             }
             
-            ball_a_acc = ball_a_acc * BALL_SPEED + ball_a->vel * (-BALL_FRICTION);
+            ball_a_acc += ball_a->vel * (-BALL_FRICTION);
             Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt);
             for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
             {
-                    /*                 
-                                Ball *ball_b = &(game_state->balls[j]);
-                                if(balls_is_collide(&updated_ball_a, ball_b))
-                                {    
-                                    Ball copy_ball_a = *ball_a;
-                                    Ball copy_ball_b = *ball_b;
-                                    F32 copy_dt = dt;
-                                    balls_collide_handle(&copy_ball_a, &copy_ball_b, &ball_a_acc, &copy_dt);
-                                    updated_ball_a = copy_ball_a;
-                                    *ball_b = copy_ball_b;
-                                }
-                    */
-                
                 Ball *ball_b = &(game_state->balls[j]);
+                
                 if(balls_is_collide(&updated_ball_a, ball_b))
                 {
                     F32 t = dt_before_collide(ball_a, ball_b, &ball_a_acc);
-                    updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
-                    balls_collide_handle(&updated_ball_a, ball_b);
-
-                    // TODO(annad): MOVE FROM THIS BLOCK ON BLOCK UPDATE_BALL!!!!
-                    // printf("======start======\n");
-                    // F32 t = dt;
-                   // while(t > 0.00001f)
-                    //{    
-                        //EvalPrintF(t);
-                        //t = t - dt_before_collide(ball_a, ball_b, &ball_a_acc);
-                       // updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
-                       // balls_collide_handle(&updated_ball_a, ball_b);
-                    // }
-                    /// printf("========end=====\n");
+                    dts_before_collide[i][j] = t;
+                    // updated_ball_a = update_ball(ball_a, &ball_a_acc, t);
+                    // balls_collide_handle(&updated_ball_a, ball_b);
                 }
             }
             
             *ball_a = updated_ball_a;
         }
     }
+    
+    for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+    {
+        for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
+        {
+            printf("%f ", dts_before_collide[i][j]);
+        }
+        printf("\n");
+    }
+    
+    
+    for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+    {
+        for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
+        {
+            if(dts_before_collide[i][j] != 0.0f)
+            {
+                __debugbreak();
+            }
+        }
+    }
+    
     
     Ball *white_ball = &game_state->balls[BALL_ENUM_WHITE];
     

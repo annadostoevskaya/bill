@@ -114,6 +114,7 @@ typedef void VoidFunc(void);
 // NOTE(annad): base_marco_helpers.h
 #define Stmnt(S) do { S } while(0)
 
+#define AssertBreak() __debugbreak()
 #if !defined(AssertBreak)
 #define AssertBreak() (*((int*)(0)) = 0)
 #endif
@@ -194,7 +195,6 @@ B8 isLittleEndian()
 {
     S32 temp = 0x00000042;
     U8 *p_temp = (U8*)(&temp);
-    
     return (p_temp[0] == 0x42);
 }
 
