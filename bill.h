@@ -22,7 +22,6 @@ enum Ball_Enum
     BALL_ENUM_9,
     
     BALL_ENUM_COUNT,
-    
     BALL_ENUM_UNDEFINED
 };
 
@@ -35,11 +34,10 @@ struct Ball
 
 struct GameState
 {
-    MemArena memory_arena;
+    Arena memory_arena;
     Ball balls[BALL_ENUM_COUNT];
     
     B16 initialize_flag;
-    B16 DEBUG_pause_game;
 };
 
 #endif //BILL_H
