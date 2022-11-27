@@ -38,7 +38,8 @@ B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
     return distance < (2.0f * BALL_RADIUS);
 }
 
-F32 dt_before_collide(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc)
+F32 dt_before_collide(Ball *ball_a, Ball *ball_b, 
+                      Vec2Dim<F32> *ball_a_acc)
 {
     F32 t = 0.0f;
     const F32 epsilon = 0.001f;
@@ -71,11 +72,23 @@ F32 dt_before_collide(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc)
             F32 sin_a = defaultSin(fi_angle);
             F32 sin_b = (sin_a / side_a) * side_b;
             // TODO(annad): Sometimes we get sin_c - NaN. wtf?
+            if(sin_b > 1.0f) // TODO(annad): Remove this, normalize floating point math
+            {
+                EvalPrintF(sin_b);
+                sin_b = 1.0f;
+            }
+            else if(sin_b < -1.0f)
+            {
+                EvalPrintF(sin_b);
+                sin_b = -1.0f;
+            }
+            
             F32 sin_c = defaultSin(defaultArcSin(sin_b) - fi_angle); 
             F32 side_c = (side_a / sin_a) * sin_c; // s before collide
             s = side_c;
             // TODO(annad): Collision order!
-            Assert(s == s);
+            EvalPrintF(s);
+            Assert(s == s); // NOTE(annad): S = [2.0f ~ 21.0f], when V -> inf.
             Assert(s > 0.0f);
         }
         
@@ -157,7 +170,6 @@ void game_update_and_render(GameMemory *game_memory,
     // MemArena *memory_arena = &game_state->memory_arena;
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
-        
         F32 pos_x = (F32)(renderer->context.width / 2) 
             + const_ball_radius * 3.0f 
             + (const_ball_radius * 1.5f) 
@@ -207,7 +219,7 @@ void game_update_and_render(GameMemory *game_memory,
     {
         ball_control_acc *= 0.70710678118f;
     }
-    
+    // TODO(annad): Write Linked-List and Proroty-Queue
     F32 dt = (((F32)game_time->dt / 1000.0f));
     F32 dts_before_collide[BALL_ENUM_COUNT][BALL_ENUM_COUNT] = {};
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
@@ -258,24 +270,28 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
 |7|  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |
 |8|  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |
 |9|*4ms |  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |
+
 */
-    printf("=======================[ START ]========================\n");
-    for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-    {
-        for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
+    
+    /*     
+        printf("=======================[ START ]========================\n");
+        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
         {
-            if(dts_before_collide[i][j])
+            for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
             {
-                printf("%f ", dts_before_collide[i][j]);
+                if(dts_before_collide[i][j])
+                {
+                    printf("%f ", dts_before_collide[i][j]);
+                }
+                else
+                {
+                    printf("-.------ ");
+                }
             }
-            else
-            {
-                printf("-.------ ");
-            }
+            printf("\n");
         }
-        printf("\n");
-    }
-    printf("=======================[  END  ]========================\n\n");
+        printf("=======================[  END  ]========================\n\n");
+         */
     
     F32 min_dt;
     S32 ball_a_idx, ball_b_idx; // max time for frame

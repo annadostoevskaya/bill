@@ -13,6 +13,7 @@ enum Ball_Enum
 {
     BALL_ENUM_WHITE = 0,
     BALL_ENUM_2,
+    BALL_ENUM_COUNT,
     BALL_ENUM_3,
     BALL_ENUM_4,
     BALL_ENUM_5,
@@ -21,7 +22,6 @@ enum Ball_Enum
     BALL_ENUM_8,
     BALL_ENUM_9,
     
-    BALL_ENUM_COUNT,
     BALL_ENUM_UNDEFINED
 };
 
@@ -36,8 +36,8 @@ struct GameState
 {
     Arena memory_arena;
     Ball balls[BALL_ENUM_COUNT];
-    
     B16 initialize_flag;
 };
 
 #endif //BILL_H
+
