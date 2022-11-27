@@ -128,11 +128,23 @@ void game_update_and_render(GameMemory *game_memory,
         memory_arena->size = game_memory->persistent_storage_size;
         memory_arena->pos = 0;
         
-        for(S32 i = 0, j = 0; i < BALL_ENUM_COUNT; i++, j = (i + 1) / 3)
+        F32 pos_x = (F32)(renderer->context.width / 2) 
+            + const_ball_radius * 3.0f 
+            + (const_ball_radius * 1.5f) 
+            - (const_ball_radius * 1.0f) 
+            + (const_ball_radius * 0.5f) 
+            - (const_ball_radius * 0.25f);
+        F32 pos_y = (F32)(renderer->context.height / 2) + const_ball_radius * 2.0f;
+        Ball *ball = &(game_state->balls[0]);
+        ball->id = 0;
+        ball->pos = { pos_x, pos_y };
+        ball->vel = {};
+        
+        for(S32 i = 1, j = 0; i < BALL_ENUM_COUNT; i++, j = (i + 1) / 3)
         {
-            F32 pos_x = (F32)(renderer->context.width / 2);
-            F32 pos_y = (F32)(renderer->context.height / 2);
-            Ball *ball = &(game_state->balls[i]);
+            pos_x = (F32)(renderer->context.width / 2);
+            pos_y = (F32)(renderer->context.height / 2);
+            ball = &(game_state->balls[i]);
             ball->id = i;
             pos_x += (i * const_ball_radius * 2.0f + i * 10.0f);
             ball->pos = { pos_x, pos_y };
@@ -145,11 +157,24 @@ void game_update_and_render(GameMemory *game_memory,
     // MemArena *memory_arena = &game_state->memory_arena;
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
+        
+        F32 pos_x = (F32)(renderer->context.width / 2) 
+            + const_ball_radius * 3.0f 
+            + (const_ball_radius * 1.5f) 
+            - (const_ball_radius * 1.0f) 
+            + (const_ball_radius * 0.5f) 
+            - (const_ball_radius * 0.25f);
+        F32 pos_y = (F32)(renderer->context.height / 2) + const_ball_radius * 2.0f;
+        Ball *ball = &(game_state->balls[0]);
+        ball->id = 0;
+        ball->pos = { pos_x, pos_y };
+        ball->vel = {};
+        
+        for(S32 i = 1, j = 0; i < BALL_ENUM_COUNT; i++, j = (i + 1) / 3)
         {
-            F32 pos_x = (F32)(renderer->context.width / 2);
-            F32 pos_y = (F32)(renderer->context.height / 2);
-            Ball *ball = &(game_state->balls[i]);
+            pos_x = (F32)(renderer->context.width / 2);
+            pos_y = (F32)(renderer->context.height / 2);
+            ball = &(game_state->balls[i]);
             ball->id = i;
             pos_x += (i * const_ball_radius * 2.0f + i * 10.0f);
             ball->pos = { pos_x, pos_y };
@@ -234,8 +259,7 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
 |8|  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |
 |9|*4ms |  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |
 */
-    
-    
+    printf("=======================[ START ]========================\n");
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
     {
         for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
@@ -251,8 +275,7 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
         }
         printf("\n");
     }
-    printf("\n");
-    
+    printf("=======================[  END  ]========================\n\n");
     
     F32 min_dt;
     S32 ball_a_idx, ball_b_idx; // max time for frame
