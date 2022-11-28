@@ -27,7 +27,7 @@ typedef struct GameTime
     S64 dt;
 } GameTime;
 
-enum Input_Button_State
+enum Input_Button_States
 {
     INPUT_BUTTON_STATE_UP = 0,
     INPUT_BUTTON_STATE_DOWN,
@@ -35,13 +35,11 @@ enum Input_Button_State
     INPUT_BUTTON_STATE_COUNT
 };
 
-enum Input_Mouse_Button
+enum Input_Mouse_Buttons
 {
     INPUT_MOUSE_BUTTON_LEFT,
     INPUT_MOUSE_BUTTON_MID,
     INPUT_MOUSE_BUTTON_RIGHT,
-    INPUT_MOUSE_BUTTON_X1,
-    INPUT_MOUSE_BUTTON_X2,
     
     INPUT_MOUSE_BUTTON_COUNT
 };
@@ -49,10 +47,7 @@ enum Input_Mouse_Button
 enum Input_Keyboard_Keys
 {
     INPUT_KEYBOARD_KEYS_NULL = 0,
-    INPUT_KEYBOARD_KEYS_W,
-    INPUT_KEYBOARD_KEYS_S,
-    INPUT_KEYBOARD_KEYS_A,
-    INPUT_KEYBOARD_KEYS_D,
+    // TODO(annad): ESC?
     INPUT_KEYBOARD_KEYS_RETURN,
     
     INPUT_KEYBOARD_KEYS_COUNT
@@ -60,10 +55,10 @@ enum Input_Keyboard_Keys
 
 typedef struct GameInputMouseButtonState
 {
-    Vec2Dim<S32> click_pos;
+    Vec2Dim<F32> click_pos;
     union
     {
-        Input_Button_State enum_state;
+        Input_Button_States enum_state;
         B32 b_state;
     };
 } GameInputMouseButtonState;
@@ -71,12 +66,12 @@ typedef struct GameInputMouseButtonState
 typedef struct GameInputMouse
 {
     GameInputMouseButtonState buttons_states[INPUT_MOUSE_BUTTON_COUNT];
-    Vec2Dim<S32> cursor_pos;
+    Vec2Dim<F32> cursor_pos;
 } GameInputMouse;
 
 typedef struct GameInputKeyboard
 {
-    Input_Button_State keys[INPUT_KEYBOARD_KEYS_COUNT];
+    Input_Button_States keys[INPUT_KEYBOARD_KEYS_COUNT];
 } GameInputKeyboard;
 
 typedef struct GameInput

@@ -12,13 +12,7 @@ Description: <empty>
 #include "base_types.h"
 #include <math.h>
 
-template <typename T>
-struct Point2Dim
-{
-    T x, y;
-};
-
-template <typename T>
+template<typename T>
 struct Vec2Dim
 {
     T x, y;

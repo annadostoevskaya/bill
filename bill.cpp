@@ -13,7 +13,7 @@ Description: <empty>
 #define BALL_SPEED 2500.0f
 #define BALL_FRICTION 3.0f
 #define BALL_RADIUS 20.0f
-Ball update_ball(Ball *ball, Vec2Dim<F32> *acc, F32 dt)
+Ball update_ball(Ball *ball, F32 dt)
 {
     // NOTE(annad):
     // x = f(t) = (a/2)t^2 + v0*t + x0;
@@ -25,9 +25,10 @@ Ball update_ball(Ball *ball, Vec2Dim<F32> *acc, F32 dt)
     // TODO(annad): We need to find coef. of 
     // friction of the billiard ball on the table.
     // x''(t) = -N * x'(t), N = m * omega
+    Vec2Dim<F32> ball_acc = ball->vel * (-BALL_FRICTION);
     Ball updated_ball = *ball;
-    updated_ball.pos = ball->pos + (*acc) * 0.5f * square(dt) + ball->vel * dt;
-    updated_ball.vel = ball->vel + (*acc) * dt;
+    updated_ball.pos += ball_acc * 0.5f * square(dt) + ball->vel * dt;
+    updated_ball.vel += ball_acc * dt;
     return updated_ball;
 }
 
@@ -38,9 +39,9 @@ B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
     return distance < (2.0f * BALL_RADIUS);
 }
 
-F32 dt_before_collide(Ball *ball_a, Ball *ball_b, 
-                      Vec2Dim<F32> *ball_a_acc)
+F32 dt_before_collide(Ball *ball_a, Ball *ball_b)
 {
+    Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);
     F32 t = 0.0f;
     const F32 epsilon = 0.001f;
     Vec2Dim<F32> delta_pos = ball_b->pos - ball_a->pos;
@@ -93,7 +94,8 @@ F32 dt_before_collide(Ball *ball_a, Ball *ball_b,
         }
         
         F32 v = ball_a->vel.getLength();
-        F32 a = 0.5f * ball_a_acc->getLength();
+        F32 a = 0.5f * ball_a_acc.getLength();
+        EvalPrintF(a);
         F32 discriminant = (F32)sqrt(square(v) - 4.0f * a * s);
         Assert(discriminant == discriminant);
         // TODO(annad): math, sqrt
@@ -167,6 +169,9 @@ void game_update_and_render(GameMemory *game_memory,
         game_state->initialize_flag = true;
     }
     
+    EvalPrint(game_input->mouse.cursor_pos.x);
+    EvalPrint(game_input->mouse.cursor_pos.y);
+
     // MemArena *memory_arena = &game_state->memory_arena;
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
@@ -192,47 +197,20 @@ void game_update_and_render(GameMemory *game_memory,
             ball->pos = { pos_x, pos_y };
             ball->vel = {};
         }
+
+        game_state->balls[0].vel = {100.0f, 100.0f};
     }
-    
-    Vec2Dim<F32> ball_control_acc = {};
-    if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_S])
-    {
-        ball_control_acc.y = 1.0f;
-    }
-    
-    if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_W])
-    {
-        ball_control_acc.y = -1.0f;
-    }
-    
-    if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_A])
-    {
-        ball_control_acc.x = -1.0f;
-    }
-    
-    if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_D])
-    {
-        ball_control_acc.x = 1.0f;
-    }
-    
-    if((ball_control_acc.x != 0.0f) && (ball_control_acc.y != 0.0f))
-    {
-        ball_control_acc *= 0.70710678118f;
-    }
+
     // TODO(annad): Write Linked-List and Proroty-Queue
     F32 dt = (((F32)game_time->dt / 1000.0f));
     F32 dts_before_collide[BALL_ENUM_COUNT][BALL_ENUM_COUNT] = {};
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
     {
         Ball *ball_a = &game_state->balls[i];
-        Vec2Dim<F32> ball_a_acc = {};
-        if(i == BALL_ENUM_WHITE) 
-        {
-            ball_a_acc = ball_control_acc * BALL_SPEED; // TODO(annad): Remove this.
-        }
+        Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);;
+
         B32 collide_flag = false;
-        ball_a_acc += ball_a->vel * (-BALL_FRICTION);
-        Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt);
+        Ball updated_ball_a = update_ball(ball_a, dt);
         for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
         {
             if(i != j) 
@@ -240,7 +218,7 @@ void game_update_and_render(GameMemory *game_memory,
                 Ball *ball_b = &(game_state->balls[j]);
                 if(balls_is_collide(&updated_ball_a, ball_b))
                 {
-                    F32 t = dt_before_collide(ball_a, ball_b, &ball_a_acc);
+                    F32 t = dt_before_collide(ball_a, ball_b);
                     dts_before_collide[i][j] = t;
                     collide_flag = true;
                 }
@@ -324,13 +302,7 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
             dts_before_collide[ball_a_idx][ball_b_idx] = 0.0f;
             Ball *ball_a = &game_state->balls[ball_a_idx];
             Ball *ball_b = &game_state->balls[ball_b_idx];
-            ball_a_acc = {};
-            if(ball_a_idx == BALL_ENUM_WHITE) 
-            {
-                ball_a_acc = ball_control_acc * BALL_SPEED; // TODO(annad): Remove this.
-            }
-            ball_a_acc += ball_a->vel * (-BALL_FRICTION);
-            Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt_before_collide);
+            Ball updated_ball_a = update_ball(ball_a, dt_before_collide);
             balls_collide_handle(&updated_ball_a, ball_b);
             *ball_a = updated_ball_a;
             dt_for_ball_a -= dt_before_collide;
