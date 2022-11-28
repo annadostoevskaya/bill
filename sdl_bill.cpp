@@ -194,28 +194,22 @@ int main(int, char**)
                     {
                         case SDL_BUTTON_LEFT:
                         {
-                            set_mouse_button_state(
-                                &mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
-                                INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y
-                            );
+                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
+                                                   INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y);
                             break;
                         }
                         
                         case SDL_BUTTON_MIDDLE:
                         {
-                            set_mouse_button_state(
-                                &mouse_buttons[INPUT_MOUSE_BUTTON_MID],
-                                INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y
-                            );
+                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_MID],
+                                                   INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y);
                             break;
                         }
                         
                         case SDL_BUTTON_RIGHT:
                         {
-                            set_mouse_button_state(
-                                &mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
-                                INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y
-                            );
+                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
+                                                   INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y);
                             break;
                         }
                     }
@@ -229,28 +223,22 @@ int main(int, char**)
                     {
                         case SDL_BUTTON_LEFT:
                         {
-                            set_mouse_button_state(
-                                &mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
-                                INPUT_BUTTON_STATE_UP, event.button.x, event.button.y
-                            );
+                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
+                                                   INPUT_BUTTON_STATE_UP, event.button.x, event.button.y);
                             break;
                         }
                         
                         case SDL_BUTTON_MIDDLE:
                         {
-                            set_mouse_button_state(
-                                &mouse_buttons[INPUT_MOUSE_BUTTON_MID],
-                                INPUT_BUTTON_STATE_UP, event.button.x, event.button.y
-                            );
+                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_MID],
+                                                   INPUT_BUTTON_STATE_UP, event.button.x, event.button.y);
                             break;
                         }
                         
                         case SDL_BUTTON_RIGHT:
                         {
-                            set_mouse_button_state(
-                                &mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
-                                INPUT_BUTTON_STATE_UP, event.button.x, event.button.y
-                            );
+                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
+                                                   INPUT_BUTTON_STATE_UP, event.button.x, event.button.y);
                             break;
                         }
                     }

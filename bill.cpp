@@ -195,25 +195,26 @@ void game_update_and_render(GameMemory *game_memory,
             ball->vel = {};
         }
     }
-
-    globalv Vec2Dim<S32> vec_punch = {};
-
+    
+    globalv Vec2Dim<F32> vec_punch = {};
+    
     GameInputMouse *mouse = &game_input->mouse;
     if(mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].state == INPUT_BUTTON_STATE_DOWN)
     {
         vec_punch = {
-            mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.x - mouse->cursor_pos.x,
-            mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.y - mouse->cursor_pos.y,
+            (F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.x - mouse->cursor_pos.x),
+            (F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.y - mouse->cursor_pos.y),
         };
-
-        EvalPrint(vec_punch.x);
-        EvalPrint(vec_punch.y);
     }
     else
     {
-        
+        if(vec_punch.getLength())
+        {
+            game_state->balls[0].vel = vec_punch;
+            vec_punch = {};
+        }
     }
-
+    
     // TODO(annad): Write Linked-List and Proroty-Queue
     F32 dt = (((F32)game_time->dt / 1000.0f));
     F32 dts_before_collide[BALL_ENUM_COUNT][BALL_ENUM_COUNT] = {};
@@ -221,7 +222,7 @@ void game_update_and_render(GameMemory *game_memory,
     {
         Ball *ball_a = &game_state->balls[i];
         Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);;
-
+        
         B32 collide_flag = false;
         Ball updated_ball_a = update_ball(ball_a, dt);
         for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
@@ -248,20 +249,20 @@ void game_update_and_render(GameMemory *game_memory,
     // find the very collision of all
     //
     
-/*
-NOTE(annad): If ball 9 flies into ball 1 and 2, 
-and ball 11 flies into ball 9, they will start counting from ball 1.
-|#|  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-|1| [X] |  -  |  -  |  -  |  -  |  -  |  -  |  -  | 5ms |
-|2|  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  | 9ms |
-|3|  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  |
-|4|  -  |  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |
-|5|  -  |  -  |  -  |  -  | [X] |  -  |  -  |  -  |  -  |
-|6|  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |  -  |
-|7|  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |
-|8|  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |
-|9|*4ms |  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |
-*/
+    /*
+    NOTE(annad): If ball 9 flies into ball 1 and 2, 
+    and ball 11 flies into ball 9, they will start counting from ball 1.
+    |#|  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
+    |1| [X] |  -  |  -  |  -  |  -  |  -  |  -  |  -  | 5ms |
+    |2|  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  | 9ms |
+    |3|  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  |
+    |4|  -  |  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |
+    |5|  -  |  -  |  -  |  -  | [X] |  -  |  -  |  -  |  -  |
+    |6|  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |  -  |
+    |7|  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |
+    |8|  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |
+    |9|*4ms |  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |
+    */
     
     /*     
         printf("=======================[ START ]========================\n");
@@ -345,9 +346,14 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
                               (S32)iter_ball->pos.y, 
                               const_ball_radius);
     }
-
-
-    RGBA_U8 c = {0xff, 0xff, 0xff, 0xff};
-    renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);        
+    
+    RGBA_U8 c = {0xff, 0x00, 0xff, 0xff};
+    renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE,
+                          (S32)game_state->balls[0].pos.x,
+                          (S32)game_state->balls[0].pos.y,
+                          (S32)game_state->balls[0].pos.x + (S32)vec_punch.x,
+                          (S32)game_state->balls[0].pos.y + (S32)vec_punch.y);
 }
+
 
