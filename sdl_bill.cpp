@@ -148,6 +148,9 @@ int main(int, char**)
         SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
         while(SDL_PollEvent(&event))
         {
+            GameInputMouseButtonState *mouse_buttons = game_input.mouse.buttons_states;
+            Vec2Dim<S32> *mouse_pos = &game_input.mouse.cursor_pos;
+            
             switch(event.type)
             {
                 // NOTE(annad): Alt+F4 work too.
@@ -186,30 +189,33 @@ int main(int, char**)
                 }
                 
                 case SDL_MOUSEBUTTONDOWN:
-                {
+                { 
                     switch(event.button.button)
                     {
                         case SDL_BUTTON_LEFT:
                         {
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_LEFT].enum_state = INPUT_BUTTON_STATE_DOWN;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.x = (F32)event.button.x;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.y = (F32)event.button.y;
+                            set_mouse_button_state(
+                                &mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
+                                INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y
+                            );
                             break;
                         }
                         
                         case SDL_BUTTON_MIDDLE:
                         {
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_MID].enum_state = INPUT_BUTTON_STATE_DOWN;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_MID].click_pos.x = (F32)event.button.x;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_MID].click_pos.y = (F32)event.button.y;
+                            set_mouse_button_state(
+                                &mouse_buttons[INPUT_MOUSE_BUTTON_MID],
+                                INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y
+                            );
                             break;
                         }
                         
                         case SDL_BUTTON_RIGHT:
                         {
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_RIGHT].enum_state = INPUT_BUTTON_STATE_DOWN;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.x = (F32)event.button.x;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.y = (F32)event.button.y;
+                            set_mouse_button_state(
+                                &mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
+                                INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y
+                            );
                             break;
                         }
                     }
@@ -223,25 +229,28 @@ int main(int, char**)
                     {
                         case SDL_BUTTON_LEFT:
                         {
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_LEFT].enum_state = INPUT_BUTTON_STATE_UP;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.x = (F32)event.button.x;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.y = (F32)event.button.y;
+                            set_mouse_button_state(
+                                &mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
+                                INPUT_BUTTON_STATE_UP, event.button.x, event.button.y
+                            );
                             break;
                         }
                         
                         case SDL_BUTTON_MIDDLE:
                         {
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_MID].enum_state = INPUT_BUTTON_STATE_UP;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_MID].click_pos.x = (F32)event.button.x;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_MID].click_pos.y = (F32)event.button.y;
+                            set_mouse_button_state(
+                                &mouse_buttons[INPUT_MOUSE_BUTTON_MID],
+                                INPUT_BUTTON_STATE_UP, event.button.x, event.button.y
+                            );
                             break;
                         }
                         
                         case SDL_BUTTON_RIGHT:
                         {
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_RIGHT].enum_state = INPUT_BUTTON_STATE_UP;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.x = (F32)event.button.x;
-                            game_input.mouse.buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.y = (F32)event.button.y;
+                            set_mouse_button_state(
+                                &mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
+                                INPUT_BUTTON_STATE_UP, event.button.x, event.button.y
+                            );
                             break;
                         }
                     }
@@ -251,8 +260,8 @@ int main(int, char**)
                 
                 case SDL_MOUSEMOTION:
                 {
-                    game_input.mouse.cursor_pos.x = (F32)event.motion.x;
-                    game_input.mouse.cursor_pos.y = (F32)event.motion.y;
+                    mouse_pos->x = event.motion.x;
+                    mouse_pos->y = event.motion.y;
                     break;
                 }
             }

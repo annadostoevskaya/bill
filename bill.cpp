@@ -169,9 +169,6 @@ void game_update_and_render(GameMemory *game_memory,
         game_state->initialize_flag = true;
     }
     
-    EvalPrint(game_input->mouse.cursor_pos.x);
-    EvalPrint(game_input->mouse.cursor_pos.y);
-
     // MemArena *memory_arena = &game_state->memory_arena;
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
@@ -197,8 +194,24 @@ void game_update_and_render(GameMemory *game_memory,
             ball->pos = { pos_x, pos_y };
             ball->vel = {};
         }
+    }
 
-        game_state->balls[0].vel = {100.0f, 100.0f};
+    globalv Vec2Dim<S32> vec_punch = {};
+
+    GameInputMouse *mouse = &game_input->mouse;
+    if(mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].state == INPUT_BUTTON_STATE_DOWN)
+    {
+        vec_punch = {
+            mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.x - mouse->cursor_pos.x,
+            mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.y - mouse->cursor_pos.y,
+        };
+
+        EvalPrint(vec_punch.x);
+        EvalPrint(vec_punch.y);
+    }
+    else
+    {
+        
     }
 
     // TODO(annad): Write Linked-List and Proroty-Queue
@@ -235,11 +248,11 @@ void game_update_and_render(GameMemory *game_memory,
     // find the very collision of all
     //
     
-    /*
+/*
 NOTE(annad): If ball 9 flies into ball 1 and 2, 
 and ball 11 flies into ball 9, they will start counting from ball 1.
-   |#|  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-  |1| [X] |  -  |  -  |  -  |  -  |  -  |  -  |  -  | 5ms |
+|#|  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
+|1| [X] |  -  |  -  |  -  |  -  |  -  |  -  |  -  | 5ms |
 |2|  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  | 9ms |
 |3|  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  |
 |4|  -  |  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |
@@ -248,7 +261,6 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
 |7|  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |
 |8|  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |
 |9|*4ms |  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |
-
 */
     
     /*     
@@ -320,8 +332,7 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
         if(i == BALL_ENUM_WHITE)
         {
             RGBA_U8 c = {0xff, 0xff, 0xff, 0xff};
-            renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);
-            
+            renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);        
         }
         else
         {
@@ -334,5 +345,9 @@ and ball 11 flies into ball 9, they will start counting from ball 1.
                               (S32)iter_ball->pos.y, 
                               const_ball_radius);
     }
+
+
+    RGBA_U8 c = {0xff, 0xff, 0xff, 0xff};
+    renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);        
 }
 
