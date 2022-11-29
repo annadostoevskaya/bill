@@ -6,6 +6,21 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
+
+// ================== TRASH ==================
+#define _GET_MIN(Arr, ArrSz, Min) \
+for(S32 _i = 0; _i < ArrSz; _i += 1) \
+{ \
+\
+if(Min > Arr[_i])  \
+{ \
+Min = Arr[_i]; \
+} \
+}
+
+#define GET_MIN(Arr, Min) _GET_MIN(Arr, (sizeof(Arr) / sizeof(Arr[0])), Min)
+// ================== TRASH ==================
+
 #include "bill_renderer.cpp"
 #include "bill_math.h"
 #include "bill.h"
@@ -13,6 +28,7 @@ Description: <empty>
 #define BALL_SPEED 2500.0f
 #define BALL_FRICTION 3.0f
 #define BALL_RADIUS 20.0f
+
 Ball update_ball(Ball *ball, F32 dt)
 {
     // NOTE(annad):
@@ -140,16 +156,16 @@ void get_table_t_before_collide(F32 *t_table, Ball *balls, F32 dt)
             {
                 continue;
             }
-
+            
             Ball *ball_b = &(balls[j]);
             if(balls_is_collide(&updated_ball_a, ball_b))
             {
-                F32 t = t_before_collide(ball_a, ball_b);
-                t_table[i][j] = t;
+                t_table[i * BALL_ENUM_COUNT + j] = t_before_collide(ball_a, ball_b);
             }
-        }    
+        }
     }
 }
+
 
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer, 
@@ -232,7 +248,7 @@ void game_update_and_render(GameMemory *game_memory,
             bill_cue_y
         };
         
-        PRINT_VEC(game_state->bill_cue);
+        // PRINT_VEC(game_state->bill_cue);
     }
     else
     {
@@ -245,116 +261,51 @@ void game_update_and_render(GameMemory *game_memory,
     
     // TODO(annad): Write Linked-List and Proroty-Queue
     F32 dt = (((F32)game_time->dt / 1000.0f));
-    F32 dts_before_collide[BALL_ENUM_COUNT][BALL_ENUM_COUNT] = {};
-
+    F32 dt_for_balls[BALL_ENUM_COUNT] = {};
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
     {
-        Ball *ball_a = &game_state->balls[i];
-        Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);
-        
-        B32 collide_flag = false;
-        Ball updated_ball_a = update_ball(ball_a, dt);
-        for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
-        {
-            if(i != j) 
-            {
-                Ball *ball_b = &(game_state->balls[j]);
-                if(balls_is_collide(&updated_ball_a, ball_b))
-                {
-                    F32 t = t_before_collide(ball_a, ball_b);
-                    dts_before_collide[i][j] = t;
-                    collide_flag = true;
-                }
-            }
-        }
-        
-        if(!collide_flag)
-        {
-            *ball_a = updated_ball_a;
-        }
+        dt_for_balls[i] = dt;
     }
     
-    //
-    // find the very collision of all
-    //
-    
-    /*
-    NOTE(annad): If ball 9 flies into ball 1 and 2, 
-    and ball 11 flies into ball 9, they will start counting from ball 1.
-    |#|  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-    |1| [X] |  -  |  -  |  -  |  -  |  -  |  -  |  -  | 5ms |
-    |2|  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  | 9ms |
-    |3|  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |  -  |
-    |4|  -  |  -  |  -  | [X] |  -  |  -  |  -  |  -  |  -  |
-    |5|  -  |  -  |  -  |  -  | [X] |  -  |  -  |  -  |  -  |
-    |6|  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |  -  |
-    |7|  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |  -  |
-    |8|  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |  -  |
-    |9|*4ms |  -  |  -  |  -  |  -  |  -  |  -  |  -  | [X] |
-    */
-    
-    /*     
-        printf("=======================[ START ]========================\n");
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-        {
-            for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
-            {
-                if(dts_before_collide[i][j])
-                {
-                    printf("%f ", dts_before_collide[i][j]);
-                }
-                else
-                {
-                    printf("-.------ ");
-                }
-            }
-            printf("\n");
-        }
-        printf("=======================[  END  ]========================\n\n");
-         */
-    
-    F32 min_dt;
-    S32 ball_a_idx, ball_b_idx; // max time for frame
-    B32 collisions_resolved = false;
-    Vec2Dim<F32> ball_a_acc = {};
-    while(!collisions_resolved)
+    B32 time_is_up_for_every_balls_flag = false;
+    while(!time_is_up_for_every_balls_flag)
     {
-        collisions_resolved = true;
-        min_dt = 1.0f;
-        ball_a_idx = 0;
-        ball_b_idx = 0;
-        F32 dt_for_ball_a = dt;
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+        F32 t_before_collide[BALL_ENUM_COUNT * BALL_ENUM_COUNT] = {};
+        get_table_t_before_collide(t_before_collide, (Ball*)&game_state->balls, dt);
+        S32 idx_min = 0;
+        F32 t_min = 999.0f;
+        while(idx_min < BALL_ENUM_COUNT * BALL_ENUM_COUNT)
         {
-            for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
+            if(t_before_collide[idx_min] != 0.0f && t_min > t_before_collide[idx_min])
             {
-                if(dts_before_collide[i][j] != 0.0f && min_dt > dts_before_collide[i][j])
-                {
-                    min_dt = dts_before_collide[i][j];
-                    ball_a_idx = i;
-                    ball_b_idx = j;
-                    collisions_resolved = false;
-                }
+                t_min = t_before_collide[idx_min];
             }
         }
         
-        if(!collisions_resolved)
+        if(t_min == 999.0f)
         {
-            F32 dt_before_collide = min_dt;
-            dts_before_collide[ball_a_idx][ball_b_idx] = 0.0f;
-            Ball *ball_a = &game_state->balls[ball_a_idx];
-            Ball *ball_b = &game_state->balls[ball_b_idx];
-            Ball updated_ball_a = update_ball(ball_a, dt_before_collide);
-            balls_collide_handle(&updated_ball_a, ball_b);
-            *ball_a = updated_ball_a;
-            dt_for_ball_a -= dt_before_collide;
-            EvalPrintF(dt_for_ball_a);
+            // FEELING THAT I'M TRYING TO WRITE TWO DIFFERENT FUNCTIONS 
+            // AT ONCE WHAT THE FUCK
+            continue;
+        }
+        
+        S32 a_idx = idx_min / BALL_ENUM_COUNT;
+        S32 b_idx = idx_min % BALL_ENUM_COUNT;
+        Ball *ball_a = &game_state->balls[a_idx];
+        Ball *ball_b = &game_state->balls[b_idx];
+        update_ball(ball_a, t_min);
+        balls_collide_handle(ball_a, ball_b);
+        dt_for_balls[a_idx] -= t_min;
+        
+        time_is_up_for_every_balls_flag = true;
+        for(S32 idx = 0; idx < BALL_ENUM_COUNT; idx++)
+        {
+            if(dt_for_balls[idx] != 0.0f)
+            {
+                time_is_up_for_every_balls_flag = false;
+            }
         }
     }
-    
-    //
-    // rendering
-    //
     
     for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
     {
@@ -375,7 +326,6 @@ void game_update_and_render(GameMemory *game_memory,
                               (S32)iter_ball->pos.y, 
                               const_ball_radius);
     }
-    
     
     RGBA_U8 cue_color = {0xff, 0x00, 0xff, 0xff};
     renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &cue_color);

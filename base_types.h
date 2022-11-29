@@ -125,22 +125,6 @@ typedef void VoidFunc(void);
 # define Assert(expr)
 #endif
 
-#define Stringify_(S) #S
-#define Stringify(S) Stringify_(S)
-#define Glue_(A, B) A##B
-#define Glue(A, B) Glue_(A, B)
-
-#define ArrayCount(arr) (sizeof(arr) / sizeof(*(arr)))
-
-#define IntFromPtr(p) ((unsigned long long)((char*)p - (char*)0))
-#define PtrFromInt(n) ((void*)((char*)0 + (n)))
-
-#define Member(T, m) (((T*)0)->m)
-#define OffsetOfMember(T, m) IntFromPtr(&Member(T, m))
-
-#define Minimal(a, b) (((a) < (b)) ? (a) : (b))
-#define Maximal(a, b) (((a) > (b)) ? (b) : (a))
-
 #define globalv static
 #define localv static
 #define internal static
