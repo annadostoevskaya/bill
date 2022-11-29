@@ -39,7 +39,7 @@ B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
     return distance < (2.0f * BALL_RADIUS);
 }
 
-F32 dt_before_collide(Ball *ball_a, Ball *ball_b)
+F32 t_before_collide(Ball *ball_a, Ball *ball_b)
 {
     Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);
     F32 t = 0.0f;
@@ -127,6 +127,30 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b)
     ball_b->vel += direct_b * result_vel * cos_direct_b;
 }
 
+void get_table_t_before_collide(F32 *t_table, Ball *balls, F32 dt)
+{
+    for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+    {
+        Ball *ball_a = &(balls[i]);
+        Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);
+        Ball updated_ball_a = update_ball(ball_a, dt);
+        for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
+        {
+            if(i == j)
+            {
+                continue;
+            }
+
+            Ball *ball_b = &(balls[j]);
+            if(balls_is_collide(&updated_ball_a, ball_b))
+            {
+                F32 t = t_before_collide(ball_a, ball_b);
+                t_table[i][j] = t;
+            }
+        }    
+    }
+}
+
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer, 
                             GameInput *game_input, 
@@ -164,8 +188,7 @@ void game_update_and_render(GameMemory *game_memory,
             pos_x += (i * const_ball_radius * 2.0f + i * 10.0f);
             ball->pos = { pos_x, pos_y };
             ball->vel = {};
-        }
-        
+        }        
         
         game_state->bill_cue = {};
         game_state->initialize_flag = true;
@@ -223,10 +246,11 @@ void game_update_and_render(GameMemory *game_memory,
     // TODO(annad): Write Linked-List and Proroty-Queue
     F32 dt = (((F32)game_time->dt / 1000.0f));
     F32 dts_before_collide[BALL_ENUM_COUNT][BALL_ENUM_COUNT] = {};
+
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
     {
         Ball *ball_a = &game_state->balls[i];
-        Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);;
+        Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);
         
         B32 collide_flag = false;
         Ball updated_ball_a = update_ball(ball_a, dt);
@@ -237,7 +261,7 @@ void game_update_and_render(GameMemory *game_memory,
                 Ball *ball_b = &(game_state->balls[j]);
                 if(balls_is_collide(&updated_ball_a, ball_b))
                 {
-                    F32 t = dt_before_collide(ball_a, ball_b);
+                    F32 t = t_before_collide(ball_a, ball_b);
                     dts_before_collide[i][j] = t;
                     collide_flag = true;
                 }
