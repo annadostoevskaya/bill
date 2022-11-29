@@ -12,6 +12,8 @@ Description: <empty>
 #include "base_types.h"
 #include <math.h>
 
+#define PRINT_VEC(V) printf("%s.x: %f\n%s.y: %f\n", #V, V.x, #V, V.y)
+
 template<typename T>
 struct Vec2Dim
 {

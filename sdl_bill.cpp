@@ -282,6 +282,7 @@ int main(int, char**)
         game_time.start = game_time.end;
     }
     
+    free(common_mem_pull);
     SDL_DestroyRenderer(sdl_renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

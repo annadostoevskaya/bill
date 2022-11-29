@@ -36,6 +36,7 @@ struct GameState
 {
     Arena memory_arena;
     Ball balls[BALL_ENUM_COUNT];
+    Vec2Dim<F32> bill_cue;
     B16 initialize_flag;
 };
 

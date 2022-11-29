@@ -166,6 +166,8 @@ void game_update_and_render(GameMemory *game_memory,
             ball->vel = {};
         }
         
+        
+        game_state->bill_cue = {};
         game_state->initialize_flag = true;
     }
     
@@ -196,22 +198,25 @@ void game_update_and_render(GameMemory *game_memory,
         }
     }
     
-    globalv Vec2Dim<F32> vec_punch = {};
-    
     GameInputMouse *mouse = &game_input->mouse;
-    if(mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].state == INPUT_BUTTON_STATE_DOWN)
+    if(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].state == INPUT_BUTTON_STATE_DOWN)
     {
-        vec_punch = {
-            (F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.x - mouse->cursor_pos.x),
-            (F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_RIGHT].click_pos.y - mouse->cursor_pos.y),
+        F32 bill_cue_x = ((F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.x - mouse->cursor_pos.x));
+        F32 bill_cue_y = ((F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.y - mouse->cursor_pos.y));
+        
+        game_state->bill_cue = {
+            bill_cue_x,
+            bill_cue_y
         };
+        
+        PRINT_VEC(game_state->bill_cue);
     }
     else
     {
-        if(vec_punch.getLength())
+        if(game_state->bill_cue.getLength())
         {
-            game_state->balls[0].vel = vec_punch;
-            vec_punch = {};
+            game_state->balls[0].vel = game_state->bill_cue;
+            game_state->bill_cue = {};
         }
     }
     
@@ -347,13 +352,14 @@ void game_update_and_render(GameMemory *game_memory,
                               const_ball_radius);
     }
     
-    RGBA_U8 c = {0xff, 0x00, 0xff, 0xff};
-    renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);
+    
+    RGBA_U8 cue_color = {0xff, 0x00, 0xff, 0xff};
+    renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &cue_color);
     renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE,
                           (S32)game_state->balls[0].pos.x,
                           (S32)game_state->balls[0].pos.y,
-                          (S32)game_state->balls[0].pos.x + (S32)vec_punch.x,
-                          (S32)game_state->balls[0].pos.y + (S32)vec_punch.y);
+                          (S32)game_state->balls[0].pos.x + ((S32)game_state->bill_cue.x),
+                          (S32)game_state->balls[0].pos.y + ((S32)game_state->bill_cue.y));
 }
 
 
