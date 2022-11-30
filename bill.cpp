@@ -6,21 +6,6 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
-
-// ================== TRASH ==================
-#define _GET_MIN(Arr, ArrSz, Min) \
-for(S32 _i = 0; _i < ArrSz; _i += 1) \
-{ \
-\
-if(Min > Arr[_i])  \
-{ \
-Min = Arr[_i]; \
-} \
-}
-
-#define GET_MIN(Arr, Min) _GET_MIN(Arr, (sizeof(Arr) / sizeof(Arr[0])), Min)
-// ================== TRASH ==================
-
 #include "bill_renderer.cpp"
 #include "bill_math.h"
 #include "bill.h"
@@ -266,47 +251,73 @@ void game_update_and_render(GameMemory *game_memory,
     {
         dt_for_balls[i] = dt;
     }
-    
-    B32 time_is_up_for_every_balls_flag = false;
-    while(!time_is_up_for_every_balls_flag)
+
+#define ALL_ARRAY_IS_0(Arr)
+#define GET_MIN_IDX(Arr)
+
+    B32 dt_is_up = false;
+    while(dt_is_up)
     {
-        F32 t_before_collide[BALL_ENUM_COUNT * BALL_ENUM_COUNT] = {};
-        get_table_t_before_collide(t_before_collide, (Ball*)&game_state->balls, dt);
-        S32 idx_min = 0;
-        F32 t_min = 999.0f;
-        while(idx_min < BALL_ENUM_COUNT * BALL_ENUM_COUNT)
+        F32 t_table[BALL_ENUM_COUNT * BALL_ENUM_COUNT];
+        get_table_t_before_collide(t_table, (Ball*)(game_state->balls), dt);
+        // Find min_t
+        S32 min_t_idx = 0;
+        F32 min_t = 999.0f;
+        for(S32 i = 0; i < BALL_ENUM_COUNT * BALL_ENUM_COUNT; i += 1)
         {
-            if(t_before_collide[idx_min] != 0.0f && t_min > t_before_collide[idx_min])
+            if(min_t > t_table[i])
             {
-                t_min = t_before_collide[idx_min];
+                min_t = t_table[i];
+                min_t_idx = i;
             }
         }
-        
-        if(t_min == 999.0f)
+        // If min_t not founded, update not collided balls
+        if(min_t == 999.0f)
         {
-            // FEELING THAT I'M TRYING TO WRITE TWO DIFFERENT FUNCTIONS 
-            // AT ONCE WHAT THE FUCK
-            continue;
-        }
-        
-        S32 a_idx = idx_min / BALL_ENUM_COUNT;
-        S32 b_idx = idx_min % BALL_ENUM_COUNT;
-        Ball *ball_a = &game_state->balls[a_idx];
-        Ball *ball_b = &game_state->balls[b_idx];
-        update_ball(ball_a, t_min);
-        balls_collide_handle(ball_a, ball_b);
-        dt_for_balls[a_idx] -= t_min;
-        
-        time_is_up_for_every_balls_flag = true;
-        for(S32 idx = 0; idx < BALL_ENUM_COUNT; idx++)
-        {
-            if(dt_for_balls[idx] != 0.0f)
+            for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
             {
-                time_is_up_for_every_balls_flag = false;
+                F32 t = dt_for_balls[i];
+                Ball *ball_a = game_state->balls[i];
+                if(t != 0.0f)
+                {
+                    update_ball(ball_a, t);
+                    dt_for_ball[i] = 0.0f;
+                }
+            }
+        }
+        else
+        {
+            F32 min_t = t_table[min_t_idx];
+            S32 ball_a_idx = min_t_idx / BALL_ENUM_COUNT;
+            F32 dt_for_ball_a = dt_for_ball[ball_a_idx];
+            if(dt_for_ball_a != 0.0f && dt_for_ball_a < t_table[min_t_idx])
+            {
+                Ball *ball_a = game_state->balls[ball_a_idx];
+                update_ball(ball_a, min_t);
+                dt_for_balls[ball_a_idx] = 0.0f;
+            }
+            else
+            {
+                Ball *ball_a = game_state->balls[ball_a_idx];
+                S32 ball_b_idx = min_t_idx % BALL_ENUM_COUNT;
+                Ball *ball_b = game_state->balls[ball_b_idx];
+                update_ball(ball_a, min_t);
+                dt_for_balls[ball_a_idx] -= min_t;
+                balls_collide_handle(ball_a, ball_b);
+            }
+        }
+        // check, is dt calculated?
+        dt_is_up = true;
+        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+        {
+            if(dt_for_balls[i] > 0.0f)
+            {
+                dt_is_up = false;
+                break;
             }
         }
     }
-    
+
     for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
     {
         Ball *iter_ball = &game_state->balls[i];
