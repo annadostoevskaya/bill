@@ -251,15 +251,13 @@ void game_update_and_render(GameMemory *game_memory,
     {
         dt_for_balls[i] = dt;
     }
-
-#define ALL_ARRAY_IS_0(Arr)
-#define GET_MIN_IDX(Arr)
-
+    
     B32 dt_is_up = false;
     while(dt_is_up)
     {
-        F32 t_table[BALL_ENUM_COUNT * BALL_ENUM_COUNT];
+        F32 t_table[BALL_ENUM_COUNT * BALL_ENUM_COUNT] = {};
         get_table_t_before_collide(t_table, (Ball*)(game_state->balls), dt);
+        
         // Find min_t
         S32 min_t_idx = 0;
         F32 min_t = 999.0f;
@@ -271,41 +269,43 @@ void game_update_and_render(GameMemory *game_memory,
                 min_t_idx = i;
             }
         }
+        
         // If min_t not founded, update not collided balls
         if(min_t == 999.0f)
         {
             for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
             {
                 F32 t = dt_for_balls[i];
-                Ball *ball_a = game_state->balls[i];
+                Ball *ball_a = &game_state->balls[i];
                 if(t != 0.0f)
                 {
                     update_ball(ball_a, t);
-                    dt_for_ball[i] = 0.0f;
+                    dt_for_balls[i] = 0.0f;
+                    break;
                 }
             }
         }
         else
         {
-            F32 min_t = t_table[min_t_idx];
             S32 ball_a_idx = min_t_idx / BALL_ENUM_COUNT;
-            F32 dt_for_ball_a = dt_for_ball[ball_a_idx];
+            F32 dt_for_ball_a = dt_for_balls[ball_a_idx];
             if(dt_for_ball_a != 0.0f && dt_for_ball_a < t_table[min_t_idx])
             {
-                Ball *ball_a = game_state->balls[ball_a_idx];
+                Ball *ball_a = &game_state->balls[ball_a_idx];
                 update_ball(ball_a, min_t);
                 dt_for_balls[ball_a_idx] = 0.0f;
             }
             else
             {
-                Ball *ball_a = game_state->balls[ball_a_idx];
+                Ball *ball_a = &game_state->balls[ball_a_idx];
                 S32 ball_b_idx = min_t_idx % BALL_ENUM_COUNT;
-                Ball *ball_b = game_state->balls[ball_b_idx];
+                Ball *ball_b = &game_state->balls[ball_b_idx];
                 update_ball(ball_a, min_t);
                 dt_for_balls[ball_a_idx] -= min_t;
                 balls_collide_handle(ball_a, ball_b);
             }
         }
+        
         // check, is dt calculated?
         dt_is_up = true;
         for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
@@ -317,7 +317,7 @@ void game_update_and_render(GameMemory *game_memory,
             }
         }
     }
-
+    
     for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
     {
         Ball *iter_ball = &game_state->balls[i];
