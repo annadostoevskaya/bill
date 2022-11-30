@@ -36,7 +36,7 @@ Ball update_ball(Ball *ball, F32 dt)
 // TODO(annad): Refactoring...
 B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
 {
-    F32 distance = (ball_a->pos - ball_b->pos).getLength();
+    F32 distance = (ball_b->pos - ball_a->pos).getLength();
     return distance < (2.0f * BALL_RADIUS);
 }
 
@@ -69,19 +69,19 @@ F32 t_before_collide(Ball *ball_a, Ball *ball_b)
         else
         {
             F32 fi_angle = defaultArcCos(cos_fi); // angle delta_pos,v
-            F32 side_a = 2.0f * BALL_RADIUS; // 2r 
+            F32 side_a = 2.0f * BALL_RADIUS; // 2r
             F32 side_b = delta_pos.getLength(); // |B - A|
             F32 sin_a = defaultSin(fi_angle);
             F32 sin_b = (sin_a / side_a) * side_b;
             // TODO(annad): Sometimes we get sin_c - NaN. wtf?
             if(sin_b > 1.0f) // TODO(annad): Remove this, normalize floating point math
             {
-                EvalPrintF(sin_b);
+                // EvalPrintF(sin_b);
                 sin_b = 1.0f;
             }
             else if(sin_b < -1.0f)
             {
-                EvalPrintF(sin_b);
+                // EvalPrintF(sin_b);
                 sin_b = -1.0f;
             }
             
@@ -91,12 +91,12 @@ F32 t_before_collide(Ball *ball_a, Ball *ball_b)
             // TODO(annad): Collision order!
             EvalPrintF(s);
             Assert(s == s); // NOTE(annad): S = [2.0f ~ 21.0f], when V -> inf.
-            Assert(s > 0.0f);
+            Assert(s > 0.0f); // TODO(annad): When ball on boundary!!! wtf?????
         }
         
         F32 v = ball_a->vel.getLength();
         F32 a = 0.5f * ball_a_acc.getLength();
-        EvalPrintF(a);
+        // EvalPrintF(a);
         F32 discriminant = (F32)sqrt(square(v) - 4.0f * a * s);
         Assert(discriminant == discriminant);
         // TODO(annad): math, sqrt
@@ -150,6 +150,7 @@ void get_table_t_before_collide(F32 *t_table, Ball *balls, F32 dt)
         }
     }
 }
+
 
 
 void game_update_and_render(GameMemory *game_memory, 
@@ -247,35 +248,75 @@ void game_update_and_render(GameMemory *game_memory,
     }
     
     FRAME_COUNTER_AFTER_CUE++;
-
+    
     // TODO(annad): Write Linked-List and Proroty-Queue
     F32 dt = (((F32)game_time->dt / 1000.0f));
     if(dt == 0.0f)
     {
         dt = 1.0f/60.0f;
     }
-
+    
     F32 dt_for_balls[BALL_ENUM_COUNT] = {};
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
     {
         dt_for_balls[i] = dt;
     }
-
+    
+    printf("-=-=-=-=-=-=-=-=-=-=-=-=-=[ START ]-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
     B32 dt_is_up = false;
     while(!dt_is_up)
     {
         F32 t_table[BALL_ENUM_COUNT * BALL_ENUM_COUNT] = {};
         get_table_t_before_collide(t_table, (Ball*)(game_state->balls), dt);
         
+        
+        printf("=[ DTs ]=\n");
+        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+        {
+            if(dt_for_balls[i] != dt && dt_for_balls[i] != 0.0f)
+            {
+                printf("^%lf ", dt_for_balls[i]);
+            }
+            else 
+            {
+                printf("%lf ", dt_for_balls[i]);
+            }
+        }
+        printf("\n");
+        printf("=[ DTs ]=\n");
+        
+        printf("=[TABLE t BEFORE COLLIDE]=\n");
+        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+        {
+            for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
+            {
+                if(t_table[i * BALL_ENUM_COUNT + j] == 0.0f)
+                {
+                    printf("%lf ", t_table[i * BALL_ENUM_COUNT + j]);
+                }
+                else
+                {
+                    printf("*%lf ", t_table[i * BALL_ENUM_COUNT + j]);
+                }
+            }
+            printf("\n");
+        }
+        printf("=[TABLE t BEFORE COLLIDE]=\n");
+        
+        
         // Find min_t
         S32 min_t_idx = 0;
         F32 min_t = 999.0f;
         for(S32 i = 0; i < BALL_ENUM_COUNT * BALL_ENUM_COUNT; i += 1)
         {
+            Assert(t_table[i] != min_t);
             if(t_table[i] != 0.0f && min_t > t_table[i])
             {
-                min_t = t_table[i];
-                min_t_idx = i;
+                if(dt_for_balls[i / BALL_ENUM_COUNT] != 0.0f)
+                {
+                    min_t = t_table[i];
+                    min_t_idx = i;
+                }
             }
         }
         
@@ -286,7 +327,7 @@ void game_update_and_render(GameMemory *game_memory,
             {
                 F32 t = dt_for_balls[i];
                 Ball *ball_a = &game_state->balls[i];
-                if(t != 0.0f)
+                if(t > 0.0f)
                 {
                     *ball_a = update_ball(ball_a, t);
                     dt_for_balls[i] = 0.0f;
@@ -297,11 +338,10 @@ void game_update_and_render(GameMemory *game_memory,
         else
         {
             S32 ball_a_idx = min_t_idx / BALL_ENUM_COUNT;
-            F32 dt_for_ball_a = dt_for_balls[ball_a_idx];
-            if(dt_for_ball_a != 0.0f && dt_for_ball_a < t_table[min_t_idx])
+            if(dt_for_balls[ball_a_idx] > 0.0f && dt_for_balls[ball_a_idx] < min_t)
             {
                 Ball *ball_a = &game_state->balls[ball_a_idx];
-                *ball_a = update_ball(ball_a, min_t);
+                *ball_a = update_ball(ball_a, dt_for_balls[ball_a_idx]);
                 dt_for_balls[ball_a_idx] = 0.0f;
             }
             else
@@ -311,6 +351,7 @@ void game_update_and_render(GameMemory *game_memory,
                 Ball *ball_b = &game_state->balls[ball_b_idx];
                 *ball_a = update_ball(ball_a, min_t);
                 dt_for_balls[ball_a_idx] -= min_t;
+                Assert(dt_for_balls[ball_a_idx] > 0.0f);
                 balls_collide_handle(ball_a, ball_b);
             }
         }
@@ -326,6 +367,11 @@ void game_update_and_render(GameMemory *game_memory,
             }
         }
     }
+    printf("-=-=-=-=-=-=-=-=-=-=-=-=-=[  END  ]-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n");
+    
+    //
+    //
+    //
     
     for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
     {
