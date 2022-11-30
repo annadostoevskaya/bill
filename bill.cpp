@@ -223,6 +223,7 @@ void game_update_and_render(GameMemory *game_memory,
     }
     
     GameInputMouse *mouse = &game_input->mouse;
+    localv S32 FRAME_COUNTER_AFTER_CUE = 0;
     if(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].state == INPUT_BUTTON_STATE_DOWN)
     {
         F32 bill_cue_x = ((F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.x - mouse->cursor_pos.x));
@@ -240,20 +241,28 @@ void game_update_and_render(GameMemory *game_memory,
         if(game_state->bill_cue.getLength())
         {
             game_state->balls[0].vel = game_state->bill_cue;
+            FRAME_COUNTER_AFTER_CUE = 0;
             game_state->bill_cue = {};
         }
     }
     
+    FRAME_COUNTER_AFTER_CUE++;
+
     // TODO(annad): Write Linked-List and Proroty-Queue
     F32 dt = (((F32)game_time->dt / 1000.0f));
+    if(dt == 0.0f)
+    {
+        dt = 1.0f/60.0f;
+    }
+
     F32 dt_for_balls[BALL_ENUM_COUNT] = {};
     for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
     {
         dt_for_balls[i] = dt;
     }
-    
+
     B32 dt_is_up = false;
-    while(dt_is_up)
+    while(!dt_is_up)
     {
         F32 t_table[BALL_ENUM_COUNT * BALL_ENUM_COUNT] = {};
         get_table_t_before_collide(t_table, (Ball*)(game_state->balls), dt);
@@ -263,7 +272,7 @@ void game_update_and_render(GameMemory *game_memory,
         F32 min_t = 999.0f;
         for(S32 i = 0; i < BALL_ENUM_COUNT * BALL_ENUM_COUNT; i += 1)
         {
-            if(min_t > t_table[i])
+            if(t_table[i] != 0.0f && min_t > t_table[i])
             {
                 min_t = t_table[i];
                 min_t_idx = i;
@@ -279,7 +288,7 @@ void game_update_and_render(GameMemory *game_memory,
                 Ball *ball_a = &game_state->balls[i];
                 if(t != 0.0f)
                 {
-                    update_ball(ball_a, t);
+                    *ball_a = update_ball(ball_a, t);
                     dt_for_balls[i] = 0.0f;
                     break;
                 }
@@ -292,7 +301,7 @@ void game_update_and_render(GameMemory *game_memory,
             if(dt_for_ball_a != 0.0f && dt_for_ball_a < t_table[min_t_idx])
             {
                 Ball *ball_a = &game_state->balls[ball_a_idx];
-                update_ball(ball_a, min_t);
+                *ball_a = update_ball(ball_a, min_t);
                 dt_for_balls[ball_a_idx] = 0.0f;
             }
             else
@@ -300,7 +309,7 @@ void game_update_and_render(GameMemory *game_memory,
                 Ball *ball_a = &game_state->balls[ball_a_idx];
                 S32 ball_b_idx = min_t_idx % BALL_ENUM_COUNT;
                 Ball *ball_b = &game_state->balls[ball_b_idx];
-                update_ball(ball_a, min_t);
+                *ball_a = update_ball(ball_a, min_t);
                 dt_for_balls[ball_a_idx] -= min_t;
                 balls_collide_handle(ball_a, ball_b);
             }
