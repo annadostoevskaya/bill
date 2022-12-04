@@ -89,7 +89,7 @@ F32 t_before_collide(Ball *ball_a, Ball *ball_b)
             F32 side_c = (side_a / sin_a) * sin_c; // s before collide
             s = side_c;
             // TODO(annad): Collision order!
-            EvalPrintF(s);
+            // EvalPrintF(s);
             Assert(s == s); // NOTE(annad): S = [2.0f ~ 21.0f], when V -> inf.
             Assert(s > 0.0f); // TODO(annad): When ball on boundary!!! wtf?????
         }
@@ -249,125 +249,7 @@ void game_update_and_render(GameMemory *game_memory,
     
     FRAME_COUNTER_AFTER_CUE++;
     
-    // TODO(annad): Write Linked-List and Proroty-Queue
-    F32 dt = (((F32)game_time->dt / 1000.0f));
-    if(dt == 0.0f)
-    {
-        dt = 1.0f/60.0f;
-    }
-    
-    F32 dt_for_balls[BALL_ENUM_COUNT] = {};
-    for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-    {
-        dt_for_balls[i] = dt;
-    }
-    
-    printf("-=-=-=-=-=-=-=-=-=-=-=-=-=[ START ]-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
-    B32 dt_is_up = false;
-    while(!dt_is_up)
-    {
-        F32 t_table[BALL_ENUM_COUNT * BALL_ENUM_COUNT] = {};
-        get_table_t_before_collide(t_table, (Ball*)(game_state->balls), dt);
-        
-        
-        printf("=[ DTs ]=\n");
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-        {
-            if(dt_for_balls[i] != dt && dt_for_balls[i] != 0.0f)
-            {
-                printf("^%lf ", dt_for_balls[i]);
-            }
-            else 
-            {
-                printf("%lf ", dt_for_balls[i]);
-            }
-        }
-        printf("\n");
-        printf("=[ DTs ]=\n");
-        
-        printf("=[TABLE t BEFORE COLLIDE]=\n");
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-        {
-            for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
-            {
-                if(t_table[i * BALL_ENUM_COUNT + j] == 0.0f)
-                {
-                    printf("%lf ", t_table[i * BALL_ENUM_COUNT + j]);
-                }
-                else
-                {
-                    printf("*%lf ", t_table[i * BALL_ENUM_COUNT + j]);
-                }
-            }
-            printf("\n");
-        }
-        printf("=[TABLE t BEFORE COLLIDE]=\n");
-        
-        
-        // Find min_t
-        S32 min_t_idx = 0;
-        F32 min_t = 999.0f;
-        for(S32 i = 0; i < BALL_ENUM_COUNT * BALL_ENUM_COUNT; i += 1)
-        {
-            Assert(t_table[i] != min_t);
-            if(t_table[i] != 0.0f && min_t > t_table[i])
-            {
-                if(dt_for_balls[i / BALL_ENUM_COUNT] != 0.0f)
-                {
-                    min_t = t_table[i];
-                    min_t_idx = i;
-                }
-            }
-        }
-        
-        // If min_t not founded, update not collided balls
-        if(min_t == 999.0f)
-        {
-            for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-            {
-                F32 t = dt_for_balls[i];
-                Ball *ball_a = &game_state->balls[i];
-                if(t > 0.0f)
-                {
-                    *ball_a = update_ball(ball_a, t);
-                    dt_for_balls[i] = 0.0f;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            S32 ball_a_idx = min_t_idx / BALL_ENUM_COUNT;
-            if(dt_for_balls[ball_a_idx] > 0.0f && dt_for_balls[ball_a_idx] < min_t)
-            {
-                Ball *ball_a = &game_state->balls[ball_a_idx];
-                *ball_a = update_ball(ball_a, dt_for_balls[ball_a_idx]);
-                dt_for_balls[ball_a_idx] = 0.0f;
-            }
-            else
-            {
-                Ball *ball_a = &game_state->balls[ball_a_idx];
-                S32 ball_b_idx = min_t_idx % BALL_ENUM_COUNT;
-                Ball *ball_b = &game_state->balls[ball_b_idx];
-                *ball_a = update_ball(ball_a, min_t);
-                dt_for_balls[ball_a_idx] -= min_t;
-                Assert(dt_for_balls[ball_a_idx] > 0.0f);
-                balls_collide_handle(ball_a, ball_b);
-            }
-        }
-        
-        // check, is dt calculated?
-        dt_is_up = true;
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-        {
-            if(dt_for_balls[i] > 0.0f)
-            {
-                dt_is_up = false;
-                break;
-            }
-        }
-    }
-    printf("-=-=-=-=-=-=-=-=-=-=-=-=-=[  END  ]-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n");
+    // TODO(annad): Move handling...
     
     //
     //

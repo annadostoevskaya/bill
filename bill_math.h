@@ -47,13 +47,6 @@ struct Vec2Dim
         return *this;
     }
     
-    Vec2Dim<T>& operator-(const T& a)
-    {
-        this->x /= a;
-        this->y /= a;
-        return *this;
-    }
-    
     inline F64 getLength()
     {
         return (F64)sqrt((double)(this->y * this->y + this->x * this->x));
