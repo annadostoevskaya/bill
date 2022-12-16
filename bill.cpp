@@ -6,6 +6,8 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
+
+
 #include "bill_renderer.cpp"
 #include "bill_math.h"
 #include "bill.h"
@@ -130,12 +132,12 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b)
 
 void get_table_t_before_collide(F32 *t_table, Ball *balls, F32 dt)
 {
-    for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
+    for(S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Ball *ball_a = &(balls[i]);
         Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);
         Ball updated_ball_a = update_ball(ball_a, dt);
-        for(S32 j = 0; j < BALL_ENUM_COUNT; j += 1)
+        for(S32 j = 0; j < BALL_COUNT; j += 1)
         {
             if(i == j)
             {
@@ -145,13 +147,91 @@ void get_table_t_before_collide(F32 *t_table, Ball *balls, F32 dt)
             Ball *ball_b = &(balls[j]);
             if(balls_is_collide(&updated_ball_a, ball_b))
             {
-                t_table[i * BALL_ENUM_COUNT + j] = t_before_collide(ball_a, ball_b);
+                t_table[i * BALL_COUNT + j] = t_before_collide(ball_a, ball_b);
             }
         }
     }
 }
 
+void pq_init(PriorityQueue *pq)
+{
+    pq->size = PQ_MAX_ITEMS_COUNT;
+    pq->cursor = 0;
+}
 
+void pq_clear(PriorityQueue *pq)
+{
+    pq->cursor = 0;
+}
+
+void pq_push(PriorityQueue *pq, CollideInfo *item)
+{
+    Assert(pq->size >= pq->cursor + 1);
+    pq->items[pq->cursor] = *item;
+    pq->cursor += 1;
+}
+
+S32 pq_peek(PriorityQueue *pq)
+{
+    F32 minDt = 1.0f; // TODO(annad): Incapsulate it????
+    S32 idx = -1;
+    
+    CollideInfo *ci;
+    for(S32 i = 0; i < pq->cursor; i += 1)
+    {
+        ci = &pq->items[i];
+        if(ci->dt < minDt)
+        {
+            idx = i;
+            minDt = ci->dt;
+        }
+    }
+    
+    return idx;
+}
+
+CollideInfo pq_pop(PriorityQueue *pq)
+{
+    S32 idx = pq_peek(pq);
+    CollideInfo item = pq->items[idx];
+    pq->items[idx].dt = 1.0f;
+    return item;
+}
+
+void pq_display(PriorityQueue *pq)
+{
+    for (S32 i = 0; i < pq->cursor; i += 1)
+    {
+        EvalPrintF(pq->items[i].dt);
+    }
+}
+
+void update_collisions_pq(PriorityQueue *pq, Ball *balls)
+{
+    pq_clear(pq);
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Ball *ball_a = &balls[i];
+        Ball updated_ball = update_ball(ball_a, 1.0f/30.0f);
+        for (S32 j = 0; j < BALL_COUNT; j += 1)
+        {
+            Ball *ball_b = &balls[j];
+            if(i == j)
+            {
+                continue;
+            }
+            
+            if(balls_is_collide(&updated_ball, ball_b))
+            {
+                CollideInfo ci;
+                ci.ball_a = *ball_a;
+                ci.ball_b = *ball_b;
+                ci.dt = t_before_collide(ball_a, ball_b);
+                pq_push(pq, &ci);
+            }
+        }
+    }
+}
 
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer, 
@@ -181,7 +261,7 @@ void game_update_and_render(GameMemory *game_memory,
         ball->pos = { pos_x, pos_y };
         ball->vel = {};
         
-        for(S32 i = 1, j = 0; i < BALL_ENUM_COUNT; i++, j = (i + 1) / 3)
+        for(S32 i = 1, j = 0; i < BALL_COUNT; i++, j = (i + 1) / 3)
         {
             pos_x = (F32)(renderer->context.width / 2);
             pos_y = (F32)(renderer->context.height / 2);
@@ -194,6 +274,8 @@ void game_update_and_render(GameMemory *game_memory,
         
         game_state->bill_cue = {};
         game_state->initialize_flag = true;
+        
+        pq_init(&game_state->pq);
     }
     
     // MemArena *memory_arena = &game_state->memory_arena;
@@ -211,7 +293,7 @@ void game_update_and_render(GameMemory *game_memory,
         ball->pos = { pos_x, pos_y };
         ball->vel = {};
         
-        for(S32 i = 1, j = 0; i < BALL_ENUM_COUNT; i++, j = (i + 1) / 3)
+        for(S32 i = 1, j = 0; i < BALL_COUNT; i++, j = (i + 1) / 3)
         {
             pos_x = (F32)(renderer->context.width / 2);
             pos_y = (F32)(renderer->context.height / 2);
@@ -247,18 +329,31 @@ void game_update_and_render(GameMemory *game_memory,
         }
     }
     
-    FRAME_COUNTER_AFTER_CUE++;
-    
     // TODO(annad): Move handling...
     
-    //
-    //
-    //
+    /*     
+        PriorityQueue *pq = &game_state->pq;
+        update_collisions_pq(pq, (Ball*)game_state->balls);
+        pq_display(pq);
+        S32 idx = pq_peek(pq);
+        if(idx != -1)
+        {
+            CollideInfo ci = pq->items[idx];
+        }
+        else
+        {
+            game_state->balls[i] = update_ball(&game_state->balls[i], 1.0f/30.0f);
+        }
+         */
     
-    for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
+    //
+    //
+    // 
+    
+    for(S32 i = 0; i < BALL_COUNT; i++)
     {
         Ball *iter_ball = &game_state->balls[i];
-        if(i == BALL_ENUM_WHITE)
+        if(i == BALL_WHITE)
         {
             RGBA_U8 c = {0xff, 0xff, 0xff, 0xff};
             renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);        
