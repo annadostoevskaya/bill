@@ -76,6 +76,8 @@ int main(int, char**)
         return -1;
     }
     
+    DEBUG_window = window;
+    
     SDL_Surface *surface = SDL_GetWindowSurface(window);
     if(surface == NULL)
     {
@@ -85,6 +87,7 @@ int main(int, char**)
     }
     
     SDL_Renderer *sdl_renderer = SDL_CreateSoftwareRenderer(surface);
+    DEBUG_sdl_renderer = sdl_renderer;
     if(sdl_renderer == NULL)
     {
         printf("Failed to create software sdl_renderer\n");

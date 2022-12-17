@@ -36,8 +36,8 @@ struct Ball
 
 struct CollideInfo
 {
-    Ball ball_a;
-    Ball ball_b;
+    S32 ball_a_idx;
+    S32 ball_b_idx;
     F32 dt;
 };
 
