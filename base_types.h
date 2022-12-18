@@ -114,6 +114,7 @@ typedef void VoidFunc(void);
 // NOTE(annad): base_marco_helpers.h
 #define Stmnt(S) do { S } while(0)
 
+#define AssertBreak() __debugbreak()
 #if !defined(AssertBreak)
 #define AssertBreak() (*((int*)(0)) = 0)
 #endif
@@ -123,22 +124,6 @@ typedef void VoidFunc(void);
 #else
 # define Assert(expr)
 #endif
-
-#define Stringify_(S) #S
-#define Stringify(S) Stringify_(S)
-#define Glue_(A, B) A##B
-#define Glue(A, B) Glue_(A, B)
-
-#define ArrayCount(arr) (sizeof(arr) / sizeof(*(arr)))
-
-#define IntFromPtr(p) ((unsigned long long)((char*)p - (char*)0))
-#define PtrFromInt(n) ((void*)((char*)0 + (n)))
-
-#define Member(T, m) (((T*)0)->m)
-#define OffsetOfMember(T, m) IntFromPtr(&Member(T, m))
-
-#define Minimal(a, b) (((a) < (b)) ? (a) : (b))
-#define Maximal(a, b) (((a) > (b)) ? (b) : (a))
 
 #define globalv static
 #define localv static
@@ -194,7 +179,6 @@ B8 isLittleEndian()
 {
     S32 temp = 0x00000042;
     U8 *p_temp = (U8*)(&temp);
-    
     return (p_temp[0] == 0x42);
 }
 

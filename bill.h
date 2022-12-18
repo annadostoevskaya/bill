@@ -11,35 +11,55 @@ Description: <empty>
 
 enum Ball_Enum 
 {
-    BALL_ENUM_WHITE = 0,
-    BALL_ENUM_2,
-    BALL_ENUM_3,
-    BALL_ENUM_4,
-    BALL_ENUM_5,
-    BALL_ENUM_6,
-    BALL_ENUM_7,
-    BALL_ENUM_8,
-    BALL_ENUM_9,
-    
-    BALL_ENUM_COUNT,
+    BALL_WHITE = 0,
+    BALL_1 = 0,
+    BALL_2,
+    BALL_3,
+    BALL_4,
+    BALL_5,
+    BALL_6,
+    BALL_7,
+    BALL_8,
+    BALL_9,
+    BALL_COUNT,
     
     BALL_ENUM_UNDEFINED
 };
 
 struct Ball
 {
-    Ball_Enum id;
+    S32 id;
     Vec2Dim<F32> vel;
     Vec2Dim<F32> pos;
 };
 
+
+struct CollideInfo
+{
+    S32 ball_a_idx;
+    S32 ball_b_idx;
+    F32 dt;
+};
+
+#define PQ_MAX_ITEMS_COUNT 16
+
+struct PriorityQueue
+{
+    CollideInfo items[PQ_MAX_ITEMS_COUNT];
+    S32 size;
+    S32 cursor;
+};
+
+
 struct GameState
 {
-    MemArena memory_arena;
-    Ball ball[BALL_ENUM_COUNT];
-    
+    Arena memory_arena;
+    Ball balls[BALL_COUNT];
+    Vec2Dim<F32> bill_cue;
     B16 initialize_flag;
-    B16 DEBUG_pause_game;
+    
+    PriorityQueue pq;
 };
 
 #endif //BILL_H
+

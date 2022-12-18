@@ -12,13 +12,9 @@ Description: <empty>
 #include "base_types.h"
 #include <math.h>
 
-template <typename T>
-struct Point2Dim
-{
-    T x, y;
-};
+#define PRINT_VEC(V) printf("%s.x: %f\n%s.y: %f\n", #V, V.x, #V, V.y)
 
-template <typename T>
+template<typename T>
 struct Vec2Dim
 {
     T x, y;
@@ -45,13 +41,6 @@ struct Vec2Dim
     }
     
     Vec2Dim<T>& operator/=(const T& a)
-    {
-        this->x /= a;
-        this->y /= a;
-        return *this;
-    }
-    
-    Vec2Dim<T>& operator-(const T& a)
     {
         this->x /= a;
         this->y /= a;

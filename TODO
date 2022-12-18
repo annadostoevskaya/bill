@@ -1,0 +1,10 @@
+=============== [ COLLISION DETECTION ] ===============
+1. Move handling
+2. Queue struct
+3. Detect collide
+4. Catch collide and handle it
+	* We detect some collides and push it 
+	  in queue, then handle FIRST.
+	* Then get new queue and handle it again.
+    * And when we get empty queue, we continues handle move.
+5. We handle 2 collides in same time

@@ -13,7 +13,10 @@ Description: <empty>
 #define BALL_SPEED 2500.0f
 #define BALL_FRICTION 3.0f
 #define BALL_RADIUS 20.0f
-Ball update_ball(Ball *ball, Vec2Dim<F32> *acc, F32 dt)
+
+#include "bill_debug.cpp"
+
+Ball update_ball(Ball *ball, F32 dt)
 {
     // NOTE(annad):
     // x = f(t) = (a/2)t^2 + v0*t + x0;
@@ -25,33 +28,34 @@ Ball update_ball(Ball *ball, Vec2Dim<F32> *acc, F32 dt)
     // TODO(annad): We need to find coef. of 
     // friction of the billiard ball on the table.
     // x''(t) = -N * x'(t), N = m * omega
-    Ball updated_ball;
-    updated_ball.pos = ball->pos + (*acc) * 0.5f * square(dt) + ball->vel * dt;
-    updated_ball.vel = ball->vel + (*acc) * dt;
+    Assert(ball->pos.x > -1000);
+    Vec2Dim<F32> ball_acc = ball->vel * (-BALL_FRICTION);
+    Ball updated_ball = *ball;
+    updated_ball.pos += ball_acc * 0.5f * square(dt) + ball->vel * dt;
+    updated_ball.vel += ball_acc * dt;
     return updated_ball;
 }
 
 // TODO(annad): Refactoring...
 B32 balls_is_collide(Ball *ball_a, Ball *ball_b)
 {
-    F32 distance = (ball_a->pos - ball_b->pos).getLength();
+    F32 distance = (ball_b->pos - ball_a->pos).getLength();
     return distance < (2.0f * BALL_RADIUS);
 }
 
-void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc, F32 *dt)
+F32 t_before_collide(Ball *ball_a, Ball *ball_b)
 {
-    printf("======================[ COLLISION HANDLE START ]==========================\n");
-    // TODO(annad): All acceleration params must 
-    // work in function with explicit
-    // setting or pass to func.
-    // NOTE(annad): Recalculate positions in collision.
+    Vec2Dim<F32> ball_a_acc = ball_a->vel * (-BALL_FRICTION);
+    F32 t = 0.0f;
+    const F32 epsilon = 0.001f;
     Vec2Dim<F32> delta_pos = ball_b->pos - ball_a->pos;
-    F32 cos_fi = ball_a->vel.innerProduct(delta_pos) / (delta_pos.getLength() * ball_a->vel.getLength());
-    if(cos_fi != cos_fi) // TODO(annad): is_infinity()?
+    F32 cos_fi = ball_a->vel.innerProduct(delta_pos) 
+        / (delta_pos.getLength() * ball_a->vel.getLength());
+    if(cos_fi != cos_fi || f32Abs(cos_fi) < 0.001f ) // TODO(annad): is_infinity()?
     {
         // TODO(annad): I don’t quite understand what can be done with this, 
         // but this case means that all the power of the ball has been absorbed.
-        *dt = 0.0f;
+        t = 0.0f;
     }
     else
     {
@@ -60,186 +64,386 @@ void balls_collide_handle(Ball *ball_a, Ball *ball_b, Vec2Dim<F32> *ball_a_acc, 
         // fi - angle between Vec(B - A), Vec(Velocity)
         // r - ball radius
         // S - |B - A|
-        F32 fi_angle = defaultArcCos(cos_fi);
+        F32 s = 0.0f;
+        if(f32Abs(cos_fi  - 1.0f) < epsilon)
+        {
+            s = delta_pos.getLength() - (2.0f * BALL_RADIUS);
+        }
+        else
+        {
+            F32 fi_angle = defaultArcCos(cos_fi); // angle delta_pos,v
+            F32 side_a = 2.0f * BALL_RADIUS; // 2r
+            F32 side_b = delta_pos.getLength(); // |B - A|
+            F32 sin_a = defaultSin(fi_angle);
+            F32 sin_b = (sin_a / side_a) * side_b;
+            // TODO(annad): Sometimes we get sin_c - NaN. wtf?
+            if(sin_b > 1.0f) // TODO(annad): Remove this, normalize floating point math
+            {
+                // EvalPrintF(sin_b);
+                sin_b = 1.0f;
+            }
+            else if(sin_b < -1.0f)
+            {
+                // EvalPrintF(sin_b);
+                sin_b = -1.0f;
+            }
+            
+            F32 sin_c = defaultSin(defaultArcSin(sin_b) - fi_angle); 
+            F32 side_c = (side_a / sin_a) * sin_c; // s before collide
+            s = side_c;
+            // TODO(annad): Collision order!
+            // EvalPrintF(s);
+            Assert(s == s); // NOTE(annad): S = [2.0f ~ 21.0f], when V -> inf.
+            EvalPrintF(s);
+            FORCE_UPDATE();
+            // Assert(s > 0.0f); // TODO(annad): When ball on boundary!!! wtf?????
+            if(s < 0.0f)
+            {
+                t = 0.0f;
+                return t;
+            }
+        }
         
-        F32 side_a = 2.0f * BALL_RADIUS;
-        F32 side_b = delta_pos.getLength();
-        F32 sin_a = defaultSin(fi_angle);
-        F32 sin_b = (sin_a / side_a) * side_b;
-        F32 sin_c = defaultSin(PI_F32 - defaultArcSin(sin_a) 
-                               + defaultArcSin(sin_b));
-        F32 side_c = (side_a / sin_a) * sin_c;
-        F32 s = side_c;
-        __debugbreak();
-        F32 v = ball_a->vel.getLength() * cos_fi;
-        // F32 s = delta_pos.getLength() - 2.0f * BALL_RADIUS; 
-        // TODO(annad): IT'S FUCKING BULLSHIT!!!
-        F32 a = 0.5f * ball_a_acc->getLength();
-        F32 discriminant = (F32)sqrt(square(v) - 4 * a * s);
+        F32 v = ball_a->vel.getLength();
+        F32 a = 0.5f * ball_a_acc.getLength();
+        // EvalPrintF(a);
+        F32 discriminant = (F32)sqrt(square(v) - 4.0f * a * s);
+        Assert(discriminant == discriminant);
         // TODO(annad): math, sqrt
-        F32 t = f32Abs((-v + discriminant) / (2.0f * a));
-        // F32 t = s / v;
-        // NOTE(annad): Recalculate velocity after collision.
-        ball_a->pos += ((*ball_a_acc) * 0.5f * square(t) + ball_a->vel * t);
-        ball_a->vel += ((*ball_a_acc) * t);
-        Vec2Dim<F32> direct_b = {
-            delta_pos.x / delta_pos.getLength(),
-            delta_pos.y / delta_pos.getLength()
-        };
-        Vec2Dim<F32> direct_a = {
-            direct_b.y, 
-            -direct_b.x,
-        };
-        F32 result_vel = ball_a->vel.getLength();
-        F32 cos_direct_a = ball_a->vel.innerProduct(direct_a)
-            / (result_vel * direct_a.getLength());
-        F32 cos_direct_b = ball_a->vel.innerProduct(direct_b)
-            / (result_vel * direct_b.getLength());
-        // NOTE(annad): Apply
-        ball_a->vel = direct_a * result_vel * cos_direct_a;
-        ball_b->vel += direct_b * result_vel * cos_direct_b;
-        *dt = *dt - t;
-        
-        EvalPrintF(ball_a->vel.x);
-        EvalPrintF(ball_a->vel.y);
-        EvalPrintF(t);
+        t = (v - discriminant) / (2.0f * a); // NOTE(annad): what is t < 0.0f?
     }
-    printf("======================[  COLLISION HANDLE END  ]=========================\n\n\n\n");
+    
+    return t;
 }
 
+void balls_collide_handle(Ball *ball_a, Ball *ball_b)
+{
+    Vec2Dim<F32> result_vel = ball_a->vel + ball_b->vel;
+    if(result_vel.getLength() == 0)
+    {
+        return;
+    }
+    
+    Vec2Dim<F32> delta_pos = ball_b->pos - ball_a->pos;
+    // NOTE(annad): Recalculate velocity after collision.
+    Vec2Dim<F32> direct_b = {
+        delta_pos.x / delta_pos.getLength(),
+        delta_pos.y / delta_pos.getLength()
+    };
+    Vec2Dim<F32> direct_a = {
+        direct_b.y,
+        -direct_b.x,
+    };
+    
+    F32 cos_direct_a = ball_a->vel.innerProduct(direct_a)
+        / (result_vel.getLength() * direct_a.getLength());
+    F32 cos_direct_b = ball_a->vel.innerProduct(direct_b)
+        / (result_vel.getLength() * direct_b.getLength());
+    // NOTE(annad): Apply
+    ball_a->vel = direct_a * result_vel.getLength() * cos_direct_a;
+    ball_b->vel = direct_b * result_vel.getLength() * cos_direct_b;
+    
+    Assert(ball_b->vel.x > -1000);
+    
+    DEBUG_DIRECTION_BALL_A = direct_a;
+    DEBUG_DIRECTION_BALL_B = direct_b;
+    DEBUG_DIRECTION_BALL_A_ID = ball_a->id;
+    DEBUG_DIRECTION_BALL_B_ID = ball_b->id;
+}
+
+void pq_init(PriorityQueue *pq)
+{
+    pq->size = PQ_MAX_ITEMS_COUNT;
+    pq->cursor = 0;
+}
+
+void pq_clear(PriorityQueue *pq)
+{
+    pq->cursor = 0;
+}
+
+void pq_push(PriorityQueue *pq, CollideInfo *item)
+{
+    Assert(pq->size >= pq->cursor + 1);
+    pq->items[pq->cursor] = *item;
+    pq->cursor += 1;
+}
+
+S32 pq_peek(PriorityQueue *pq)
+{
+    F32 minDt = 1.0f; // TODO(annad): Incapsulate it????
+    S32 idx = -1;
+    
+    CollideInfo *ci;
+    for(S32 i = 0; i < pq->cursor; i += 1)
+    {
+        ci = &pq->items[i];
+        if(ci->dt < minDt)
+        {
+            idx = i;
+            minDt = ci->dt;
+        }
+    }
+    
+    return idx;
+}
+
+CollideInfo pq_pop(PriorityQueue *pq)
+{
+    S32 idx = pq_peek(pq);
+    CollideInfo item = pq->items[idx];
+    pq->items[idx].dt = 1.0f;
+    return item;
+}
+
+void pq_display(PriorityQueue *pq)
+{
+    if(pq->cursor >= 2)
+    {
+        printf("==============\n");
+    }
+    
+    for (S32 i = 0; i < pq->cursor; i += 1)
+    {
+        EvalPrintF(pq->items[i].dt);
+    }
+    
+    if(pq->cursor >= 2)
+    {
+        printf("==============\n");
+    }
+}
+
+/* 
+// Update for all balls with all balls
+void update_collisions_pq(PriorityQueue *pq, Ball *balls)
+{
+    pq_clear(pq);
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Ball *ball_a = &balls[i];
+        Ball updated_ball = update_ball(ball_a, 1.0f/30.0f);
+        for (S32 j = 0; j < BALL_COUNT; j += 1)
+        {
+            Ball *ball_b = &balls[j];
+            if(i == j)
+            {
+                continue;
+            }
+            
+            if(balls_is_collide(&updated_ball, ball_b))
+            {
+                CollideInfo ci;
+                ci.ball_a_idx = i;
+                ci.ball_b_idx = j;
+                ci.dt = t_before_collide(ball_a, ball_b);
+                pq_push(pq, &ci);
+            }
+        }
+    }
+}
+ */
+
+// update for ball A with all balls
+void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
+{
+    pq_clear(pq);
+    Ball *ball_a = &balls[updated_ball->id];
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        if(updated_ball->id == i) continue;
+        Ball *ball_b = &balls[i];
+        if(balls_is_collide(updated_ball, ball_b))
+        {
+            CollideInfo ci;
+            ci.ball_a_idx = updated_ball->id;
+            ci.ball_b_idx = i;
+            ci.dt = t_before_collide(ball_a, ball_b);
+            pq_push(pq, &ci);
+        }
+    }
+}
+
+/* 
+void solve_all_collides(PriorityQueue *pq, Ball *balls)
+{
+    for(;;)
+    {
+        update_collisions_pq(pq, balls);
+        pq_display(pq);
+        // EvalPrint(pq->cursor);
+        if(pq->cursor == 2)
+        {
+            CollideInfo ci1 = pq_pop(pq);
+            CollideInfo ci2 = pq_pop(pq);
+            if(ci1.ball_a_idx == ci2.ball_a_idx)
+            {
+                Ball *ball_b = &balls[ci1.ball_b_idx];
+                Ball meta_ball_a = balls[ci1.ball_a_idx];
+                meta_ball_a = update_ball(&meta_ball_a, ci1.dt);
+                balls_collide_handle(&meta_ball_a, ball_b);
+                
+                Ball *ball_c = &balls[ci2.ball_b_idx];
+                Ball *ball_a = &balls[ci2.ball_a_idx];
+                meta_ball_a = update_ball(ball_a, ci2.dt);
+                balls_collide_handle(ball_a, ball_c);
+            }
+        }
+        else
+        {
+            S32 idx = pq_peek(pq);
+            if(idx == -1)
+            {
+                break;
+            }
+            
+            CollideInfo *ci = &pq->items[idx];
+            Ball *ball_a = &balls[ci->ball_a_idx];
+            Ball *ball_b = &balls[ci->ball_b_idx];
+            *ball_a = update_ball(ball_a, ci->dt);
+            balls_collide_handle(ball_a, ball_b);
+        }
+    }
+}
+ */
+
 void game_update_and_render(GameMemory *game_memory, 
-                            Renderer *renderer, 
+                            Renderer *renderer,
                             GameInput *game_input, 
                             GameTime *game_time)
 {
     (void)game_input;
     (void)game_time;
-    
     S32 const_ball_radius = 20;
-    
     GameState *game_state = (GameState*)game_memory->permanent_storage;
+    DEBUG_game_state = game_state;
+    DEBUG_renderer = renderer;
     if(game_state->initialize_flag == false)
     {
-        MemArena *memory_arena = &game_state->memory_arena;
+        Arena *memory_arena = &game_state->memory_arena;
         memory_arena->base = game_memory->persistent_storage;
         memory_arena->size = game_memory->persistent_storage_size;
         memory_arena->pos = 0;
         
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
-        {
-            F32 pos_x = (F32)(2 * const_ball_radius * i);
-            F32 pos_y = (F32)const_ball_radius;
-            Ball *ball = &game_state->ball[i];
-            ball->id = (Ball_Enum)i;
-            ball->pos = {
-                pos_x + renderer->context.width / 2,
-                pos_y + renderer->context.height / 2,
-            };
-            ball->vel = {};
-        }
+        F32 pos_x = (F32)(renderer->context.width / 2) 
+            + const_ball_radius * 3.0f 
+            + (const_ball_radius * 1.5f) 
+            - (const_ball_radius * 1.0f) 
+            + (const_ball_radius * 0.5f) 
+            - (const_ball_radius * 0.25f);
+        F32 pos_y = (F32)(renderer->context.height / 2) + const_ball_radius * 2.0f;
+        Ball *ball = &(game_state->balls[0]);
+        ball->id = 0;
+        ball->pos = { pos_x, pos_y };
+        ball->vel = {};
         
+        for(S32 i = 1, j = 0; i < BALL_COUNT; i++, j = (i + 1) / 3)
+        {
+            pos_x = (F32)(renderer->context.width / 2);
+            pos_y = (F32)(renderer->context.height / 2);
+            ball = &(game_state->balls[i]);
+            ball->id = i;
+            pos_x += (i * const_ball_radius * 2.0f + i * 10.0f);
+            ball->pos = { pos_x, pos_y };
+            ball->vel = {};
+        }        
+        
+        game_state->bill_cue = {};
         game_state->initialize_flag = true;
-        game_state->DEBUG_pause_game = false;
+        
+        pq_init(&game_state->pq);
     }
     
     // MemArena *memory_arena = &game_state->memory_arena;
-    
     if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN])
     {
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
-        {
-            F32 pos_x = (F32)(2 * const_ball_radius * i);
-            F32 pos_y = (F32)const_ball_radius;
-            game_state->ball[i].pos = {
-                pos_x + renderer->context.width / 2,
-                pos_y + renderer->context.height / 2,
-            };
-            game_state->ball[i].vel = {};
-        }
+        F32 pos_x = (F32)(renderer->context.width / 2) 
+            + const_ball_radius * 3.0f 
+            + (const_ball_radius * 1.5f) 
+            - (const_ball_radius * 1.0f) 
+            + (const_ball_radius * 0.5f) 
+            - (const_ball_radius * 0.25f);
+        F32 pos_y = (F32)(renderer->context.height / 2) + const_ball_radius * 2.0f;
+        Ball *ball = &(game_state->balls[0]);
+        ball->id = 0;
+        ball->pos = { pos_x, pos_y };
+        ball->vel = {};
         
-        game_state->DEBUG_pause_game = false;
+        for(S32 i = 1, j = 0; i < BALL_COUNT; i++, j = (i + 1) / 3)
+        {
+            pos_x = (F32)(renderer->context.width / 2);
+            pos_y = (F32)(renderer->context.height / 2);
+            ball = &(game_state->balls[i]);
+            ball->id = i;
+            pos_x += (i * const_ball_radius * 2.0f + i * 10.0f);
+            ball->pos = { pos_x, pos_y };
+            ball->vel = {};
+        }
     }
     
-    Vec2Dim<F32> ball_control_acc = {};
-    
-    if(!game_state->DEBUG_pause_game)
+    GameInputMouse *mouse = &game_input->mouse;
+    localv S32 FRAME_COUNTER_AFTER_CUE = 0;
+    if(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].state == INPUT_BUTTON_STATE_DOWN)
     {
-        if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_S])
-        {
-            ball_control_acc.y = 1.0f;
-        }
+        F32 bill_cue_x = ((F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.x - mouse->cursor_pos.x));
+        F32 bill_cue_y = ((F32)(mouse->buttons_states[INPUT_MOUSE_BUTTON_LEFT].click_pos.y - mouse->cursor_pos.y));
         
-        if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_W])
-        {
-            ball_control_acc.y = -1.0f;
-        }
+        game_state->bill_cue = {
+            bill_cue_x,
+            bill_cue_y
+        };
         
-        if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_A])
+        // PRINT_VEC(game_state->bill_cue);
+    }
+    else
+    {
+        if(game_state->bill_cue.getLength())
         {
-            ball_control_acc.x = -1.0f;
-        }
-        
-        if(game_input->keyboard.keys[INPUT_KEYBOARD_KEYS_D])
-        {
-            ball_control_acc.x = 1.0f;
-        }
-        
-        if((ball_control_acc.x != 0.0f) && (ball_control_acc.y != 0.0f))
-        {
-            ball_control_acc *= 0.70710678118f;
-        }
-        
-        F32 dt = (((F32)game_time->dt / 1000.0f));
-        for(S32 i = 0; i < BALL_ENUM_COUNT; i += 1)
-        {
-            Ball *ball_a = &game_state->ball[i];
-            Vec2Dim<F32> ball_a_acc = {};
-            if(i == BALL_ENUM_WHITE) 
-            {
-                ball_a_acc = ball_control_acc; // TODO(annad): Remove this.
-            }
+            game_state->balls[BALL_WHITE].vel = game_state->bill_cue;
             
-            ball_a_acc = ball_a_acc * BALL_SPEED + ball_a->vel * (-BALL_FRICTION);
-            Ball updated_ball_a = update_ball(ball_a, &ball_a_acc, dt);
-            for(S32 j = i + 1; j < BALL_ENUM_COUNT; j += 1)
-            {
-                if(i != j) 
-                {
-                    Ball *ball_b = &game_state->ball[j];
-                    if(balls_is_collide(&updated_ball_a, ball_b))
-                    {
-                        Ball copy_ball_a = *ball_a;
-                        Ball copy_ball_b = *ball_b;
-                        F32 copy_dt = dt;
-                        balls_collide_handle(&copy_ball_a, &copy_ball_b, &ball_a_acc, &copy_dt);
-                        updated_ball_a = copy_ball_a;
-                        *ball_b = copy_ball_b;
-                    }
-                }
-            }
-            *ball_a = updated_ball_a;
+            FRAME_COUNTER_AFTER_CUE = 0;
+            game_state->bill_cue = {};
         }
     }
     
-    Ball *white_ball = &game_state->ball[BALL_ENUM_WHITE];
-    
-    RGBA_U8 color{0xff, 0x0, 0x0, 0xff};
-    renderer_push_command(renderer, 
-                          RENDERER_COMMAND_SET_RENDER_COLOR,
-                          &color);
-    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_CIRCLE, 
-                          (S32)f32Round(white_ball->pos.x), 
-                          (S32)f32Round(white_ball->pos.y), 
-                          const_ball_radius);
-    
-    for(S32 i = 0; i < BALL_ENUM_COUNT; i++)
+    // TODO(annad): Move handling...
+    Ball *balls = (Ball*)game_state->balls;
+    PriorityQueue *pq = &game_state->pq;
+    for(S32 i = 0; i < BALL_COUNT; i += 1)
     {
-        Ball *iter_ball = &game_state->ball[i];
-        if(i == BALL_ENUM_WHITE)
+        Ball *ball_a = &balls[i];
+        Ball updated_ball = update_ball(ball_a, 1.0f/30.0f);
+        update_collisions_pq(pq, balls, &updated_ball);
+        S32 itemid = pq_peek(pq);
+        if(itemid != -1)
+        {
+            pq_display(pq);
+            CollideInfo ci = pq->items[itemid];
+            updated_ball = update_ball(ball_a, ci.dt);
+            Ball *ball_b = &balls[ci.ball_b_idx];
+            balls_collide_handle(&updated_ball, ball_b);
+        }
+        
+        *ball_a = updated_ball;
+        printf("[][][][][][][][][]\n");
+        EvalPrint(ball_a->id);
+        EvalPrint(ball_a->vel.x);
+        EvalPrint(ball_a->vel.y);
+    }
+    Assert(balls[0].vel.x > -1000);
+    //
+    //
+    // 
+    
+    DEBUG_RENDER_DEBUG_INFORMATION();
+    
+    for(S32 i = 0; i < BALL_COUNT; i++)
+    {
+        Ball *iter_ball = &game_state->balls[i];
+        if(i == BALL_WHITE)
         {
             RGBA_U8 c = {0xff, 0xff, 0xff, 0xff};
-            renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);
-            
+            renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &c);        
         }
         else
         {
@@ -252,5 +456,13 @@ void game_update_and_render(GameMemory *game_memory,
                               (S32)iter_ball->pos.y, 
                               const_ball_radius);
     }
+    
+    RGBA_U8 cue_color = {0xff, 0x00, 0xff, 0xff};
+    renderer_push_command(renderer, RENDERER_COMMAND_SET_RENDER_COLOR, &cue_color);
+    renderer_push_command(renderer, RENDERER_COMMAND_DRAW_LINE,
+                          (S32)game_state->balls[0].pos.x,
+                          (S32)game_state->balls[0].pos.y,
+                          (S32)game_state->balls[0].pos.x + ((S32)game_state->bill_cue.x),
+                          (S32)game_state->balls[0].pos.y + ((S32)game_state->bill_cue.y));
 }
 
