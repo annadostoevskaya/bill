@@ -1,6 +1,6 @@
 /* 
 Author: github.com/annadostoevskaya
-File: base_types.h
+File: base_inc.h
 Date: September 12th 2022 6:13 pm 
 
 Description: 
@@ -26,7 +26,6 @@ See at this channel: https://www.youtube.com/c/Mr4thProgramming
 # else
 #  error missing OS detection
 # endif
-
 #elif defined(__GNUC__)  && !defined(__llvm__) && !defined(__clang__)
 # define _COMPILER_GCC 1
 # if defined(_WIN32)
@@ -36,7 +35,6 @@ See at this channel: https://www.youtube.com/c/Mr4thProgramming
 # else
 #  error missing OS detection
 # endif
-
 #elif defined(__clang__)
 # define _COMPILER_CLANG 1
 # if defined(_WIN32)
@@ -46,28 +44,22 @@ See at this channel: https://www.youtube.com/c/Mr4thProgramming
 # else
 #  error missing OS detection
 # endif
-
 #else
 # error no context cracking for this compiler
 #endif
-
 // NOTE(annad): Zero fill missing context macros
 #if !defined(_COMPILER_CL)
 # define _COMPILER_CL 0
 #endif
-
 #if !defined(_COMPILER_CLANG)
 # define _COMPILER_CLANG 0
 #endif
-
 #if !defined(_COMPILER_GCC)
 # define _COMPILER_GCC 0
 #endif
-
 #if !defined(_OS_WINDOWS)
 # define _OS_WINDOWS 0
 #endif
-
 #if !defined(_OS_LINUX)
 # define _OS_LINUX 0
 #endif
@@ -88,7 +80,6 @@ typedef S32      B32;
 typedef S64      B64;
 typedef float    F32;
 typedef float    F64;
-
 typedef void VoidFunc(void);
 
 ////////////////////////////////
@@ -107,18 +98,16 @@ typedef void VoidFunc(void);
 #define MAX_U64 ((U64)(0xffffffffffffffffllu))
 #define PI_F32  ((F32)(3.14159265359f))
 #define PI_F64  ((F64)(3.14159265359f))
-#define TAU_F32  ((F32)(6.28318530718f))
-#define TAU_F64  ((F64)(6.28318530718f))
+#define TAU_F32 ((F32)(6.28318530718f))
+#define TAU_F64 ((F64)(6.28318530718f))
 
 ////////////////////////////////
 // NOTE(annad): base_marco_helpers.h
 #define Stmnt(S) do { S } while(0)
-
 #define AssertBreak() __debugbreak()
 #if !defined(AssertBreak)
 #define AssertBreak() (*((int*)(0)) = 0)
 #endif
-
 #if defined(_ENABLED_ASSERT)
 # define Assert(expr) Stmnt( if(!(expr)) { AssertBreak(); } )
 #else
@@ -133,19 +122,19 @@ typedef void VoidFunc(void);
 #define c_linkage_end }
 #define c_linkage extern "C"
 
-#define MemoryCopy(d, s, z)      memmove((d), (s), (z))
-#define MemoryCopyStruct(d, s)   MemoryCopy((d), (s), \
-Min(sizeof(*(d)), sizeof(*(s))))
-#define MemoryCopyArray(d, s)    MemoryCopy((d), (s), \
-Min(sizeof(d), sizeof(s)))
-#define MemoryCopyTyped(d, s, c) MemoryCopy((d), (s), \
-Min(sizeof(*(d)), sizeof(*(s))) * (c))
+//
+//
+//
 
-#define MemoryMatch(a, b, z)     (memcmp((a), (b), (z)) == 0)
-#define MemoryZero(p, z)         memset((p), 0, (z))
-#define MemoryZeroStruct(p)      MemoryZero((p), sizeof(*(p)))
-#define MemoryZeroArray(p)       MemoryZero((p), sizeof(p))
-#define MemoryZeroTyped(p, c)    MemoryZero((p), sizeof(*(p)) * (c))
+#define MemoryCopy(d, s, z)      memmove((d), (s), (z))
+#define MemoryCopyStruct(d, s)   MemoryCopy((d), (s), Min(sizeof(*(d)), sizeof(*(s))))
+#define MemoryCopyArray(d, s)    MemoryCopy((d), (s), Min(sizeof(d), sizeof(s)))
+#define MemoryCopyTyped(d, s, c) MemoryCopy((d), (s), Min(sizeof(*(d)), sizeof(*(s))) * (c))
+#define MemoryMatch(a, b, z)  (memcmp((a), (b), (z)) == 0)
+#define MemoryZero(p, z)      memset((p), 0, (z))
+#define MemoryZeroStruct(p)   MemoryZero((p), sizeof(*(p)))
+#define MemoryZeroArray(p)    MemoryZero((p), sizeof(p))
+#define MemoryZeroTyped(p, c) MemoryZero((p), sizeof(*(p)) * (c))
 
 //
 //
@@ -175,17 +164,6 @@ Min(sizeof(*(d)), sizeof(*(s))) * (c))
 //
 //
 
-B8 isLittleEndian()
-{
-    S32 temp = 0x00000042;
-    U8 *p_temp = (U8*)(&temp);
-    return (p_temp[0] == 0x42);
-}
-
-//
-//
-//
+#endif // BASE_INC_H
 
 
-
-#endif //BASE_TYPES_H
