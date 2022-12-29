@@ -1,7 +1,18 @@
 #!/bin/bash
 
-code="$PWD"
-opts=-g
-cd build > /dev/null
-g++ $opts $code/sdl_bill.cpp -o sdl_bill.exe
-cd $code > /dev/null
+CC=clang
+SRC="$PWD"
+BUILD_DIR="build"
+SDL_FLAGS=`sdl2-config --cflags --libs`
+OPTIONS="-g -lm $SDL_FLAGS"
+
+if [ ! -d "./$BUILD_DIR" ]
+then
+    mkdir ./$BUILD_DIR
+fi
+
+pushd $BUILD_DIR > /dev/null
+# TODO(annad): %SRC%/dev/ctime/ctime.exe -begin bill.ctm
+$CC $OPTIONS $SRC/sdl_bill.cpp -o sdl_bill
+
+popd > /dev/null

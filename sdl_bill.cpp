@@ -10,7 +10,9 @@ Description: <empty>
 #include "arena.cpp"
 
 #include <SDL2/SDL.h>
-#include <Windows.h>
+#if _OS_WINDOWS
+# include <Windows.h>
+#endif
 #include <stdarg.h>
 
 #include "bill_platform.h"

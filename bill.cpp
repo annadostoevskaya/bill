@@ -425,12 +425,12 @@ void game_update_and_render(GameMemory *game_memory,
         }
         
         *ball_a = updated_ball;
-        printf("[][][][][][][][][]\n");
+        printf("---------------\n");
         EvalPrint(ball_a->id);
         EvalPrint(ball_a->vel.x);
         EvalPrint(ball_a->vel.y);
     }
-    Assert(balls[0].vel.x > -1000);
+    // Assert(balls[0].vel.x > -1000);
     //
     //
     // 

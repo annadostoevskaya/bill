@@ -8,3 +8,4 @@
 	* Then get new queue and handle it again.
     * And when we get empty queue, we continues handle move.
 5. We handle 2 collides in same time
+
