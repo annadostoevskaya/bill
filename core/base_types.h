@@ -155,6 +155,15 @@ typedef void VoidFunc(void);
 //
 //
 
+#define Min(a, b) (((a) < (b)) ? (a) : (b))
+#define ClampTop(a, b) Min(a, b)
+#define AlignUpPow2(x, p)   (((x) + (p) - 1) & ~((p) - 1))
+#define AlignDownPow2(x, p) ( (x)            & ~((p) - 1))
+
+//
+//
+//
+
 #define BYTE(x) (x)
 #define KB(x)   ((U64)(1024 * BYTE(x)))
 #define MB(x)   ((U64)(1024 * KB(x)))

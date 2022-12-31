@@ -29,10 +29,15 @@ struct M_BaseMemory
     void *ctx;
 };
 
+#pragma warning(push)
+#pragma warning(disable : 4100)
 internal void m_change_memory_noop(void *ctx, void *ptr, U64 size) 
 {
-    // ...
+    (void)ctx; // NOTE(annad): Shut up warning C4100
+    (void)ptr; // NOTE(annad): Shut up warning C4100
+    (void)size; // NOTE(annad): Shut up warning C4100
 };
+#pragma warning(pop)
 
 ////////////////////////////////
 // NOTE(annad): Arena 

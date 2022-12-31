@@ -7,13 +7,15 @@ Description: <empty>
 */
 
 #include "base_types.h"
-#include "base_memory.h"
-#include "base_memory_malloc.cpp"
+#include "memory.h"
+#include "memory.cpp"
+#include "memory_malloc.cpp"
+
 
 int main()
 {
-    
-    
+    M_BaseMemory *base = m_malloc_base_memory();
+    __debugbreak();
     return 0;
 }
 
