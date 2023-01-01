@@ -3,7 +3,10 @@ Author: github.com/annadostoevskaya
 File: memory.cpp
 Date: January 1st 2023 4:18 am 
 
-Description: <empty>
+Description: 
+I wrote this file with Alan Webster 
+from a series of his YouTube video tutorials.
+See at this channel: https://www.youtube.com/c/Mr4thProgramming
 */
 
 
@@ -37,11 +40,9 @@ internal void* m_arena_push(M_Arena *arena, U64 size)
         {
             U64 p_aligned = AlignUpPow2(p, M_COMMIT_BLOCK_SIZE - 1);
             U64 next_commit_p = ClampTop(p_aligned, arena->cap);
-            U64 commit_size = next_commit_p - p_aligned;
-            
+            U64 commit_size = next_commit_p - commit_p;
             M_BaseMemory *base = arena->base;
-            base->commit(base->ctx, arena->memory + p_aligned, commit_size);
-            
+            base->commit(base->ctx, arena->memory + commit_p, commit_size);
             arena->commit_pos = next_commit_p;
         }
     }
@@ -49,15 +50,14 @@ internal void* m_arena_push(M_Arena *arena, U64 size)
     return result;
 }
 
-internal void
-m_arena_pop_to(M_Arena *arena, U64 pos)
+internal void m_arena_pop_to(M_Arena *arena, U64 pos)
 {
     if(pos < arena->pos)
     {
         arena->pos = pos;
         
         U64 p = arena->pos;
-        U64 p_aligned = AlignDownPow2(p, M_COMMIT_BLOCK_SIZE - 1);
+        U64 p_aligned = AlignUpPow2(p, M_COMMIT_BLOCK_SIZE - 1);
         U64 next_commit_p = ClampTop(p_aligned, arena->cap);
         
         U64 commit_p = arena->commit_pos;
