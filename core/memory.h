@@ -31,6 +31,14 @@ struct M_BaseMemory
 
 #pragma warning(push)
 #pragma warning(disable : 4100)
+#pragma warning(disable : 4505)
+internal void *m_reserve_memory_noop(void *ctx, U64 size)
+{
+    (void)ctx;
+    (void)size;
+    return (void*)0;
+}
+
 internal void m_change_memory_noop(void *ctx, void *ptr, U64 size) 
 {
     (void)ctx; // NOTE(annad): Shut up warning C4100
@@ -41,6 +49,9 @@ internal void m_change_memory_noop(void *ctx, void *ptr, U64 size)
 
 ////////////////////////////////
 // NOTE(annad): Arena 
+#define M_DEFAULT_RESERVE_SIZE MB(256)
+#define M_COMMIT_BLOCK_SIZE    MB(64)
+
 struct M_Arena
 {
     M_BaseMemory *base;
@@ -49,9 +60,6 @@ struct M_Arena
     U64  pos;
     U64  commit_pos;
 };
-
-#define M_DEFAULT_RESERVE_SIZE GB(1)
-#define M_COMMIT_BLOCK_SIZE    MB(64)
 
 internal M_Arena m_make_arena_reserve(M_BaseMemory *base, U64 reserve);
 internal M_Arena m_make_arena(M_BaseMemory *base);

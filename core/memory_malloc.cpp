@@ -9,12 +9,14 @@ from a series of his YouTube video tutorials.
 See at this channel: https://www.youtube.com/c/Mr4thProgramming
 */
 
-#include <stdlib.h>
-
 ////////////////////////////////
 // NOTE(annad): Malloc 
-#pragma warning(push)
-#pragma warning(disable : 4100)
+#if _DEVELOPER_MODE
+# pragma warning(push)
+# pragma warning(disable : 4100)
+# pragma warning(disable : 4505)
+#endif // _DEVELOPER_MODE
+
 internal void* m_malloc_reserve(void *ctx, U64 size)
 {
     (void)size; // NOTE(annad): Shut up warning C4100
@@ -25,7 +27,6 @@ internal void m_malloc_release(void *ctx, void *ptr, U64 size)
 {
     free(ptr);
 }
-#pragma warning(pop)
 
 internal M_BaseMemory *m_malloc_base_memory()
 {
@@ -41,3 +42,6 @@ internal M_BaseMemory *m_malloc_base_memory()
     return &memory;
 }
 
+#if _DEVELOPER_MODE
+# pragma warning(pop)
+#endif // _DEVELOPER_MODE

@@ -320,10 +320,9 @@ void game_update_and_render(GameMemory *game_memory,
     DEBUG_renderer = renderer;
     if(game_state->initialize_flag == false)
     {
-        Arena *memory_arena = &game_state->memory_arena;
-        memory_arena->base = game_memory->persistent_storage;
-        memory_arena->size = game_memory->persistent_storage_size;
-        memory_arena->pos = 0;
+        M_BaseMemory *m_vtbl = m_void_base_memory(game_memory->persistent_storage, 
+                                                  game_memory->persistent_storage_size);
+        game_state->arena = m_make_arena_reserve(m_vtbl, game_memory->persistent_storage_size);
         
         F32 pos_x = (F32)(renderer->context.width / 2) 
             + const_ball_radius * 3.0f 

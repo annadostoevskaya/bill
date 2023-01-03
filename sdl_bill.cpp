@@ -6,8 +6,10 @@ Date: September 19th 2022 10:19 pm
 Description: <empty>
 */
 
-#include "base_types.h"
-#include "arena.cpp"
+#include "core/types.h"
+#include "core/memory.h"
+#include "core/memory.cpp"
+#include "core/memory_void.cpp"
 
 #include <SDL2/SDL.h>
 #if _OS_WINDOWS

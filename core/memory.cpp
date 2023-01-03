@@ -12,6 +12,12 @@ See at this channel: https://www.youtube.com/c/Mr4thProgramming
 
 ////////////////////////////////
 // NOTE(annad): Arena function
+
+#if _DEVELOPER_MODE
+# pragma warning(push)
+# pragma warning(disable : 4505)
+#endif // _DEVELOPER_MODE
+
 internal M_Arena m_make_arena_reserve(M_BaseMemory *base, U64 reserve_size)
 {
     M_Arena result = {};
@@ -25,6 +31,13 @@ internal M_Arena m_make_arena(M_BaseMemory *base)
 {
     M_Arena result = m_make_arena_reserve(base, M_DEFAULT_RESERVE_SIZE);
     return result;
+}
+
+internal void m_destroy_arena(M_Arena *arena)
+{
+    arena->base->release(arena->base->ctx, 
+                         (void*)arena->memory, 
+                         arena->cap);
 }
 
 internal void* m_arena_push(M_Arena *arena, U64 size)
@@ -72,4 +85,7 @@ internal void m_arena_pop_to(M_Arena *arena, U64 pos)
     }
 }
 
+#if _DEVELOPER_MODE
+# pragma warning(pop)
+#endif
 

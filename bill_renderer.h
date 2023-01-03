@@ -9,8 +9,6 @@ Description: <empty>
 #ifndef BILL_RENDERER_H
 #define BILL_RENDERER_H
 
-#include "base_types.h"
-
 // NOTE(annad): Define it for print PUSH & POP operations.
 // #define _BILL_RENDERER_DEBUG_MODE 1
 

@@ -9,7 +9,6 @@ Description: <empty>
 #ifndef BILL_MATH_H
 #define BILL_MATH_H
 
-#include "base_types.h"
 #include <math.h>
 
 #define PRINT_VEC(V) printf("%s.x: %f\n%s.y: %f\n", #V, V.x, #V, V.y)
@@ -137,16 +136,7 @@ F32 f32Abs(F32 x)
 {
     F32_S32 temp;
     temp.f32 = x;
-    
-    if(isLittleEndian())
-    {
-        temp.s32 = temp.s32 & 0x7fffffff;
-    }
-    else
-    {
-        temp.s32 = temp.s32 & 0xffffff7f;
-    }
-    
+    temp.s32 = temp.s32 & 0x7fffffff; // NOTE(annad): reset sign bit
     return temp.f32;
 }
 

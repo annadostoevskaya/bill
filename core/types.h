@@ -1,6 +1,6 @@
 /* 
 Author: github.com/annadostoevskaya
-File: base_inc.h
+File: types.h
 Date: September 12th 2022 6:13 pm 
 
 Description: 
@@ -9,12 +9,13 @@ from a series of his YouTube video tutorials.
 See at this channel: https://www.youtube.com/c/Mr4thProgramming
 */
 
-#ifndef BASE_TYPES_H
-#define BASE_TYPES_H
+#ifndef TYPES_H 
+#define TYPES_H
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 ////////////////////////////////
 // NOTE(annad): base_context.h
@@ -173,6 +174,6 @@ typedef void VoidFunc(void);
 //
 //
 
-#endif // BASE_INC_H
+#endif // TYPES_H
 
 
