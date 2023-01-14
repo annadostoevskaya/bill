@@ -192,7 +192,11 @@ CollideInfo pq_pop(PriorityQueue *pq)
 {
     S32 idx = pq_peek(pq);
     CollideInfo item = pq->items[idx];
-    pq->items[idx].dt = 1.0f;
+    for (S32 i = idx; i < pq->cursor; i += 1)
+    {
+        pq->items[i] = pq->items[i + 1];
+    }
+    pq->cursor -= 1;
     return item;
 }
 
@@ -417,7 +421,8 @@ void game_update_and_render(GameMemory *game_memory,
         if(itemid != -1)
         {
             pq_display(pq);
-            CollideInfo ci = pq->items[itemid];
+            __debugbreak();
+            CollideInfo ci = pq_pop(pq);
             updated_ball = update_ball(ball_a, ci.dt);
             Ball *ball_b = &balls[ci.ball_b_idx];
             balls_collide_handle(&updated_ball, ball_b);
