@@ -15,6 +15,7 @@ Description: <empty>
 #define BALL_RADIUS 20.0f
 
 #include "bill_debug.cpp"
+#pragma warning(disable : 4701)
 
 Ball update_ball(Ball *ball, F32 dt)
 {
@@ -261,36 +262,6 @@ void pq_display(PriorityQueue *pq)
     }
 }
 
-/* 
-// Update for all balls with all balls
-void update_collisions_pq(PriorityQueue *pq, Ball *balls)
-{
-    pq_clear(pq);
-    for (S32 i = 0; i < BALL_COUNT; i += 1)
-    {
-        Ball *ball_a = &balls[i];
-        Ball updated_ball = update_ball(ball_a, 1.0f/30.0f);
-        for (S32 j = 0; j < BALL_COUNT; j += 1)
-        {
-            Ball *ball_b = &balls[j];
-            if(i == j)
-            {
-                continue;
-            }
-            
-            if(balls_is_collide(&updated_ball, ball_b))
-            {
-                CollideInfo ci;
-                ci.ball_a_idx = i;
-                ci.ball_b_idx = j;
-                ci.dt = t_before_collide(ball_a, ball_b);
-                pq_push(pq, &ci);
-            }
-        }
-    }
-}
- */
-
 // update for ball A with all balls
 void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
 {
@@ -310,49 +281,6 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
         }
     }
 }
-
-/* 
-void solve_all_collides(PriorityQueue *pq, Ball *balls)
-{
-    for(;;)
-    {
-        update_collisions_pq(pq, balls);
-        pq_display(pq);
-        // EvalPrint(pq->cursor);
-        if(pq->cursor == 2)
-        {
-            CollideInfo ci1 = pq_pop(pq);
-            CollideInfo ci2 = pq_pop(pq);
-            if(ci1.ball_a_idx == ci2.ball_a_idx)
-            {
-                Ball *ball_b = &balls[ci1.ball_b_idx];
-                Ball meta_ball_a = balls[ci1.ball_a_idx];
-                meta_ball_a = update_ball(&meta_ball_a, ci1.dt);
-                balls_collide_handle(&meta_ball_a, ball_b);
-                
-                Ball *ball_c = &balls[ci2.ball_b_idx];
-                Ball *ball_a = &balls[ci2.ball_a_idx];
-                meta_ball_a = update_ball(ball_a, ci2.dt);
-                balls_collide_handle(ball_a, ball_c);
-            }
-        }
-        else
-        {
-            S32 idx = pq_peek(pq);
-            if(idx == -1)
-            {
-                break;
-            }
-            
-            CollideInfo *ci = &pq->items[idx];
-            Ball *ball_a = &balls[ci->ball_a_idx];
-            Ball *ball_b = &balls[ci->ball_b_idx];
-            *ball_a = update_ball(ball_a, ci->dt);
-            balls_collide_handle(ball_a, ball_b);
-        }
-    }
-}
- */
 
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer,
@@ -457,21 +385,46 @@ void game_update_and_render(GameMemory *game_memory,
     PriorityQueue *pq = &game_state->pq;
     for(S32 i = 0; i < BALL_COUNT; i += 1)
     {
+        // WALL COLLISIONS
         Ball *ball_a = &balls[i];
         Ball updated_ball = update_ball(ball_a, 1.0f/30.0f);
-        
-        // WALL COLLISIONS
-        if (updated_ball.pos.x / renderer->context.width >= 1.0f ||
-            updated_ball.pos.x / renderer->context.width <= 0.0f || 
-            updated_ball.pos.y / renderer->context.height >= 1.0f ||
-            updated_ball.pos.y / renderer->context.height <= 0.0f)
+        B8 rightWallFlag = updated_ball.pos.x / renderer->context.width >= 1.0f;
+        B8 leftWallFlag = updated_ball.pos.x / renderer->context.width <= 0.0f;
+        B8 upWallFlag = updated_ball.pos.y / renderer->context.height >= 1.0f;
+        B8 downWallFlag = updated_ball.pos.y / renderer->context.height <= 0.0f;
+        while (rightWallFlag || leftWallFlag || upWallFlag || downWallFlag)
         {
-            Vec2Dim<F32> nVecWall = {
-                1.0f, 
-                0.0f,
-            };
+            Vec2Dim<F32> nVecWall = {};
+            if (rightWallFlag)
+            {
+                nVecWall = {1.0f, 0.0f};
+            }
 
+            if (leftWallFlag)
+            {
+                nVecWall = {-1.0f, 0.0f};
+            }
+
+            if (upWallFlag)
+            {
+                nVecWall = {0.0f, -1.0f};
+            }
+
+            if (downWallFlag)
+            {
+                nVecWall = {0.0f, 1.0f};
+            }
+
+            PRINT_VEC(nVecWall);
+            updated_ball = *ball_a;
             updated_ball.vel -= nVecWall * 2.0f * updated_ball.vel.innerProduct(nVecWall);
+            ball_a->vel = updated_ball.vel;
+
+            updated_ball = update_ball(ball_a, 1.0f/30.0f);
+            rightWallFlag = updated_ball.pos.x / renderer->context.width >= 1.0f;
+            leftWallFlag = updated_ball.pos.x / renderer->context.width <= 0.0f;
+            upWallFlag = updated_ball.pos.y / renderer->context.height >= 1.0f;
+            downWallFlag = updated_ball.pos.y / renderer->context.height <= 0.0f;
         }
         // WALL COLLISIONS
 
@@ -502,10 +455,10 @@ void game_update_and_render(GameMemory *game_memory,
         }
         
         *ball_a = updated_ball;
-        printf("---------------\n");
-        EvalPrint(ball_a->id);
-        EvalPrint(ball_a->vel.x);
-        EvalPrint(ball_a->vel.y);
+        // printf("---------------\n");
+        // EvalPrint(ball_a->id);
+        // EvalPrint(ball_a->vel.x);
+        // EvalPrint(ball_a->vel.y);
     }
     // Assert(balls[0].vel.x > -1000);
     //
