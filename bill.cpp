@@ -459,6 +459,22 @@ void game_update_and_render(GameMemory *game_memory,
     {
         Ball *ball_a = &balls[i];
         Ball updated_ball = update_ball(ball_a, 1.0f/30.0f);
+        
+        // WALL COLLISIONS
+        if (updated_ball.pos.x / renderer->context.width >= 1.0f ||
+            updated_ball.pos.x / renderer->context.width <= 0.0f || 
+            updated_ball.pos.y / renderer->context.height >= 1.0f ||
+            updated_ball.pos.y / renderer->context.height <= 0.0f)
+        {
+            Vec2Dim<F32> nVecWall = {
+                1.0f, 
+                0.0f,
+            };
+
+            updated_ball.vel -= nVecWall * 2.0f * updated_ball.vel.innerProduct(nVecWall);
+        }
+        // WALL COLLISIONS
+
         update_collisions_pq(pq, balls, &updated_ball);
         S32 itemid = pq_peek(pq);
         if(itemid != -1)
@@ -471,7 +487,8 @@ void game_update_and_render(GameMemory *game_memory,
             if (itemid2 != -1)
             {
                 CollideInfo ci2 = pq_pop(pq);
-                if (ci2.dt == ci.dt)
+                F32 eps = 0.01f;
+                if (f32Abs(ci2.dt - ci.dt) < eps)
                 {
                     Ball *ball_c = &balls[ci2.ball_b_idx];
                     three_balls_collide_handle(&updated_ball, ball_b, ball_c);

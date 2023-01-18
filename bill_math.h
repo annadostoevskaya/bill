@@ -13,6 +13,12 @@ Description: <empty>
 
 #define PRINT_VEC(V) printf("%s.x: %f\n%s.y: %f\n", #V, V.x, #V, V.y)
 
+struct Point2Dim
+{
+    F32 x;
+    F32 y;
+};
+
 template<typename T>
 struct Vec2Dim
 {
