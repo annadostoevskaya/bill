@@ -11,6 +11,12 @@ Description: <empty>
 
 #include "bill_math.h"
 
+#define _CFG_BILL_FPS           30
+#define _CFG_BILL_WINDOW_TITLE  "bill"
+#define _CFG_BILL_HEIGHT        960
+#define _CFG_BILL_WIDTH         540
+#define _CFG_BILL_FULL_WINDOW   false
+
 typedef struct GameMemory
 {
     void *permanent_storage;

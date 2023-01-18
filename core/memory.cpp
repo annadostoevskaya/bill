@@ -13,10 +13,10 @@ See at this channel: https://www.youtube.com/c/Mr4thProgramming
 ////////////////////////////////
 // NOTE(annad): Arena function
 
-#if _DEVELOPER_MODE
+#if _CLI_DEV_MODE
 # pragma warning(push)
 # pragma warning(disable : 4505)
-#endif // _DEVELOPER_MODE
+#endif // _CLI_DEV_MODE
 
 internal M_Arena m_make_arena_reserve(M_BaseMemory *base, U64 reserve_size)
 {
@@ -85,7 +85,7 @@ internal void m_arena_pop_to(M_Arena *arena, U64 pos)
     }
 }
 
-#if _DEVELOPER_MODE
+#if _CLI_DEV_MODE
 # pragma warning(pop)
-#endif
+#endif // _CLI_DEV_MODE
 

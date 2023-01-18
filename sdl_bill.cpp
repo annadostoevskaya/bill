@@ -49,59 +49,79 @@ typedef struct Rect
 #include "sdl_renderer.cpp"
 #include "bill.cpp"
 
-const U8 WINDOW_TITLE[] = "billards";
-const U32 WINDOW_WIDTH = 960;
-const U32 WINDOW_HEIGHT = 540;
-const U32 BILL_FPS = 30;
+#define BILL_CFG_FPS            30
+#define BILL_CFG_WINDOW_TITLE   "bill"
+#define BILL_CFG_HEIGHT         540
+#define BILL_CFG_WIDTH          960
+#define BILL_CFG_FULLSCREEN     false
+
+#if _CLI_ENABLED_ASSERTS
+# define BILL_CFG_ASSERTS       true
+#else
+# define BILL_CFG_ASSERTS       false
+#endif 
+
+#if _CLI_DEV_MODE
+# define BILL_CFG_DEV_MODE      true
+#else
+# define BILL_CFG_DEV_MODE      false
+#endif
 
 int main(int, char**)
 {
+    EvalPrint(BILL_CFG_DEV_MODE);
+    EvalPrint(BILL_CFG_ASSERTS);
+    
     //
     // sdl init
     //
-    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
     {
         printf("Failed to initialize SDL!\n");
         printf("SDL message: %s!\n", SDL_GetError());
         return -1;
     }
     
-    SDL_Window *window = SDL_CreateWindow((const char *)WINDOW_TITLE, 
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          WINDOW_WIDTH, 
-                                          WINDOW_HEIGHT,
-                                          SDL_WINDOW_SHOWN);
+    Uint32 windowFlags = SDL_WINDOW_SHOWN;
+    if (BILL_CFG_FULLSCREEN)
+    {
+        windowFlags |= SDL_WINDOW_FULLSCREEN;
+    }
+
+    SDL_Window *window = SDL_CreateWindow(BILL_CFG_WINDOW_TITLE, 
+                            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                            BILL_CFG_WIDTH, 
+                            BILL_CFG_HEIGHT,
+                            windowFlags);
+    dbg_Window = window;
     
-    if(window == NULL)
+    if (window == NULL)
     {
         printf("Failed to create window\n");
         printf("SDL message: %s\n", SDL_GetError());
         return -1;
     }
     
-    DEBUG_window = window;
-    
     SDL_Surface *surface = SDL_GetWindowSurface(window);
-    if(surface == NULL)
+    if (surface == NULL)
     {
         printf("Failed to get window surface\n");
         printf("SDL message: %s\n", SDL_GetError());
         return -1;
     }
     
-    SDL_Renderer *sdl_renderer = SDL_CreateSoftwareRenderer(surface);
-    DEBUG_sdl_renderer = sdl_renderer;
-    if(sdl_renderer == NULL)
+    SDL_Renderer *sdlRenderer = SDL_CreateSoftwareRenderer(surface);
+    dbg_SdlRenderer = sdlRenderer; 
+    if (sdlRenderer == NULL)
     {
         printf("Failed to create software sdl_renderer\n");
         printf("SDL message: %s\n", SDL_GetError());
         return -1;
     }
     
-    B32 run = true;
-    U64 target_frames_per_seconds = BILL_FPS;
-    S64 target_milliseconds_per_frame = 1000 / target_frames_per_seconds;
+    B32 quitFlag = false;
+    S32 targetFramesPerSeconds = BILL_CFG_FPS;
+    S32 targetMsPerFrame = 1000 / targetFramesPerSeconds;
     SDL_Event event;
     
     //
@@ -141,17 +161,17 @@ int main(int, char**)
     renderer.commands.peak_ptr = 0;
     renderer.commands.queue_ptr = 0;
     
-    renderer.context.width = WINDOW_WIDTH;
-    renderer.context.height = WINDOW_HEIGHT;
+    renderer.context.width = BILL_CFG_WIDTH;
+    renderer.context.height = BILL_CFG_HEIGHT;
     
     //
     // input
     //
     GameInput game_input = {};
     
-    while(run)
+    while(!quitFlag)
     {
-        SDL_RenderClear(sdl_renderer);
+        SDL_RenderClear(sdlRenderer);
         SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
         while(SDL_PollEvent(&event))
         {
@@ -163,7 +183,7 @@ int main(int, char**)
                 // NOTE(annad): Alt+F4 work too.
                 case SDL_QUIT:
                 {
-                    run = false;
+                    quitFlag = false;
                     break;
                 }
                 
@@ -263,7 +283,7 @@ int main(int, char**)
         }
         
         game_update_and_render(&game_memory, &renderer, &game_input, &game_time);
-        renderer_sdl_execute(sdl_renderer, &renderer);
+        renderer_sdl_execute(sdlRenderer, &renderer);
         SDL_RenderPresent(sdl_renderer);
         SDL_UpdateWindowSurface(window);
         
@@ -272,7 +292,7 @@ int main(int, char**)
         //
         game_time.end = SDL_GetTicks();
         game_time.dt = game_time.end - game_time.start;
-        S32 frame_delay_time = (Uint32)(target_milliseconds_per_frame - game_time.dt);
+        S32 frame_delay_time = (Uint32)(targetMsPerFrame - game_time.dt);
         if(frame_delay_time > 0)
         {
             SDL_Delay((Uint32)frame_delay_time);
@@ -280,7 +300,7 @@ int main(int, char**)
         
         game_time.end = SDL_GetTicks();
         game_time.dt = game_time.end - game_time.start;
-        while(game_time.dt < target_milliseconds_per_frame)
+        while(game_time.dt < targetMsPerFrame)
         {
             game_time.end = SDL_GetTicks();
             game_time.dt = game_time.end - game_time.start;
