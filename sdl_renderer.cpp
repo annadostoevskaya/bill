@@ -5,7 +5,8 @@ Date: September 29th 2022 9:14 pm
 
 Description: <empty>
 */
-
+// #pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wvarargs"
 #include "bill_renderer.h"
 
 void renderer_sdl_draw_fill_rect(SDL_Renderer *sdl_renderer, Renderer *renderer)
@@ -205,4 +206,6 @@ void renderer_sdl_execute(SDL_Renderer *sdl_renderer,
     renderer_commands->peak_ptr = 0;
     Assert(renderer_commands->size > renderer_commands->peak_ptr);
 }
+
+// #pragma clang diagnostic pop
 

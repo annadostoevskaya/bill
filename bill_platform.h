@@ -17,21 +17,24 @@ Description: <empty>
 #define _CFG_BILL_WIDTH         540
 #define _CFG_BILL_FULL_WINDOW   false
 
-typedef struct GameMemory
+struct MemoryBlock
 {
-    void *permanent_storage;
-    size_t permanent_storage_size;
-    
-    void *persistent_storage;
-    size_t persistent_storage_size;
-} GameMemory;
+    void *ptr;
+    size_t size;
+};
 
-typedef struct GameTime
+struct GameStorage
+{
+    MemoryBlock permanent;
+    MemoryBlock persistent;
+};
+
+typedef struct Tick
 {
     U64 start;
     U64 end;
     S64 dt;
-} GameTime;
+} Tick;
 
 enum Input_Button_States
 {

@@ -122,27 +122,29 @@ int main(int, char**)
     B32 quitFlag = false;
     S32 targetFramesPerSeconds = BILL_CFG_FPS;
     S32 targetMsPerFrame = 1000 / targetFramesPerSeconds;
-    SDL_Event event;
     
     //
     // dt
     //
-    GameTime game_time;
-    game_time.start = SDL_GetTicks();
-    game_time.end = game_time.start;
-    game_time.dt = game_time.end - game_time.start;
+    Tick tick;
+    tick.start = SDL_GetTicks();
+    tick.end = tick.start;
+    tick.dt = tick.end - tick.start;
     
     //
     // memory
     //
-    GameMemory game_memory;
-    game_memory.permanent_storage_size = KB(4);
-    game_memory.persistent_storage_size = MB(256);
-    
-    void *common_mem_pull = malloc(game_memory.permanent_storage_size 
-                                   + game_memory.persistent_storage_size
-                                   + RENDERER_COMMAND_BUFFER_SIZE);
-    
+    GameStorage storage;
+    storage.permanent.size = KB(4);
+    storage.persistent.size = MB(256);
+    size_t commonMemBlockSz = storage.permanent.size + storage.persistent.size;
+    void *commonMemBlockPtr = malloc(commonMemBlockSz);
+    MemoryZero(commonMemBlockPtr, commonMemBlockSz);
+
+    storage.permanent.ptr = commonMemBlockPtr;
+    storage.persistent.ptr = commonMemBlocPtr + storage.permanent.size;
+    storage.
+    MemoryZero(storage.persistent.ptr, storage.persistent.size);
     game_memory.permanent_storage = common_mem_pull;
     MemoryZero(game_memory.permanent_storage, game_memory.permanent_storage_size);
     
@@ -168,7 +170,8 @@ int main(int, char**)
     // input
     //
     GameInput game_input = {};
-    
+
+    SDL_Event event;
     while(!quitFlag)
     {
         SDL_RenderClear(sdlRenderer);
