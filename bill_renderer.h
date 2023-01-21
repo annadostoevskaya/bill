@@ -26,40 +26,28 @@ Description: <empty>
 # define LogRendererPop(cmd_name, peak_ptr) 
 #endif
 
-enum Renderer_Command
+#define RCMD_BUFFER_SIZE BYTE(0x1fe)
+
+enum Renderer_Command : U8
 {
-    RENDERER_COMMAND_NULL = 0,
-    RENDERER_COMMAND_DRAW_FILL_RECT,
-    RENDERER_COMMAND_SET_RENDER_COLOR,
-    RENDERER_COMMAND_DRAW_POINT,
-    RENDERER_COMMAND_DRAW_LINE,
-    RENDERER_COMMAND_DRAW_CIRCLE,
-    RENDERER_COMMAND_DRAW_FILL_CIRCLE,
+    RCMD_NULL = 0,
+    RCMD_SET_RENDER_COLOR,
+
+    RCMD_DRAW_FILL_RECT,
+    RCMD_DRAW_POINT,
+    RCMD_DRAW_LINE,
+    RCMD_DRAW_CIRCLE,
+    RCMD_DRAW_FILL_CIRCLE,
     
-    RENDERER_COMMAND_COUNT,
+    RCMD_COUNT,
 };
 
-#define RENDERER_COMMAND_BUFFER_SIZE BYTE(2 * 0xff)
-
-typedef struct RendererCommands
+struct RendererHandle
 {
-    void *commands;
-    size_t peak_ptr;
-    size_t queue_ptr;
-    size_t size;
-} RendererCommands;
-
-typedef struct RendererContext
-{
-    S32 width;
-    S32 height;
-} RendererContext;
-
-typedef struct Renderer
-{
-    RendererCommands commands;
-    RendererContext context;
-} Renderer;
+    U8 *byteCode;
+    S32 peak;
+    S32 size;
+};
 
 inline U8 *renderer_commands_get_current_peak_ptr(RendererCommands *renderer_commands)
 {

@@ -9,93 +9,56 @@ Description: <empty>
 #ifndef BILL_PLATFORM_H
 #define BILL_PLATFORM_H
 
-#include "bill_math.h"
+#define PLATFORM_PERMANENT_STRG_SZ KB(4)
+#define PLATFORM_PERSISTENT_STRG_SZ MB(256)
 
-#define _CFG_BILL_FPS           30
-#define _CFG_BILL_WINDOW_TITLE  "bill"
-#define _CFG_BILL_HEIGHT        960
-#define _CFG_BILL_WIDTH         540
-#define _CFG_BILL_FULL_WINDOW   false
-
-struct MemoryBlock
-{
-    void *ptr;
-    size_t size;
-};
-
-struct GameStorage
-{
-    MemoryBlock permanent;
-    MemoryBlock persistent;
-};
-
-typedef struct Tick
+struct Tick
 {
     U64 start;
     U64 end;
     S64 dt;
-} Tick;
-
-enum Input_Button_States
-{
-    INPUT_BUTTON_STATE_UP = 0,
-    INPUT_BUTTON_STATE_DOWN,
-    
-    INPUT_BUTTON_STATE_COUNT
 };
 
-enum Input_Mouse_Buttons
+struct GameStorage
 {
-    INPUT_MOUSE_BUTTON_LEFT,
-    INPUT_MOUSE_BUTTON_MID,
-    INPUT_MOUSE_BUTTON_RIGHT,
-    
-    INPUT_MOUSE_BUTTON_COUNT
+    void *permanent;
+    S32 permanSize;
+    void *persistent;
+    S32 persistSize;
 };
 
-enum Input_Keyboard_Keys
+enum MouseBtn
 {
-    INPUT_KEYBOARD_KEYS_NULL = 0,
-    // TODO(annad): ESC?
-    INPUT_KEYBOARD_KEYS_RETURN,
-    
-    INPUT_KEYBOARD_KEYS_COUNT
+    MOUSE_BTN_LEFT = 0,
+    MOUSE_BTN_RIGHT,
+    MOUSE_BTN_MIDDLE,
+
+    MOUSE_BTN_COUNT,
+    MOUSE_BTN_NULL
 };
 
-typedef struct GameInputMouseButtonState
+enum KeyboardBtn
 {
-    Vec2Dim<S32> click_pos;
-    union
-    {
-        Input_Button_States state;
-        B32 b_state;
-    };
-} GameInputMouseButtonState;
+    KEYB_BTN_RETURN = 0,
+    KEYB_BTN_COUNT,
+    KEYB_BTN_NULL
+};
 
-typedef struct GameInputMouse
+struct InputDevices
 {
-    GameInputMouseButtonState buttons_states[INPUT_MOUSE_BUTTON_COUNT];
-    Vec2Dim<S32> cursor_pos;
-} GameInputMouse;
+    S32 mouseX;
+    S32 mouseY;
+    B8 mouseBtns[MOUSE_BTN_COUNT];
+    B8 keybBtns[KEYB_BTN_COUNT];
+};
 
-typedef struct GameInputKeyboard
+struct GameIO
 {
-    Input_Button_States keys[INPUT_KEYBOARD_KEYS_COUNT];
-} GameInputKeyboard;
-
-typedef struct GameInput
-{
-    GameInputMouse mouse;
-    GameInputKeyboard keyboard;
-} GameInput;
-
-inline void set_mouse_button_state(GameInputMouseButtonState *btn, Input_Button_States state, S32 x, S32 y)
-{
-    btn->state = state;
-    btn->click_pos.x = x;
-    btn->click_pos.y = y;
-}
-
+    InputDevices *devices;
+    RendererHandle *hRenderer;
+    GameStorage *storage;
+    Tick *tick;
+};
 
 #endif // BILL_PLATFORM_H
 

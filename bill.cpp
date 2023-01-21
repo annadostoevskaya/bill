@@ -282,6 +282,31 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
     }
 }
 
+internal void gtick(GameIO *io)
+{
+    GameState *gstate = (GameState*)io->storage->permanent;
+    GameStorage *storage = io->storage;
+    RendererHandle *hRenderer = io->hRenderer;
+
+    if (gstate->initFlag == false)
+    {
+        //
+        // Arena
+        //
+        M_BaseMemory *mVtbl = m_void_base_memory(storage->persistent, storage->persistSize);
+        gstate->arena = m_make_arena_reserve(mVtbl, storage->persistSize);
+
+        //
+        // Renderer
+        //
+        hRenderer->size = RCMD_BUFFER_SIZE;
+        hRenderer->byteCode = m_arena_push(&gstate->arena, hRenderer->size);
+    }
+
+    Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 0, 0, 1000, 1000);
+}
+
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer,
                             GameInput *game_input, 

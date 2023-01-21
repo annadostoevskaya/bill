@@ -7,9 +7,6 @@ Description: <empty>
 */
 
 #include "core/types.h"
-#include "core/memory.h"
-#include "core/memory.cpp"
-#include "core/memory_void.cpp"
 
 #include <SDL2/SDL.h>
 #if _OS_WINDOWS
@@ -17,6 +14,7 @@ Description: <empty>
 #endif
 #include <stdarg.h>
 
+#include "bill_renderer.h"
 #include "bill_platform.h"
 
 // NOTE(annad): On anon structures
@@ -46,8 +44,6 @@ typedef struct Rect
     S32 h;
 } Rect;
 
-#include "sdl_renderer.cpp"
-#include "bill.cpp"
 
 #define BILL_CFG_FPS            30
 #define BILL_CFG_WINDOW_TITLE   "bill"
@@ -67,13 +63,13 @@ typedef struct Rect
 # define BILL_CFG_DEV_MODE      false
 #endif
 
+#include "sdl_renderer.cpp"
+#include "bill.cpp"
+
 int main(int, char**)
 {
-    EvalPrint(BILL_CFG_DEV_MODE);
-    EvalPrint(BILL_CFG_ASSERTS);
-    
     //
-    // sdl init
+    // SDL init
     //
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
     {
@@ -93,7 +89,6 @@ int main(int, char**)
                             BILL_CFG_WIDTH, 
                             BILL_CFG_HEIGHT,
                             windowFlags);
-    dbg_Window = window;
     
     if (window == NULL)
     {
@@ -111,7 +106,6 @@ int main(int, char**)
     }
     
     SDL_Renderer *sdlRenderer = SDL_CreateSoftwareRenderer(surface);
-    dbg_SdlRenderer = sdlRenderer; 
     if (sdlRenderer == NULL)
     {
         printf("Failed to create software sdl_renderer\n");
@@ -126,7 +120,7 @@ int main(int, char**)
     //
     // dt
     //
-    Tick tick;
+    Tick tick = {};
     tick.start = SDL_GetTicks();
     tick.end = tick.start;
     tick.dt = tick.end - tick.start;
@@ -134,185 +128,141 @@ int main(int, char**)
     //
     // memory
     //
-    GameStorage storage;
-    storage.permanent.size = KB(4);
-    storage.persistent.size = MB(256);
-    size_t commonMemBlockSz = storage.permanent.size + storage.persistent.size;
-    void *commonMemBlockPtr = malloc(commonMemBlockSz);
+    GameStorage storage = {};
+    storage.permanSize = PLATFORM_PERMANENT_STRG_SZ;
+    storage.persistSize = PLATFORM_PERSISTENT_STRG_SZ;
+    size_t commonMemBlockSz = storage.permanSize + storage.persistSize;
+    void *commonMemBlockPtr = SDL_malloc(commonMemBlockSz);
     MemoryZero(commonMemBlockPtr, commonMemBlockSz);
+    storage.permanent = commonMemBlockPtr;
+    storage.persistent = commonMemBlocPtr + storage.permanSize;
 
-    storage.permanent.ptr = commonMemBlockPtr;
-    storage.persistent.ptr = commonMemBlocPtr + storage.permanent.size;
-    storage.
-    MemoryZero(storage.persistent.ptr, storage.persistent.size);
-    game_memory.permanent_storage = common_mem_pull;
-    MemoryZero(game_memory.permanent_storage, game_memory.permanent_storage_size);
-    
-    game_memory.persistent_storage = ((U8*)common_mem_pull) + game_memory.permanent_storage_size;
-    MemoryZero(game_memory.persistent_storage, game_memory.persistent_storage_size);
-    
     // 
     // renderer
     // 
-    Renderer renderer = {};
-    renderer.commands.size = RENDERER_COMMAND_BUFFER_SIZE;
-    renderer.commands.commands = ((U8*)common_mem_pull) 
-        + game_memory.permanent_storage_size 
-        + game_memory.persistent_storage_size;
-    MemoryZero(renderer.commands.commands, renderer.commands.size);
-    renderer.commands.peak_ptr = 0;
-    renderer.commands.queue_ptr = 0;
-    
-    renderer.context.width = BILL_CFG_WIDTH;
-    renderer.context.height = BILL_CFG_HEIGHT;
+    RendererHandle hRenderer = {};
     
     //
     // input
     //
-    GameInput game_input = {};
+    InputDevices devices = {};
 
-    SDL_Event event;
-    while(!quitFlag)
+    //
+    // gameIO
+    //
+    GameIO io = {};
+    io.devices = &devices;
+    io.hRenderer = &hRenderer;
+    io.storage = &storage;
+    io.tick = &tick;
+
+    // 
+    // debug
+    //
+    dbg_SdlRenderer = &sdlRenderer;
+    dbg_Window = &window;
+    dbg_Renderer = &renderer;
+    dbg_GameIO = &io;
+
+    SDL_Event event = {};
+    while (!quitFlag)
     {
         SDL_RenderClear(sdlRenderer);
         SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
-        while(SDL_PollEvent(&event))
+        while (SDL_PollEvent(&event))
         {
-            GameInputMouseButtonState *mouse_buttons = game_input.mouse.buttons_states;
-            Vec2Dim<S32> *mouse_pos = &game_input.mouse.cursor_pos;
-            
-            switch(event.type)
+            switch (event.type)
             {
-                // NOTE(annad): Alt+F4 work too.
                 case SDL_QUIT:
                 {
+                    // NOTE(annad): Alt+F4 work too.
                     quitFlag = false;
-                    break;
-                }
+                } break;
                 
                 case SDL_KEYUP:
                 {
-                    switch(event.key.keysym.sym)
+                    if (event.key.keysym.sym == SDLK_RETURN)
                     {
-                        case SDLK_RETURN:
-                        {
-                            game_input.keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN] = INPUT_BUTTON_STATE_UP;
-                            break;
-                        }
+                        devices.keybBtns[KEYB_BTN_RETURN] = false;
                     }
-                    
-                    break;
-                }
+                } break;
                 
                 case SDL_KEYDOWN:
                 {
-                    switch(event.key.keysym.sym)
+                    if (event.key.keysym.sym == SDLK_RETURN)
                     {
-                        case SDLK_RETURN:
-                        {
-                            game_input.keyboard.keys[INPUT_KEYBOARD_KEYS_RETURN] = INPUT_BUTTON_STATE_DOWN;
-                            break;
-                        }
+                        devices.keybBtns[KEYB_BTN_RETURN] = true;
                     }
-                    
-                    break;
-                }
-                
-                case SDL_MOUSEBUTTONDOWN:
-                { 
-                    switch(event.button.button)
-                    {
-                        case SDL_BUTTON_LEFT:
-                        {
-                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
-                                                   INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y);
-                            break;
-                        }
-                        
-                        case SDL_BUTTON_MIDDLE:
-                        {
-                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_MID],
-                                                   INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y);
-                            break;
-                        }
-                        
-                        case SDL_BUTTON_RIGHT:
-                        {
-                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
-                                                   INPUT_BUTTON_STATE_DOWN, event.button.x, event.button.y);
-                            break;
-                        }
-                    }
-                    
-                    break;
-                }
-                
+                } break;
+
                 case SDL_MOUSEBUTTONUP:
                 {
-                    switch(event.button.button)
+                    if (event.button.button == SDL_BUTTON_LEFT)
                     {
-                        case SDL_BUTTON_LEFT:
-                        {
-                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_LEFT],
-                                                   INPUT_BUTTON_STATE_UP, event.button.x, event.button.y);
-                            break;
-                        }
-                        
-                        case SDL_BUTTON_MIDDLE:
-                        {
-                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_MID],
-                                                   INPUT_BUTTON_STATE_UP, event.button.x, event.button.y);
-                            break;
-                        }
-                        
-                        case SDL_BUTTON_RIGHT:
-                        {
-                            set_mouse_button_state(&mouse_buttons[INPUT_MOUSE_BUTTON_RIGHT],
-                                                   INPUT_BUTTON_STATE_UP, event.button.x, event.button.y);
-                            break;
-                        }
+                        devices.mouseBtns[MOUSE_BTN_LEFT] = false;
                     }
-                    
-                    break;
-                }
-                
+                    else if (event.button.button == SDL_BUTTON_MIDDLE)
+                    {
+                        devices.mouseBtns[MOUSE_BTN_MIDDLE] = false;
+                    }
+                    else if (event.button.button == SDL_BUTTON_RIGHT)
+                    {
+                        devices.mouseBtns[MOUSE_BTN_MIDDLE] = false;
+                    }
+                } break;
+
+                case SDL_MOUSEBUTTONDOWN:
+                { 
+                    if (event.button.button == SDL_BUTTON_LEFT)
+                    {
+                        devices.mouseBtns[MOUSE_BTN_LEFT] = true;
+                    }
+                    else if (event.button.button == SDL_BUTTON_MIDDLE)
+                    {
+                        devices.mouseBtns[MOUSE_BTN_MIDDLE] = true;
+                    }
+                    else if (event.button.button == SDL_BUTTON_RIGHT)
+                    {
+                        devices.mouseBtns[MOUSE_BTN_MIDDLE] = true;
+                    }
+                } break;
+                                
                 case SDL_MOUSEMOTION:
                 {
-                    mouse_pos->x = event.motion.x;
-                    mouse_pos->y = event.motion.y;
-                    break;
-                }
+                    devices.mouseX = event.motion.x;
+                    devices.mouseY = event.motion.y;
+                } break;
             }
         }
         
-        game_update_and_render(&game_memory, &renderer, &game_input, &game_time);
-        renderer_sdl_execute(sdlRenderer, &renderer);
+        gtick(&io);
+        SDLRenderer_exec(&io->hRenderer);
         SDL_RenderPresent(sdl_renderer);
         SDL_UpdateWindowSurface(window);
         
         //
         // time
         //
-        game_time.end = SDL_GetTicks();
-        game_time.dt = game_time.end - game_time.start;
-        S32 frame_delay_time = (Uint32)(targetMsPerFrame - game_time.dt);
+        tick.end = SDL_GetTicks();
+        tick.dt = tick.end - tick.start;
+        S32 frame_delay_time = (Uint32)(targetMsPerFrame - tick.dt);
         if(frame_delay_time > 0)
         {
             SDL_Delay((Uint32)frame_delay_time);
         }
         
-        game_time.end = SDL_GetTicks();
-        game_time.dt = game_time.end - game_time.start;
-        while(game_time.dt < targetMsPerFrame)
+        tick.end = SDL_GetTicks();
+        tick.dt = tick.end - tick.start;
+        while(tick.dt < targetMsPerFrame)
         {
-            game_time.end = SDL_GetTicks();
-            game_time.dt = game_time.end - game_time.start;
+            tick.end = SDL_GetTicks();
+            tick.dt = tick.end - tick.start;
         }
         
-        game_time.start = game_time.end;
+        tick.start = tick.end;
     }
     
-    free(common_mem_pull);
+    free(commonMemBlockPtr);
     SDL_DestroyRenderer(sdl_renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

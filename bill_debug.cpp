@@ -6,9 +6,12 @@ Date: December 16th 2022 11:47 pm
 Description: <empty>
 */
 
+
+globalv GameIO          *dbg_GameIO;
 globalv SDL_Window      *dbg_Window;
 globalv SDL_Renderer    *dbg_SdlRenderer;
-globalv Renderer        *dbg_Renderer;
+globalv RendererHandle  *dbg_HRenderer;
+
 globalv GameState *DEBUG_game_state;
 globalv SDL_Renderer    *DEBUG_sdl_renderer;
 globalv SDL_Renderer    *sdl_renderer;

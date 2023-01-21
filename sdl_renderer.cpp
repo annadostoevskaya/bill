@@ -7,7 +7,7 @@ Description: <empty>
 */
 // #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wvarargs"
-#include "bill_renderer.h"
+// #include "bill_renderer.h"
 
 void renderer_sdl_draw_fill_rect(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
