@@ -28,6 +28,7 @@ Description: <empty>
 
 #define RCMD_BUFFER_SIZE BYTE(0x1fe)
 
+// NOTE(annad): 1 byte ruining cache line!
 enum Renderer_Command : U8
 {
     RCMD_NULL = 0,
@@ -46,9 +47,10 @@ struct RendererHandle
 {
     U8 *byteCode;
     S32 peak;
-    S32 size;
+    U32 size;
 };
 
+/*
 inline U8 *renderer_commands_get_current_peak_ptr(RendererCommands *renderer_commands)
 {
     return (((U8*)renderer_commands->commands) + renderer_commands->peak_ptr);
@@ -65,5 +67,6 @@ inline void renderer_commands_insert_command_in_queue(RendererCommands *renderer
     S32 *p_commands = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
     *p_commands = command;
 }
+*/
 
 #endif // BILL_RENDERER_H

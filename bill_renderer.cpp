@@ -8,6 +8,7 @@ Description: <empty>
 
 #include "bill_renderer.h"
 
+/*
 void renderer_draw_fill_rect(Renderer *renderer, Rect *rect)
 {
     RendererCommands *renderer_commands = &renderer->commands;
@@ -70,27 +71,6 @@ void renderer_draw_point(Renderer *renderer, S32 *x, S32 *y)
     LogRendererPush("RENDERER_COMMAND_DRAW_POINT", renderer_commands->peak_ptr);
 }
 
-void renderer_draw_line(Renderer *renderer, 
-                        S32 *x1, S32 *y1, S32 *x2, S32 *y2)
-{
-    RendererCommands *renderer_commands = &renderer->commands;
-    // NOTE(annad): Out of memory!
-    Assert(renderer_commands->size > renderer_commands->peak_ptr + 
-           (4 * sizeof(S32)) +
-           sizeof(Renderer_Command));
-    
-    renderer_commands_insert_command_in_queue(renderer_commands, RENDERER_COMMAND_DRAW_LINE);
-    renderer_commands->peak_ptr += sizeof(Renderer_Command);
-    
-    S32 *args_ptr = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
-    args_ptr[0] = *x1;
-    args_ptr[1] = *y1;
-    args_ptr[2] = *x2;
-    args_ptr[3] = *y2;
-    renderer_commands->peak_ptr += (4 * sizeof(S32));
-    
-    LogRendererPush("RENDERER_COMMAND_DRAW_LINE", renderer_commands->peak_ptr);
-}
 
 void renderer_draw_circle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
 {
@@ -111,18 +91,34 @@ void renderer_draw_circle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
     
     LogRendererPush("RENDERER_COMMAND_DRAW_CIRCLE", renderer_commands->peak_ptr);
 }
+*/
 
 inline void Renderer_insertCmd(RendererHandle *hRenderer, Renderer_Command cmd)
 {
-    S32 *pCmd = hRenderer->byteCode + hRenderer->peak;
+    U8 *pCmd = hRenderer->byteCode + hRenderer->peak;
     *pCmd = cmd;
+    hRenderer->peak += sizeof(Renderer_Command);
+}
+
+internal void Renderer_drawLine(RendererHandle *hRenderer, S32 x1, S32 y1, S32 x2, S32 y2)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command) + 4 * sizeof(S32));
+    Renderer_insertCmd(hRenderer, RCMD_DRAW_LINE);
+    S32 *args = (S32*)(hRenderer->byteCode + hRenderer->peak);
+    args[0] = x1;
+    args[1] = y1;
+    args[2] = x2;
+    args[3] = x2;
+    hRenderer->peak += 4 * sizeof(S32);
+    Assert(false);
 }
 
 internal void Renderer_setDrawColor(RendererHandle *hRenderer, U8 r, U8 g, U8 b, U8 a)
 {
     // NOTE(annad): Error, out of memory!
     Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command) + 4 * sizeof(U8));
-    Renderer_insertCmd(RCMD_SET_RENDER_COLOR);
+    Renderer_insertCmd(hRenderer, RCMD_SET_RENDER_COLOR);
     U8 *args = hRenderer->byteCode + hRenderer->peak;
     args[0] = r;
     args[1] = g;
@@ -157,7 +153,7 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
         {
             S32 x = va_arg(argptr, S32);
             S32 y = va_arg(argptr, S32);
-            Renderer_drawPoint(hRenderer, x, y);
+            // Renderer_drawPoint(hRenderer, x, y);
         } break;
 
         case RCMD_DRAW_LINE:
@@ -180,9 +176,9 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
             S32 x = va_arg(argptr, S32);
             S32 y = va_arg(argptr, S32);
             S32 r = va_arg(argptr, S32);
-            Renderer_drawCircle(hRenderer, x, y, r);
+            // Renderer_drawCircle(hRenderer, x, y, r);
         } break;
-        
+
         default: 
         {
             // NOTE(annad): Unknown command code.

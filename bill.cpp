@@ -6,6 +6,9 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
+#include "core/memory.h"
+#include "core/memory_void.cpp"
+#include "core/memory.cpp"
 #include "bill_renderer.cpp"
 #include "bill_math.h"
 #include "bill.h"
@@ -96,7 +99,7 @@ F32 t_before_collide(Ball *ball_a, Ball *ball_b)
             // EvalPrintF(s);
             Assert(s == s); // NOTE(annad): S = [2.0f ~ 21.0f], when V -> inf.
             EvalPrintF(s);
-            FORCE_UPDATE();
+            // FORCE_UPDATE();
             // Assert(s > 0.0f); // TODO(annad): When ball on boundary!!! wtf?????
             if(s < 0.0f)
             {
@@ -189,10 +192,10 @@ void two_balls_collide_handle(Ball *ball_a, Ball *ball_b)
     
     Assert(ball_b->vel.x > -1000);
     
-    DEBUG_DIRECTION_BALL_A = direct_a;
-    DEBUG_DIRECTION_BALL_B = direct_b;
-    DEBUG_DIRECTION_BALL_A_ID = ball_a->id;
-    DEBUG_DIRECTION_BALL_B_ID = ball_b->id;
+    // DEBUG_DIRECTION_BALL_A = direct_a;
+    // DEBUG_DIRECTION_BALL_B = direct_b;
+    // DEBUG_DIRECTION_BALL_A_ID = ball_a->id;
+    // DEBUG_DIRECTION_BALL_B_ID = ball_b->id;
 }
 
 void pq_init(PriorityQueue *pq)
@@ -295,18 +298,19 @@ internal void gtick(GameIO *io)
         //
         M_BaseMemory *mVtbl = m_void_base_memory(storage->persistent, storage->persistSize);
         gstate->arena = m_make_arena_reserve(mVtbl, storage->persistSize);
+        Assert(gstate->arena.memory != NULL);
 
         //
         // Renderer
         //
         hRenderer->size = RCMD_BUFFER_SIZE;
-        hRenderer->byteCode = m_arena_push(&gstate->arena, hRenderer->size);
+        hRenderer->byteCode = (U8*)m_arena_push(&gstate->arena, hRenderer->size);
     }
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 0, 0, 1000, 1000);
 }
-
+/*
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer,
                             GameInput *game_input, 
@@ -520,4 +524,5 @@ void game_update_and_render(GameMemory *game_memory,
                           (S32)game_state->balls[0].pos.x + ((S32)game_state->bill_cue.x),
                           (S32)game_state->balls[0].pos.y + ((S32)game_state->bill_cue.y));
 }
+*/
 

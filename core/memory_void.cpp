@@ -16,7 +16,7 @@ internal void* m_void_reserve(void *ctx, U64 size)
 {
     memory_block *mb = (memory_block*)ctx;
     void *result = 0;
-    if(mb->sz != size) {
+    if(mb->sz <= size) {
         result = mb->mem;
     }
     

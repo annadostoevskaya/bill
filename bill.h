@@ -56,9 +56,9 @@ struct GameState
     M_Arena arena;
     Ball balls[BALL_COUNT];
     Vec2Dim<F32> bill_cue;
-    B16 initialize_flag;
-    
     PriorityQueue pq;
+
+    B8 initFlag;
 };
 
 #endif //BILL_H

@@ -51,12 +51,6 @@ typedef struct Rect
 #define BILL_CFG_WIDTH          960
 #define BILL_CFG_FULLSCREEN     false
 
-#if _CLI_ENABLED_ASSERTS
-# define BILL_CFG_ASSERTS       true
-#else
-# define BILL_CFG_ASSERTS       false
-#endif 
-
 #if _CLI_DEV_MODE
 # define BILL_CFG_DEV_MODE      true
 #else
@@ -132,10 +126,10 @@ int main(int, char**)
     storage.permanSize = PLATFORM_PERMANENT_STRG_SZ;
     storage.persistSize = PLATFORM_PERSISTENT_STRG_SZ;
     size_t commonMemBlockSz = storage.permanSize + storage.persistSize;
-    void *commonMemBlockPtr = SDL_malloc(commonMemBlockSz);
+    U8 *commonMemBlockPtr = (U8*)SDL_malloc(commonMemBlockSz);
     MemoryZero(commonMemBlockPtr, commonMemBlockSz);
     storage.permanent = commonMemBlockPtr;
-    storage.persistent = commonMemBlocPtr + storage.permanSize;
+    storage.persistent = commonMemBlockPtr + storage.permanSize;
 
     // 
     // renderer
@@ -159,9 +153,9 @@ int main(int, char**)
     // 
     // debug
     //
-    dbg_SdlRenderer = &sdlRenderer;
-    dbg_Window = &window;
-    dbg_Renderer = &renderer;
+    dbg_SdlRenderer = sdlRenderer;
+    dbg_Window = window;
+    dbg_HRenderer = &hRenderer;
     dbg_GameIO = &io;
 
     SDL_Event event = {};
@@ -236,8 +230,8 @@ int main(int, char**)
         }
         
         gtick(&io);
-        SDLRenderer_exec(&io->hRenderer);
-        SDL_RenderPresent(sdl_renderer);
+        SDLRenderer_exec(io.hRenderer, sdlRenderer);
+        SDL_RenderPresent(sdlRenderer);
         SDL_UpdateWindowSurface(window);
         
         //
@@ -263,7 +257,7 @@ int main(int, char**)
     }
     
     free(commonMemBlockPtr);
-    SDL_DestroyRenderer(sdl_renderer);
+    SDL_DestroyRenderer(sdlRenderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;

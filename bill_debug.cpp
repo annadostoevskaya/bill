@@ -11,7 +11,7 @@ globalv GameIO          *dbg_GameIO;
 globalv SDL_Window      *dbg_Window;
 globalv SDL_Renderer    *dbg_SdlRenderer;
 globalv RendererHandle  *dbg_HRenderer;
-
+/*
 globalv GameState *DEBUG_game_state;
 globalv SDL_Renderer    *DEBUG_sdl_renderer;
 globalv SDL_Renderer    *sdl_renderer;
@@ -20,8 +20,10 @@ globalv Vec2Dim<F32> DEBUG_DIRECTION_BALL_A;
 globalv Vec2Dim<F32> DEBUG_DIRECTION_BALL_B;
 globalv S32 DEBUG_DIRECTION_BALL_A_ID;
 globalv S32 DEBUG_DIRECTION_BALL_B_ID;
-
+*/
 // void dbg_ForceUpdateScreen()
+
+/*
 void FORCE_UPDATE()
 {
     for(S32 i = 0; i < BALL_COUNT; i++)
@@ -82,3 +84,5 @@ void DEBUG_RENDER_DEBUG_INFORMATION()
     renderer_sdl_execute(DEBUG_sdl_renderer, dbg_Renderer);
     SDL_UpdateWindowSurface(dbg_Window);
 }
+*/
+

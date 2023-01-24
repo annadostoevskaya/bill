@@ -9,6 +9,7 @@ Description: <empty>
 #pragma clang diagnostic ignored "-Wvarargs"
 // #include "bill_renderer.h"
 
+/*
 void renderer_sdl_draw_fill_rect(SDL_Renderer *sdl_renderer, Renderer *renderer)
 {
     RendererCommands *renderer_commands = &renderer->commands;
@@ -138,7 +139,51 @@ void renderer_sdl_draw_circle(SDL_Renderer *sdl_renderer, Renderer *renderer)
     
     LogRendererPop("RENDERER_COMMAND_DRAW_CIRCLE", renderer_commands->queue_ptr);
 }
+*/
 
+void SDLRenderer_setDrawColor(RendererHandle *hRenderer, SDL_Renderer *sdlRend, U8 *cmd)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->peak - sizeof(Renderer_Command) - 4*sizeof(U8) >= 0);
+    // NOTE(annad): Error, invalid command code!
+    Assert(*cmd == RCMD_SET_RENDER_COLOR);
+    U8 r = *(cmd + sizeof(Renderer_Command) + 0);
+    U8 g = *(cmd + sizeof(Renderer_Command) + 1);
+    U8 b = *(cmd + sizeof(Renderer_Command) + 2);
+    U8 a = *(cmd + sizeof(Renderer_Command) + 3);
+    SDL_SetRenderDrawColor(sdlRend, r, g, b, a);
+    hRenderer->peak -= (sizeof(Renderer_Command) + 4*sizeof(U8));
+    cmd += (sizeof(Renderer_Command) + 4*sizeof(U8));
+}
+
+void SDLRenderer_exec(RendererHandle *hRenderer, SDL_Renderer *sdlRend)
+{
+    U8 *cmdPointer = hRenderer->byteCode;
+    while (*cmdPointer)
+    {
+        switch (*cmdPointer)
+        {
+            case RCMD_SET_RENDER_COLOR:
+            {
+                SDLRenderer_setDrawColor(hRenderer, sdlRend, cmdPointer);
+            } break;
+
+            default: 
+            {
+                // NOTE(annad): Error, undefined behaviour.
+                Assert(false);
+            } break;
+        }
+        
+        // !!!
+        // NOTE(annad): Invalid cmdPointer calculating!!!
+        // !!!
+        Assert(false);
+        U8 *cmdPointer = hRenderer->byteCode + (hRenderer->size - hRenderer->peak);
+    }
+}
+
+/*
 void renderer_sdl_execute(SDL_Renderer *sdl_renderer, 
                           Renderer *renderer)
 {
@@ -206,6 +251,7 @@ void renderer_sdl_execute(SDL_Renderer *sdl_renderer,
     renderer_commands->peak_ptr = 0;
     Assert(renderer_commands->size > renderer_commands->peak_ptr);
 }
+*/
 
 // #pragma clang diagnostic pop
 
