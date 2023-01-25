@@ -306,7 +306,7 @@ internal void gtick(GameIO *io)
         hRenderer->size = RCMD_BUFFER_SIZE;
         hRenderer->byteCode = (U8*)m_arena_push(&gstate->arena, hRenderer->size);
     }
-
+    
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 0, 0, 1000, 1000);
 }

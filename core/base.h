@@ -108,6 +108,9 @@ typedef void VoidFunc(void);
 #if _OS_WINDOWS
 # define AssertBreak() __debugbreak()
 #endif
+#if _OS_LINUX
+# define AssertBreak() __builtin_trap()
+#endif
 #if !defined(AssertBreak)
 # define AssertBreak() (*((int*)(0)) = 0)
 #endif

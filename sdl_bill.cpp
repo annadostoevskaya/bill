@@ -6,7 +6,7 @@ Date: September 19th 2022 10:19 pm
 Description: <empty>
 */
 
-#include "core/types.h"
+#include "core/base.h"
 
 #include <SDL2/SDL.h>
 #if _OS_WINDOWS
@@ -80,8 +80,7 @@ int main(int, char**)
 
     SDL_Window *window = SDL_CreateWindow(BILL_CFG_WINDOW_TITLE, 
                             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                            BILL_CFG_WIDTH, 
-                            BILL_CFG_HEIGHT,
+                            BILL_CFG_WIDTH, BILL_CFG_HEIGHT,
                             windowFlags);
     
     if (window == NULL)

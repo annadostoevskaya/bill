@@ -33,10 +33,10 @@ enum Renderer_Command : U8
 {
     RCMD_NULL = 0,
     RCMD_SET_RENDER_COLOR,
+    RCMD_DRAW_LINE,
 
     RCMD_DRAW_FILL_RECT,
     RCMD_DRAW_POINT,
-    RCMD_DRAW_LINE,
     RCMD_DRAW_CIRCLE,
     RCMD_DRAW_FILL_CIRCLE,
     
@@ -49,24 +49,5 @@ struct RendererHandle
     S32 peak;
     U32 size;
 };
-
-/*
-inline U8 *renderer_commands_get_current_peak_ptr(RendererCommands *renderer_commands)
-{
-    return (((U8*)renderer_commands->commands) + renderer_commands->peak_ptr);
-}
-
-inline U8 *renderer_commands_get_current_queue_ptr(RendererCommands *renderer_commands)
-{
-    return (((U8*)renderer_commands->commands) + renderer_commands->queue_ptr);
-}
-
-inline void renderer_commands_insert_command_in_queue(RendererCommands *renderer_commands, 
-                                                      Renderer_Command command)
-{
-    S32 *p_commands = (S32*)(renderer_commands_get_current_peak_ptr(renderer_commands));
-    *p_commands = command;
-}
-*/
 
 #endif // BILL_RENDERER_H

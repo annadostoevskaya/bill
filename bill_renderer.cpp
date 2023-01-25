@@ -111,7 +111,6 @@ internal void Renderer_drawLine(RendererHandle *hRenderer, S32 x1, S32 y1, S32 x
     args[2] = x2;
     args[3] = x2;
     hRenderer->peak += 4 * sizeof(S32);
-    Assert(false);
 }
 
 internal void Renderer_setDrawColor(RendererHandle *hRenderer, U8 r, U8 g, U8 b, U8 a)
@@ -149,13 +148,6 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
             Renderer_setDrawColor(hRenderer, r, g, b, a);
         } break;
 
-        case RCMD_DRAW_POINT:
-        {
-            S32 x = va_arg(argptr, S32);
-            S32 y = va_arg(argptr, S32);
-            // Renderer_drawPoint(hRenderer, x, y);
-        } break;
-
         case RCMD_DRAW_LINE:
         {
             S32 x1 = va_arg(argptr, S32);
@@ -163,6 +155,13 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
             S32 x2 = va_arg(argptr, S32);
             S32 y2 = va_arg(argptr, S32);
             Renderer_drawLine(hRenderer, x1, y1, x2, y2);
+        } break;
+
+        case RCMD_DRAW_POINT:
+        {
+            S32 x = va_arg(argptr, S32);
+            S32 y = va_arg(argptr, S32);
+            // Renderer_drawPoint(hRenderer, x, y);
         } break;
 
         case RCMD_DRAW_FILL_CIRCLE:

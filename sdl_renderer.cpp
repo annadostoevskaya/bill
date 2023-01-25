@@ -141,19 +141,32 @@ void renderer_sdl_draw_circle(SDL_Renderer *sdl_renderer, Renderer *renderer)
 }
 */
 
-void SDLRenderer_setDrawColor(RendererHandle *hRenderer, SDL_Renderer *sdlRend, U8 *cmd)
+internal void SDLRenderer_drawLine(RendererHandle *hRenderer, SDL_Renderer *sdlRend, U8 *cmdPointer)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->peak - sizeof(Renderer_Command) - 4*sizeof(S32) >= 0);
+    // NOTE(annad): Error, invalid command code!
+    Assert(*cmdPointer == RCMD_DRAW_LINE);
+    S32 *args = (S32*)(cmdPointer + sizeof(Renderer_Command));
+    S32 x1 = args[0];
+    S32 y1 = args[1];
+    S32 x2 = args[2];
+    S32 y2 = args[3];
+    SDL_RenderDrawLine(sdlRend, x1, y1, x2, y2);
+}
+
+internal void SDLRenderer_setDrawColor(RendererHandle *hRenderer, SDL_Renderer *sdlRend, U8 *cmdPointer)
 {
     // NOTE(annad): Error, out of memory!
     Assert(hRenderer->peak - sizeof(Renderer_Command) - 4*sizeof(U8) >= 0);
     // NOTE(annad): Error, invalid command code!
-    Assert(*cmd == RCMD_SET_RENDER_COLOR);
-    U8 r = *(cmd + sizeof(Renderer_Command) + 0);
-    U8 g = *(cmd + sizeof(Renderer_Command) + 1);
-    U8 b = *(cmd + sizeof(Renderer_Command) + 2);
-    U8 a = *(cmd + sizeof(Renderer_Command) + 3);
+    Assert(*cmdPointer == RCMD_SET_RENDER_COLOR);
+    U8 *args = cmdPointer + sizeof(Renderer_Command);
+    U8 r = args[0];
+    U8 g = args[1];
+    U8 b = args[2];
+    U8 a = args[3];
     SDL_SetRenderDrawColor(sdlRend, r, g, b, a);
-    hRenderer->peak -= (sizeof(Renderer_Command) + 4*sizeof(U8));
-    cmd += (sizeof(Renderer_Command) + 4*sizeof(U8));
 }
 
 void SDLRenderer_exec(RendererHandle *hRenderer, SDL_Renderer *sdlRend)
@@ -163,9 +176,24 @@ void SDLRenderer_exec(RendererHandle *hRenderer, SDL_Renderer *sdlRend)
     {
         switch (*cmdPointer)
         {
+            case RCMD_NULL:
+            {
+                Assert(hRenderer->peak <= 0);
+                return;
+            } break;
+
             case RCMD_SET_RENDER_COLOR:
             {
                 SDLRenderer_setDrawColor(hRenderer, sdlRend, cmdPointer);
+                hRenderer->peak -= (sizeof(Renderer_Command) + 4*sizeof(U8));
+                cmdPointer += (sizeof(Renderer_Command) + 4*sizeof(U8));
+            } break;
+
+            case RCMD_DRAW_LINE:
+            {
+                SDLRenderer_drawLine(hRenderer, sdlRend, cmdPointer);
+                hRenderer->peak -= (sizeof(Renderer_Command) + 4*sizeof(S32));
+                cmdPointer += (sizeof(Renderer_Command) + 4*sizeof(S32));
             } break;
 
             default: 
@@ -174,12 +202,6 @@ void SDLRenderer_exec(RendererHandle *hRenderer, SDL_Renderer *sdlRend)
                 Assert(false);
             } break;
         }
-        
-        // !!!
-        // NOTE(annad): Invalid cmdPointer calculating!!!
-        // !!!
-        Assert(false);
-        U8 *cmdPointer = hRenderer->byteCode + (hRenderer->size - hRenderer->peak);
     }
 }
 
