@@ -26,28 +26,28 @@ Description: <empty>
 # define LogRendererPop(cmd_name, peak_ptr) 
 #endif
 
-#define RCMD_BUFFER_SIZE BYTE(0x1fe)
+#define RCMD_BUFFER_SIZE BYTE(0x200)
 
 // NOTE(annad): 1 byte ruining cache line!
-enum Renderer_Command : U8
+enum Renderer_Command : S32
 {
     RCMD_NULL = 0,
     RCMD_SET_RENDER_COLOR,
     RCMD_DRAW_LINE,
-
-    RCMD_DRAW_FILL_RECT,
     RCMD_DRAW_POINT,
     RCMD_DRAW_CIRCLE,
-    RCMD_DRAW_FILL_CIRCLE,
+    // RCMD_DRAW_FILL_RECT,
+    // RCMD_DRAW_FILL_CIRCLE,
     
     RCMD_COUNT,
 };
 
 struct RendererHandle
 {
+    void *ctx; // NOTE(annad): Pointer for pass custom data.
     U8 *byteCode;
-    S32 peak;
-    U32 size;
+    S32 peak; // NOTE(annad): U32 vs S32?
+    S32 size;
 };
 
 #endif // BILL_RENDERER_H

@@ -6,7 +6,7 @@ Date: September 29th 2022 9:14 pm
 Description: <empty>
 */
 // #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wvarargs"
+// #pragma clang diagnostic ignored "-Wvarargs"
 // #include "bill_renderer.h"
 
 /*
@@ -141,10 +141,76 @@ void renderer_sdl_draw_circle(SDL_Renderer *sdl_renderer, Renderer *renderer)
 }
 */
 
-internal void SDLRenderer_drawLine(RendererHandle *hRenderer, SDL_Renderer *sdlRend, U8 *cmdPointer)
+internal void SDLRenderer_drawCircle(RendererHandle *hRenderer, U8 *cmdPointer)
 {
     // NOTE(annad): Error, out of memory!
-    Assert(hRenderer->peak - sizeof(Renderer_Command) - 4*sizeof(S32) >= 0);
+    Assert(hRenderer->peak - sizeof(Renderer_Command) - 3 * sizeof(S32) >= 0);
+    // NOTE(annad): Error, invalid command code!
+    Assert(*cmdPointer == RCMD_DRAW_CIRCLE);
+    S32 *args = (S32*)(cmdPointer + sizeof(Renderer_Command));
+    S32 centX = args[0];
+    S32 centY = args[1];
+    S32 r = args[2];
+    
+    //
+    // Midpoint Circle Algorithm.
+    //
+    
+    S32 d = 2 * r;
+    S32 x = (r - 1);
+    S32 y = 0;
+    S32 tx = 1; 
+    S32 ty = 1;
+    S32 err = (tx - d);
+    SDL_Renderer *sdlRend = (SDL_Renderer*)(hRenderer->ctx);
+    
+    while(x >= y)
+    {
+        SDL_RenderDrawPoint(sdlRend, centX + x, centY - y);
+        SDL_RenderDrawPoint(sdlRend, centX + x, centY + y);
+        SDL_RenderDrawPoint(sdlRend, centX - x, centY - y);
+        SDL_RenderDrawPoint(sdlRend, centX - x, centY + y);
+        SDL_RenderDrawPoint(sdlRend, centX + y, centY - x);
+        SDL_RenderDrawPoint(sdlRend, centX + y, centY + x);
+        SDL_RenderDrawPoint(sdlRend, centX - y, centY - x);
+        SDL_RenderDrawPoint(sdlRend, centX - y, centY + x);
+        
+        if(err <= 0)
+        {
+            ++y; 
+            err += ty;
+            ty += 2;
+        }
+        
+        if(err > 0)
+        {
+            --x;
+            tx += 2;
+            err += (tx - d);
+        }
+    }
+    
+    //
+    // Midpoint Circle Algorithm.
+    //
+}
+
+internal void SDLRenderer_drawPoint(RendererHandle *hRenderer, U8 *cmdPointer)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->peak - sizeof(Renderer_Command) - 2 * sizeof(S32) >= 0);
+    // NOTE(annad): Error, invalid command code!
+    Assert(*cmdPointer == RCMD_DRAW_POINT);
+    S32 *args = (S32*)(cmdPointer + sizeof(Renderer_Command));
+    S32 x = args[0];
+    S32 y = args[1];
+    SDL_RenderDrawPoint((SDL_Renderer*)hRenderer->ctx, x, y);
+}
+
+internal void SDLRenderer_drawLine(RendererHandle *hRenderer, U8 *cmdPointer)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->peak - sizeof(Renderer_Command) - 4 * sizeof(S32) >= 0);
     // NOTE(annad): Error, invalid command code!
     Assert(*cmdPointer == RCMD_DRAW_LINE);
     S32 *args = (S32*)(cmdPointer + sizeof(Renderer_Command));
@@ -152,13 +218,13 @@ internal void SDLRenderer_drawLine(RendererHandle *hRenderer, SDL_Renderer *sdlR
     S32 y1 = args[1];
     S32 x2 = args[2];
     S32 y2 = args[3];
-    SDL_RenderDrawLine(sdlRend, x1, y1, x2, y2);
+    SDL_RenderDrawLine((SDL_Renderer*)hRenderer->ctx, x1, y1, x2, y2);
 }
 
-internal void SDLRenderer_setDrawColor(RendererHandle *hRenderer, SDL_Renderer *sdlRend, U8 *cmdPointer)
+internal void SDLRenderer_setDrawColor(RendererHandle *hRenderer, U8 *cmdPointer)
 {
     // NOTE(annad): Error, out of memory!
-    Assert(hRenderer->peak - sizeof(Renderer_Command) - 4*sizeof(U8) >= 0);
+    Assert(hRenderer->peak - sizeof(Renderer_Command) - 4 * sizeof(U8) >= 0);
     // NOTE(annad): Error, invalid command code!
     Assert(*cmdPointer == RCMD_SET_RENDER_COLOR);
     U8 *args = cmdPointer + sizeof(Renderer_Command);
@@ -166,14 +232,17 @@ internal void SDLRenderer_setDrawColor(RendererHandle *hRenderer, SDL_Renderer *
     U8 g = args[1];
     U8 b = args[2];
     U8 a = args[3];
-    SDL_SetRenderDrawColor(sdlRend, r, g, b, a);
+    SDL_SetRenderDrawColor((SDL_Renderer*)hRenderer->ctx, r, g, b, a);
 }
 
-void SDLRenderer_exec(RendererHandle *hRenderer, SDL_Renderer *sdlRend)
+void SDLRenderer_exec(RendererHandle *hRenderer)
 {
+    Assert(hRenderer->peak < hRenderer->size);
     U8 *cmdPointer = hRenderer->byteCode;
     while (*cmdPointer)
     {
+        Assert(cmdPointer < hRenderer->byteCode + hRenderer->size);
+        Assert((S32)(*cmdPointer) < (S32)RCMD_COUNT);
         switch (*cmdPointer)
         {
             case RCMD_NULL:
@@ -184,16 +253,30 @@ void SDLRenderer_exec(RendererHandle *hRenderer, SDL_Renderer *sdlRend)
 
             case RCMD_SET_RENDER_COLOR:
             {
-                SDLRenderer_setDrawColor(hRenderer, sdlRend, cmdPointer);
-                hRenderer->peak -= (sizeof(Renderer_Command) + 4*sizeof(U8));
-                cmdPointer += (sizeof(Renderer_Command) + 4*sizeof(U8));
+                SDLRenderer_setDrawColor(hRenderer, cmdPointer);
+                hRenderer->peak -= (sizeof(Renderer_Command) + 4 * sizeof(U8));
+                cmdPointer += (sizeof(Renderer_Command) + 4 * sizeof(U8));
             } break;
 
             case RCMD_DRAW_LINE:
             {
-                SDLRenderer_drawLine(hRenderer, sdlRend, cmdPointer);
-                hRenderer->peak -= (sizeof(Renderer_Command) + 4*sizeof(S32));
-                cmdPointer += (sizeof(Renderer_Command) + 4*sizeof(S32));
+                SDLRenderer_drawLine(hRenderer, cmdPointer);
+                hRenderer->peak -= (sizeof(Renderer_Command) + 4 * sizeof(S32));
+                cmdPointer += (sizeof(Renderer_Command) + 4 * sizeof(S32));
+            } break;
+
+            case RCMD_DRAW_POINT:
+            {
+                SDLRenderer_drawPoint(hRenderer, cmdPointer);
+                hRenderer->peak -= (sizeof(Renderer_Command) + 2 * sizeof(S32));
+                cmdPointer += (sizeof(Renderer_Command) + 2 * sizeof(S32));
+            } break;
+
+            case RCMD_DRAW_CIRCLE:
+            {
+                SDLRenderer_drawCircle(hRenderer, cmdPointer);
+                hRenderer->peak -= (sizeof(Renderer_Command) + 3 * sizeof(S32));
+                cmdPointer += (sizeof(Renderer_Command) + 3 * sizeof(S32));
             } break;
 
             default: 

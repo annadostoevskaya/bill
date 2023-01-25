@@ -95,9 +95,33 @@ void renderer_draw_circle(Renderer *renderer, S32 *x, S32 *y, S32 *r)
 
 inline void Renderer_insertCmd(RendererHandle *hRenderer, Renderer_Command cmd)
 {
-    U8 *pCmd = hRenderer->byteCode + hRenderer->peak;
+    Assert((S32)cmd < (S32)RCMD_COUNT);
+    Renderer_Command *pCmd = (Renderer_Command*)(hRenderer->byteCode + hRenderer->peak);
     *pCmd = cmd;
     hRenderer->peak += sizeof(Renderer_Command);
+}
+
+internal void Renderer_drawCircle(RendererHandle *hRenderer, S32 x, S32 y, S32 r)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command) + 3 * sizeof(S32));
+    Renderer_insertCmd(hRenderer, RCMD_DRAW_CIRCLE);
+    S32 *args = (S32*)(hRenderer->byteCode + hRenderer->peak);
+    args[0] = x;
+    args[1] = y;
+    args[2] = r;
+    hRenderer->peak += 3 * sizeof(S32);
+}
+
+internal void Renderer_drawPoint(RendererHandle *hRenderer, S32 x, S32 y)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command) + 2 * sizeof(S32));
+    Renderer_insertCmd(hRenderer, RCMD_DRAW_POINT);
+    S32 *args = (S32*)(hRenderer->byteCode + hRenderer->peak);
+    args[0] = x;
+    args[1] = y;
+    hRenderer->peak += 2 * sizeof(S32);
 }
 
 internal void Renderer_drawLine(RendererHandle *hRenderer, S32 x1, S32 y1, S32 x2, S32 y2)
@@ -109,7 +133,7 @@ internal void Renderer_drawLine(RendererHandle *hRenderer, S32 x1, S32 y1, S32 x
     args[0] = x1;
     args[1] = y1;
     args[2] = x2;
-    args[3] = x2;
+    args[3] = y2;
     hRenderer->peak += 4 * sizeof(S32);
 }
 
@@ -161,21 +185,15 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
         {
             S32 x = va_arg(argptr, S32);
             S32 y = va_arg(argptr, S32);
-            // Renderer_drawPoint(hRenderer, x, y);
+            Renderer_drawPoint(hRenderer, x, y);
         } break;
 
-        case RCMD_DRAW_FILL_CIRCLE:
-        {
-            // NOTE(annad): Not implement!
-            Assert(false);
-        } break; 
-        
         case RCMD_DRAW_CIRCLE:
         {
             S32 x = va_arg(argptr, S32);
             S32 y = va_arg(argptr, S32);
             S32 r = va_arg(argptr, S32);
-            // Renderer_drawCircle(hRenderer, x, y, r);
+            Renderer_drawCircle(hRenderer, x, y, r);
         } break;
 
         default: 

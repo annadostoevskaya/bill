@@ -305,10 +305,18 @@ internal void gtick(GameIO *io)
         //
         hRenderer->size = RCMD_BUFFER_SIZE;
         hRenderer->byteCode = (U8*)m_arena_push(&gstate->arena, hRenderer->size);
+
+        gstate->initFlag = true;
     }
     
-    Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 0, 0, 1000, 1000);
+    for (S32 i = 1; i <= 9; i += 1)
+    {
+        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff + i * 10, 0xff * i * 10, 0xff * i - i * 10, 0xff);
+        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 0 + i, 0 - i * 10, 1000 / i * 10, 1000 / i * 10);
+        Renderer_pushCmd(hRenderer, RCMD_DRAW_POINT, 200 + i * 10, 100 + i * 10);
+    }
+
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, 300, 300, 5);
 }
 /*
 void game_update_and_render(GameMemory *game_memory, 

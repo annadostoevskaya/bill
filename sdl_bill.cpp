@@ -106,7 +106,6 @@ int main(int, char**)
         return -1;
     }
     
-    B32 quitFlag = false;
     S32 targetFramesPerSeconds = BILL_CFG_FPS;
     S32 targetMsPerFrame = 1000 / targetFramesPerSeconds;
     
@@ -134,7 +133,8 @@ int main(int, char**)
     // renderer
     // 
     RendererHandle hRenderer = {};
-    
+    hRenderer.ctx = (void*)sdlRenderer;
+
     //
     // input
     //
@@ -158,6 +158,7 @@ int main(int, char**)
     dbg_GameIO = &io;
 
     SDL_Event event = {};
+    B32 quitFlag = false;
     while (!quitFlag)
     {
         SDL_RenderClear(sdlRenderer);
@@ -169,7 +170,7 @@ int main(int, char**)
                 case SDL_QUIT:
                 {
                     // NOTE(annad): Alt+F4 work too.
-                    quitFlag = false;
+                    quitFlag = true;
                 } break;
                 
                 case SDL_KEYUP:
@@ -229,7 +230,7 @@ int main(int, char**)
         }
         
         gtick(&io);
-        SDLRenderer_exec(io.hRenderer, sdlRenderer);
+        SDLRenderer_exec(io.hRenderer);
         SDL_RenderPresent(sdlRenderer);
         SDL_UpdateWindowSurface(window);
         
