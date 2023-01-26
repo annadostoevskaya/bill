@@ -12,7 +12,7 @@ then
 fi
 
 pushd $BUILD_DIR > /dev/null
-# TODO(annad): %SRC%/dev/ctime/ctime.exe -begin bill.ctm
+$SRC/dev/ctime/ctime -begin bill.ctm
 $CC $OPTIONS $SRC/sdl_bill.cpp -o sdl_bill
-
+$SRC/dev/ctime/ctime -end bill.ctm $? 
 popd > /dev/null

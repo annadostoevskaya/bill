@@ -8,9 +8,6 @@ Description: <empty>
 
 #ifndef BILL_MATH_H
 #define BILL_MATH_H
-
-#include <math.h>
-
 #define PRINT_VEC(V) printf("%s.x: %f\n%s.y: %f\n", #V, V.x, #V, V.y)
 
 struct Point2Dim
@@ -87,21 +84,6 @@ Vec2Dim<T> operator-(Vec2Dim<T> a, const Vec2Dim<T>& b)
     return (a -= b);
 }
 
-F32 square(F32 x)
-{
-    return x * x;
-}
-
-F32 turnCos(F32 x)
-{
-    return (F32)cos(TAU_F32 * x);
-}
-
-F32 turnSin(F32 x)
-{
-    return (F32)sin(TAU_F32 * x);
-}
-
 F32 defaultCos(F32 x)
 {
     return (F32)cos(x);
@@ -130,25 +112,6 @@ F32 defaultArcCos(F32 x)
 F32 defaultArcTan(F32 x)
 {
     return (F32)atan(x);
-}
-
-union F32_S32
-{
-    F32 f32;
-    S32 s32;
-};
-
-F32 f32Abs(F32 x)
-{
-    F32_S32 temp;
-    temp.f32 = x;
-    temp.s32 = temp.s32 & 0x7fffffff; // NOTE(annad): reset sign bit
-    return temp.f32;
-}
-
-S32 f32Round(F32 x)
-{
-    return lround(x);
 }
 
 #endif //BILL_MATH_H

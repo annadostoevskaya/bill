@@ -8,6 +8,11 @@ Description: <empty>
 
 #include "bill_renderer.h"
 
+#if _COMPILER_CLANG
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wvarargs"
+#endif
+
 /*
 void renderer_draw_fill_rect(Renderer *renderer, Rect *rect)
 {
@@ -205,4 +210,8 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
 
     va_end(argptr);
 }
+
+#if _COMPILER_CLANG
+# pragma clang diagnostic pop
+#endif
 

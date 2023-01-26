@@ -152,10 +152,9 @@ internal void SDLRenderer_drawCircle(RendererHandle *hRenderer, U8 *cmdPointer)
     S32 centY = args[1];
     S32 r = args[2];
     
-    //
+    // TODO(annad): Remove this!
     // Midpoint Circle Algorithm.
     //
-    
     S32 d = 2 * r;
     S32 x = (r - 1);
     S32 y = 0;
@@ -189,10 +188,6 @@ internal void SDLRenderer_drawCircle(RendererHandle *hRenderer, U8 *cmdPointer)
             err += (tx - d);
         }
     }
-    
-    //
-    // Midpoint Circle Algorithm.
-    //
 }
 
 internal void SDLRenderer_drawPoint(RendererHandle *hRenderer, U8 *cmdPointer)

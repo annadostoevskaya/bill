@@ -6,6 +6,8 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
+#include "core/math/mmath.cpp"
+#include "core/math/v2df32.cpp"
 #include "core/memory.h"
 #include "core/memory_void.cpp"
 #include "core/memory.cpp"
@@ -17,7 +19,7 @@ Description: <empty>
 #define BALL_FRICTION 3.0f
 #define BALL_RADIUS 20.0f
 
-#include "bill_debug.cpp"
+#include "_debug.cpp"
 #pragma warning(disable : 4701)
 
 Ball update_ball(Ball *ball, F32 dt)
@@ -35,7 +37,7 @@ Ball update_ball(Ball *ball, F32 dt)
     Assert(ball->pos.x > -1000);
     Vec2Dim<F32> ball_acc = ball->vel * (-BALL_FRICTION);
     Ball updated_ball = *ball;
-    updated_ball.pos += ball_acc * 0.5f * square(dt) + ball->vel * dt;
+    updated_ball.pos += ball_acc * 0.5f * f32Square(dt) + ball->vel * dt;
     updated_ball.vel += ball_acc * dt;
     return updated_ball;
 }
@@ -111,7 +113,7 @@ F32 t_before_collide(Ball *ball_a, Ball *ball_b)
         F32 v = ball_a->vel.getLength();
         F32 a = 0.5f * ball_a_acc.getLength();
         // EvalPrintF(a);
-        F32 discriminant = (F32)sqrt(square(v) - 4.0f * a * s);
+        F32 discriminant = (F32)sqrt(f32Square(v) - 4.0f * a * s);
         Assert(discriminant == discriminant);
         // TODO(annad): math, sqrt
         t = (v - discriminant) / (2.0f * a); // NOTE(annad): what is t < 0.0f?
@@ -154,9 +156,9 @@ void three_balls_collide_handle(Ball *ball_a, Ball *ball_b, Ball *ball_c)
         / (ball_a->vel.getLength() * direct_c.getLength());
 
     F32 vel_sclr_b = (2.0f * result_vel.getLength() * cos_teta_b) 
-        / 1.0f + 2.0f * square(cos_teta_b);
+        / 1.0f + 2.0f * f32Square(cos_teta_b);
     F32 vel_sclr_c = (2.0f * result_vel.getLength() * cos_teta_c) 
-        / 1.0f + 2.0f * square(cos_teta_c);
+        / 1.0f + 2.0f * f32Square(cos_teta_c);
 
     ball_b->vel = direct_b * vel_sclr_b;
     ball_c->vel = direct_c * vel_sclr_c;
@@ -287,8 +289,8 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
 
 internal void gtick(GameIO *io)
 {
-    GameState *gstate = (GameState*)io->storage->permanent;
     GameStorage *storage = io->storage;
+    GameState *gstate = (GameState*)storage->permanent;
     RendererHandle *hRenderer = io->hRenderer;
 
     if (gstate->initFlag == false)
@@ -305,6 +307,7 @@ internal void gtick(GameIO *io)
         //
         hRenderer->size = RCMD_BUFFER_SIZE;
         hRenderer->byteCode = (U8*)m_arena_push(&gstate->arena, hRenderer->size);
+        Assert(hRenderer->byteCode != NULL);
 
         gstate->initFlag = true;
     }
@@ -317,7 +320,17 @@ internal void gtick(GameIO *io)
     }
 
     Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, 300, 300, 5);
+    
+    V2DF32 v1 = {1.0, 2.0f};
+    V2DF32 v2 = {3.0, 4.0f};
+    V2DF32 v3 = v1 + v2;
+    V2DF32 v4 = v1 * v2;
+    V2DF32 v5 = v1 / v2;
+    V2DF32 v6 = v1 - v2;
+
+    
 }
+
 /*
 void game_update_and_render(GameMemory *game_memory, 
                             Renderer *renderer,

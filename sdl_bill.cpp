@@ -7,13 +7,12 @@ Description: <empty>
 */
 
 #include "core/base.h"
-
 #include <SDL2/SDL.h>
+
 #if _OS_WINDOWS
 # include <Windows.h>
 #endif
 #include <stdarg.h>
-
 #include "bill_renderer.h"
 #include "bill_platform.h"
 
@@ -156,7 +155,10 @@ int main(int, char**)
     dbg_Window = window;
     dbg_HRenderer = &hRenderer;
     dbg_GameIO = &io;
-
+    
+    //
+    // Event loop
+    //
     SDL_Event event = {};
     B32 quitFlag = false;
     while (!quitFlag)

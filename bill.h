@@ -26,6 +26,11 @@ enum Ball_Enum
     BALL_ENUM_UNDEFINED
 };
 
+struct Entity
+{
+    
+};
+
 struct Ball
 {
     S32 id;
@@ -54,6 +59,7 @@ struct PriorityQueue
 struct GameState
 {
     M_Arena arena;
+
     Ball balls[BALL_COUNT];
     Vec2Dim<F32> bill_cue;
     PriorityQueue pq;
