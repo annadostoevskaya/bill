@@ -6,8 +6,7 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
-#include "core/math/mmath.cpp"
-#include "core/math/v2df32.cpp"
+#include "core/math.h"
 #include "core/memory.h"
 #include "core/memory_void.cpp"
 #include "core/memory.cpp"
@@ -17,11 +16,11 @@ Description: <empty>
 
 #define BALL_SPEED 2500.0f
 #define BALL_FRICTION 3.0f
-#define BALL_RADIUS 20.0f
+// #define BALL_RADIUS 20.0f
 
 #include "_debug.cpp"
 #pragma warning(disable : 4701)
-
+/*
 Ball update_ball(Ball *ball, F32 dt)
 {
     // NOTE(annad):
@@ -286,14 +285,20 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
         }
     }
 }
-
+*/
 internal void gtick(GameIO *io)
 {
+    // NOTE(annad): Platform layer
     GameStorage *storage = io->storage;
     GameState *gstate = (GameState*)storage->permanent;
     RendererHandle *hRenderer = io->hRenderer;
+    InputDevices *devices = io->devices;
+    
+    // NOTE(annad): Game layer
+    Entity *balls = (Entity*)(&gstate->balls);
+    Cue *cue = &gstate->cue;
 
-    if (gstate->initFlag == false)
+    if (gstate->isInit == false)
     {
         //
         // Arena
@@ -308,27 +313,59 @@ internal void gtick(GameIO *io)
         hRenderer->size = RCMD_BUFFER_SIZE;
         hRenderer->byteCode = (U8*)m_arena_push(&gstate->arena, hRenderer->size);
         Assert(hRenderer->byteCode != NULL);
+        
+        //
+        // Balls
+        //
+        balls[BALL_WHITE].p.x = 0;
+        balls[BALL_WHITE].p.y = 0;
+        balls[BALL_WHITE].isInit = true;
+        for (S32 i = BALL_2; i < BALL_COUNT; i += 1)
+        {
+            gstate->balls[i].p.x = 2 * BALL_RADIUS * i + 10;
+            gstate->balls[i].p.y = 2 * BALL_RADIUS * i + 10;
+            gstate->balls[i].isInit = true;
+        }
 
-        gstate->initFlag = true;
+        gstate->isInit = true;
     }
     
-    for (S32 i = 1; i <= 9; i += 1)
+    if (devices->keybBtns[KEYB_BTN_RETURN])
     {
-        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff + i * 10, 0xff * i * 10, 0xff * i - i * 10, 0xff);
-        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 0 + i, 0 - i * 10, 1000 / i * 10, 1000 / i * 10);
-        Renderer_pushCmd(hRenderer, RCMD_DRAW_POINT, 200 + i * 10, 100 + i * 10);
+        printf("Down\n");
     }
 
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, 300, 300, 5);
+    if (devices->mouseBtns[MOUSE_BTN_LEFT])
+    {
+        if (!cue->startFlag)
+        {    
+            cue->startPos.x = devices->mouseX;
+            cue->startPos.y = devices->mouseY;
+            cue->startFlag = true;
+        }
+
+        cue->endPos.x = devices->mouseX;
+        cue->endPos.y = devices->mouseY;
+    }
+    
+    // if (devices->mouseBtns[MOUSE_BTN_LEFT] != cue->startPos)
+    // {
+        // ...
+    // }
+
+    Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Entity *e = &balls[i];
+        Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, e->p.x, e->p.y, BALL_RADIUS);
+    }
     
     V2DF32 v1 = {1.0, 2.0f};
     V2DF32 v2 = {3.0, 4.0f};
     V2DF32 v3 = v1 + v2;
     V2DF32 v4 = v1 * v2;
     V2DF32 v5 = v1 / v2;
-    V2DF32 v6 = v1 - v2;
-
-    
+    V2DF32 v6 = v1 - v2;    
 }
 
 /*

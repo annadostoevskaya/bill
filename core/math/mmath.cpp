@@ -15,10 +15,10 @@ F32 f32Square(F32 x)
 
 F32 f32Abs(F32 x)
 {
-    return fabs(x);
+    return fabsf(x);
 }
 
-S32 f32Round(F32 x)
+F32 f32Round(F32 x)
 {    
     return roundf(x);
 }

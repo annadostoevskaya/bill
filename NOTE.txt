@@ -1,0 +1,5 @@
+================== [ METRICS ] ================= 
+*   Table size: 2.7 per 1.4 meters
+*   Ball radius: 5,715/2 centimeter
+
+
