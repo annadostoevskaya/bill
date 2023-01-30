@@ -317,14 +317,25 @@ internal void gtick(GameIO *io)
         //
         // Balls
         //
-        balls[BALL_WHITE].p.x = 0;
-        balls[BALL_WHITE].p.y = 0;
-        balls[BALL_WHITE].isInit = true;
-        for (S32 i = BALL_2; i < BALL_COUNT; i += 1)
+        S32 globalx = 250;
+        S32 globaly = 250;
+        S32 dx = 5;
+        S32 dy = 5;
+        S32 ballIdx = BALL_2;
+        for (S32 i = dy; i > 0; i -= 1)
         {
-            gstate->balls[i].p.x = 2 * BALL_RADIUS * i + 10;
-            gstate->balls[i].p.y = 2 * BALL_RADIUS * i + 10;
-            gstate->balls[i].isInit = true;
+            dx = i;
+            F32 wFullRow = ((F32)BALL_RADIUS) * 5.0f;
+            S32 xShift = (S32)(((5.0f - (F32)dx) / 5.0f) * (wFullRow)); 
+            for (S32 j = dx; j > 0; j -= 1)
+            {
+                Assert(ballIdx < BALL_COUNT);
+                balls[ballIdx].p.x = globalx + xShift + j * 30;
+                balls[ballIdx].p.y = globaly + i * 30;
+                balls[ballIdx].isInit = true;
+
+                ballIdx += 1;
+            }
         }
 
         gstate->isInit = true;

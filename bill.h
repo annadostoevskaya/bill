@@ -9,7 +9,7 @@ Description: <empty>
 #ifndef BILL_H
 #define BILL_H
 
-#define BALL_RADIUS 30
+#define BALL_RADIUS 15
 
 enum Ball
 {
