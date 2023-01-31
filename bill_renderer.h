@@ -9,23 +9,6 @@ Description: <empty>
 #ifndef BILL_RENDERER_H
 #define BILL_RENDERER_H
 
-// NOTE(annad): Define it for print PUSH & POP operations.
-// #define _BILL_RENDERER_DEBUG_MODE 1
-
-// TODO(annad): beautify output, example:
-// [PUSH] COMMAND_NAME --------------- 4
-// [PUSH] SOME_COMMAND_NAME ---------- 16
-// [PUSH] ANOTHER_COMMAND_NAME ------- 24 
-#if defined(_DEVELOPER_MODE) && defined(_BILL_RENDERER_DEBUG_MODE)
-# define DebugLogRenderer(action, cmd_name, peak_ptr) printf("[" ## action ## "] " ## cmd_name ## ": %lld\n", peak_ptr);
-# define LogRendererPush(cmd_name, peak_ptr) DebugLogRenderer("PUSH", cmd_name, peak_ptr)
-# define LogRendererPop(cmd_name, peak_ptr) DebugLogRenderer("POP", cmd_name, peak_ptr)
-#else // _BILL_RENDERER_DEBUG_MODE
-# define DebugLogRenderer(cmd_name, peak_ptr) 
-# define LogRendererPush(cmd_name, peak_ptr) 
-# define LogRendererPop(cmd_name, peak_ptr) 
-#endif
-
 #define RCMD_BUFFER_SIZE BYTE(0x200)
 
 // NOTE(annad): 1 byte ruining cache line!
@@ -48,6 +31,9 @@ struct RendererHandle
     U8 *byteCode;
     S32 peak; // NOTE(annad): U32 vs S32?
     S32 size;
+    
+    S32 wScreen;
+    S32 hScreen;
 };
 
 #endif // BILL_RENDERER_H

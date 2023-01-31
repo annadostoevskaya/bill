@@ -286,6 +286,27 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
     }
 }
 */
+
+internal void ballsInit(Entity *balls, S32 x, S32 y)
+{
+    S32 dy = 5;
+    S32 dx = 5;
+    S32 ballIdx = BALL_2;
+    for (S32 i = dx; i > 0; i -= 1)
+    {
+        dy = i;
+        S32 shift = ((5 - i) * BALL_RADIUS);
+        for (S32 j = dy; j > 0; j -= 1)
+        {
+            Assert(ballIdx < BALL_COUNT);
+            balls[ballIdx].p.y = y + shift + j * (2 * BALL_RADIUS);
+            balls[ballIdx].p.x = x + i * (2 * BALL_RADIUS);
+            balls[ballIdx].isInit = true;
+            ballIdx += 1;
+        }
+    }
+}
+
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -317,26 +338,9 @@ internal void gtick(GameIO *io)
         //
         // Balls
         //
-        S32 globalx = 250;
-        S32 globaly = 250;
-        S32 dx = 5;
-        S32 dy = 5;
-        S32 ballIdx = BALL_2;
-        for (S32 i = dy; i > 0; i -= 1)
-        {
-            dx = i;
-            F32 wFullRow = ((F32)BALL_RADIUS) * 5.0f;
-            S32 xShift = (S32)(((5.0f - (F32)dx) / 5.0f) * (wFullRow)); 
-            for (S32 j = dx; j > 0; j -= 1)
-            {
-                Assert(ballIdx < BALL_COUNT);
-                balls[ballIdx].p.x = globalx + xShift + j * 30;
-                balls[ballIdx].p.y = globaly + i * 30;
-                balls[ballIdx].isInit = true;
-
-                ballIdx += 1;
-            }
-        }
+        S32 rackPosX = (S32)(0.5f * (F32)hRenderer->wScreen) - 5 * BALL_RADIUS;
+        S32 rackPosY = (S32)(0.5f * (F32)hRenderer->hScreen) - 5 * BALL_RADIUS;
+        ballsInit(balls, rackPosX, rackPosY);
 
         gstate->isInit = true;
     }
@@ -358,7 +362,7 @@ internal void gtick(GameIO *io)
         cue->endPos.x = devices->mouseX;
         cue->endPos.y = devices->mouseY;
     }
-    
+
     // if (devices->mouseBtns[MOUSE_BTN_LEFT] != cue->startPos)
     // {
         // ...
@@ -368,15 +372,11 @@ internal void gtick(GameIO *io)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
-        Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, e->p.x, e->p.y, BALL_RADIUS);
+        if (e->isInit)
+        {
+            Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, e->p.x, e->p.y, BALL_RADIUS);
+        }
     }
-    
-    V2DF32 v1 = {1.0, 2.0f};
-    V2DF32 v2 = {3.0, 4.0f};
-    V2DF32 v3 = v1 + v2;
-    V2DF32 v4 = v1 * v2;
-    V2DF32 v5 = v1 / v2;
-    V2DF32 v6 = v1 - v2;    
 }
 
 /*

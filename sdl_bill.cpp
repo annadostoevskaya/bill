@@ -133,6 +133,8 @@ int main(int, char**)
     // 
     RendererHandle hRenderer = {};
     hRenderer.ctx = (void*)sdlRenderer;
+    hRenderer.wScreen = BILL_CFG_WIDTH;
+    hRenderer.hScreen = BILL_CFG_HEIGHT;
 
     //
     // input
@@ -197,11 +199,13 @@ int main(int, char**)
                     {
                         devices.mouseBtns[MOUSE_BTN_LEFT] = false;
                     }
-                    else if (event.button.button == SDL_BUTTON_MIDDLE)
+                    
+                    if (event.button.button == SDL_BUTTON_MIDDLE)
                     {
                         devices.mouseBtns[MOUSE_BTN_MIDDLE] = false;
                     }
-                    else if (event.button.button == SDL_BUTTON_RIGHT)
+                    
+                    if (event.button.button == SDL_BUTTON_RIGHT)
                     {
                         devices.mouseBtns[MOUSE_BTN_MIDDLE] = false;
                     }
@@ -213,11 +217,13 @@ int main(int, char**)
                     {
                         devices.mouseBtns[MOUSE_BTN_LEFT] = true;
                     }
-                    else if (event.button.button == SDL_BUTTON_MIDDLE)
+                    
+                    if (event.button.button == SDL_BUTTON_MIDDLE)
                     {
                         devices.mouseBtns[MOUSE_BTN_MIDDLE] = true;
                     }
-                    else if (event.button.button == SDL_BUTTON_RIGHT)
+                    
+                    if (event.button.button == SDL_BUTTON_RIGHT)
                     {
                         devices.mouseBtns[MOUSE_BTN_MIDDLE] = true;
                     }
