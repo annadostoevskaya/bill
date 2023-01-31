@@ -13,6 +13,11 @@ F32 f32Square(F32 x)
     return x * x;
 }
 
+F32 f32Sqrt(F32 x)
+{
+    return sqrtf(x);
+}
+
 F32 f32Abs(F32 x)
 {
     return fabsf(x);

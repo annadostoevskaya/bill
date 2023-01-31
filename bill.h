@@ -13,7 +13,7 @@ Description: <empty>
 
 enum Ball
 {
-    BALL_WHITE = 0,
+    CUE_BALL = 0,
     BALL_BLACK = 1,
 
     BALL_1 = 0,
@@ -53,18 +53,16 @@ struct PriorityQueue
     S32 cursor;
 };
 
-struct Cue
+struct CueStick
 {
-    V2DS32 startPos;
-    V2DS32 endPos;
-    V2DF32 impactPower;
-    B8 startFlag;
+    V2DS32 pin;
+    B8 isInit;
 };
 
 struct Entity
 {
-    V2DS32 p;
-    V2DS32 v;
+    V2DF32 p;
+    V2DF32 v;
     B8 isInit;
 };
 
@@ -72,9 +70,8 @@ struct GameState
 {
     M_Arena arena;
     Entity balls[BALL_COUNT];
+    CueStick cuestick;
 
-    Cue cue;
-    Vec2Dim<F32> bill_cue;
     PriorityQueue pq;
 
     B8 isInit;

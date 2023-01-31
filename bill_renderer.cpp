@@ -13,14 +13,6 @@ Description: <empty>
 # pragma clang diagnostic ignored "-Wvarargs"
 #endif
 
-inline void Renderer_insertCmd(RendererHandle *hRenderer, Renderer_Command cmd)
-{
-    Assert((S32)cmd < (S32)RCMD_COUNT);
-    Renderer_Command *pCmd = (Renderer_Command*)(hRenderer->byteCode + hRenderer->peak);
-    *pCmd = cmd;
-    hRenderer->peak += sizeof(Renderer_Command);
-}
-
 internal void Renderer_drawCircle(RendererHandle *hRenderer, S32 x, S32 y, S32 r)
 {
     // NOTE(annad): Error, out of memory!
