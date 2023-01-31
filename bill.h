@@ -56,12 +56,12 @@ struct PriorityQueue
 struct CueStick
 {
     V2DS32 pin;
-    B8 isInit;
+    B8 click;
 };
 
 struct Entity
 {
-    V2DF32 p;
+    V2DS32 p;
     V2DF32 v;
     B8 isInit;
 };

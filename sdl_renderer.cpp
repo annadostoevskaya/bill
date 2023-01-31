@@ -106,7 +106,7 @@ void SDLRenderer_exec(RendererHandle *hRenderer)
 {
     Assert(hRenderer->peak < hRenderer->size);
     U8 *cmdPointer = hRenderer->byteCode;
-    while (*cmdPointer)
+    while (hRenderer->peak > 0)
     {
         Assert(cmdPointer < hRenderer->byteCode + hRenderer->size);
         Assert((S32)(*cmdPointer) < (S32)RCMD_COUNT);
@@ -114,7 +114,8 @@ void SDLRenderer_exec(RendererHandle *hRenderer)
         {
             case RCMD_NULL:
             {
-                Assert(hRenderer->peak <= 0);
+                hRenderer->peak -= sizeof(Renderer_Command);
+                Assert(hRenderer->peak == 0);
                 return;
             } break;
 

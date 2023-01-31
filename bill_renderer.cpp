@@ -71,8 +71,8 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
     {
         case RCMD_NULL:
         {
-            // NOTE(annad): Error, is just for internal use command!
-            Assert(false);
+            Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command));
+            Renderer_insertCmd(hRenderer, RCMD_NULL);
         } break;
 
         case RCMD_SET_RENDER_COLOR:

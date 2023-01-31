@@ -299,14 +299,14 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
         for (S32 j = dy; j > 0; j -= 1)
         {
             Assert(ballIdx < BALL_COUNT);
-            balls[ballIdx].p.y = (F32)(y + shift + j * (2 * BALL_RADIUS));
-            balls[ballIdx].p.x = (F32)(x + i * (2 * BALL_RADIUS));
+            balls[ballIdx].p.y = (y + shift + j * (2 * BALL_RADIUS));
+            balls[ballIdx].p.x = (x + i * (2 * BALL_RADIUS));
             balls[ballIdx].isInit = true;
             ballIdx += 1;
         }
     }
 
-    balls[CUE_BALL].p.x = balls[BALL_16].p.x - (F32)(2 * BALL_RADIUS * 10);
+    balls[CUE_BALL].p.x = balls[BALL_16].p.x - (2 * BALL_RADIUS * 10);
     balls[CUE_BALL].p.y = balls[BALL_16].p.y;
     balls[CUE_BALL].isInit = true;
 }
@@ -356,23 +356,24 @@ internal void gtick(GameIO *io)
 
     if (devices->mouseBtns[MOUSE_BTN_LEFT])
     {
-        if (!cuestick->isInit)
+        if (!cuestick->click)
         {
             cuestick->pin.x = devices->mouseX;
             cuestick->pin.y = devices->mouseY;
-            cuestick->isInit = true;
+            cuestick->click = true;
         }
     }
-    
+
     if (!devices->mouseBtns[MOUSE_BTN_LEFT])
     {
-        if (cuestick->isInit)
+        if (cuestick->click)
         {
             Entity *cueball = &balls[CUE_BALL];
             V2DF32 impact;
             impact.x = (F32)(cuestick->pin.x - devices->mouseX);
             impact.y = (F32)(cuestick->pin.y - devices->mouseY);
             cueball->v = impact;
+            cuestick->click = false;
         }
     }
 
@@ -385,11 +386,18 @@ internal void gtick(GameIO *io)
             Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, e->p.x, e->p.y, BALL_RADIUS);
         }
     }
+    
+    if (cuestick->click)
+    {
+        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0x00, 0x00, 0xff);
+        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
+                balls[CUE_BALL].p.x, 
+                balls[CUE_BALL].p.y,
+                hRenderer->wScreen - devices->mouseX,
+                hRenderer->hScreen - devices->mouseY);
+    }
 
-    Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0x00, 0x00, 0xff);
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-            (F32)balls[CUE_BALL].p.x, 
-            (F32)balls[CUE_BALL].p.y);
+    Renderer_pushCmd(hRenderer, RCMD_NULL);
 }
 
 /*
