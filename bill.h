@@ -56,8 +56,6 @@ struct PriorityQueue
 struct CueStick
 {
     V2DS32 clipos;
-    V2DS32 vecdeltapos;
-    V2DF32 vecimpact;
     B8 click;
 };
 

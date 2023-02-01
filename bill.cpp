@@ -299,8 +299,10 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
         for (S32 j = dy; j > 0; j -= 1)
         {
             Assert(ballIdx < BALL_COUNT);
-            balls[ballIdx].p.y = (y + shift + j * (2 * BALL_RADIUS));
-            balls[ballIdx].p.x = (x + i * (2 * BALL_RADIUS));
+            balls[ballIdx].p.y = (F32)(y + shift + j * (2 * BALL_RADIUS));
+            balls[ballIdx].p.x = (F32)(x + i * (2 * BALL_RADIUS));
+            balls[ballIdx].v.x = 0.0f;
+            balls[ballIdx].v.y = 0.0f;
             balls[ballIdx].isInit = true;
             ballIdx += 1;
         }
@@ -308,14 +310,17 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
 
     balls[CUE_BALL].p.x = balls[BALL_16].p.x - (2 * BALL_RADIUS * 10);
     balls[CUE_BALL].p.y = balls[BALL_16].p.y;
+    balls[CUE_BALL].v.x = 0.0f;
+    balls[CUE_BALL].v.y = 0.0f;
     balls[CUE_BALL].isInit = true;
 }
 
 internal Entity ballUpdate(Entity *ball, F32 dt)
 {
+    // TODO(annad): ODE?
     V2DF32 a = ball->v * (-BALL_FRICTION);
     Entity updated = *ball;
-    updated.p += a * 0.5f * f32Square(dt) + ball->v * dt;
+    updated.p += (a * 0.5f * f32Square(dt) + ball->v * dt);
     updated.v += a * dt;
     return updated;   
 }
@@ -360,7 +365,10 @@ internal void gtick(GameIO *io)
     
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
-        // ...
+        // Reset game
+        S32 rackPosX = (S32)(0.75f * (F32)hRenderer->wScreen) - 5 * BALL_RADIUS;
+        S32 rackPosY = (S32)(0.5f * (F32)hRenderer->hScreen) - 5 * BALL_RADIUS;
+        ballsInit(balls, rackPosX, rackPosY);
     }
 
     if (devices->mouseBtns[MOUSE_BTN_LEFT])
@@ -372,33 +380,27 @@ internal void gtick(GameIO *io)
             cuestick->click = true;
         }
     }
-    
-    if (devices->mouseBtns[MOUSE_BTN_LEFT])
-    {
-        if (cuestick->click)
-        {
-            cuestick->vecdeltapos.x = cuestick->clipos.x - devices->mouseX;
-            cuestick->vecdeltapos.y = cuestick->clipos.y - devices->mouseY;
-        }
-    }
 
     if (!devices->mouseBtns[MOUSE_BTN_LEFT])
     {
         if (cuestick->click)
         {
             Entity *cueball = &balls[CUE_BALL];
-            cuestick->vecimpact = cuestick->vecdeltapos.getNormalize();
-            cueball->v = cuestick->vecimpact;
+            cueball->v = {
+                (F32)(cuestick->clipos.x - devices->mouseX),
+                (F32)(cuestick->clipos.y - devices->mouseY),
+            };
+
             cuestick->click = false;
         }
     }
 
     // NOTE(annad): Movement
-    F32 deltat = (F32)io->tick->dt / 1000.0f;
+    F32 deltatime = (F32)io->tick->dt / 1000.0f;
     for(S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *aball = &balls[i];
-        Entity updated = ballUpdate(aball, deltat);
+        Entity updated = ballUpdate(aball, deltatime);
         *aball = updated;
     }
 
@@ -408,7 +410,7 @@ internal void gtick(GameIO *io)
         Entity *e = &balls[i];
         if (e->isInit)
         {
-            Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, e->p.x, e->p.y, BALL_RADIUS);
+            Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, BALL_RADIUS);
         }
     }
     
@@ -416,10 +418,10 @@ internal void gtick(GameIO *io)
     {
         Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0x00, 0x00, 0xff);
         Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-                balls[CUE_BALL].p.x, 
-                balls[CUE_BALL].p.y,
-                balls[CUE_BALL].p.x + cuestick->vecdeltapos.x,
-                balls[CUE_BALL].p.y + cuestick->vecdeltapos.y);
+                (S32)balls[CUE_BALL].p.x, 
+                (S32)balls[CUE_BALL].p.y,
+                (S32)balls[CUE_BALL].p.x + cuestick->clipos.x - devices->mouseX,
+                (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
     }
 
     Renderer_pushCmd(hRenderer, RCMD_NULL);

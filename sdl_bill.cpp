@@ -114,7 +114,7 @@ int main(int, char**)
     Tick tick = {};
     tick.start = SDL_GetTicks();
     tick.end = tick.start;
-    tick.dt = tick.end - tick.start;
+    tick.dt = (S32)(tick.end - tick.start);
     
     //
     // memory
@@ -246,7 +246,7 @@ int main(int, char**)
         // time
         //
         tick.end = SDL_GetTicks();
-        tick.dt = tick.end - tick.start;
+        tick.dt = (S32)(tick.end - tick.start);
         S32 frame_delay_time = (Uint32)(targetMsPerFrame - tick.dt);
         if(frame_delay_time > 0)
         {
@@ -254,11 +254,11 @@ int main(int, char**)
         }
         
         tick.end = SDL_GetTicks();
-        tick.dt = tick.end - tick.start;
+        tick.dt = (S32)(tick.end - tick.start);
         while(tick.dt < targetMsPerFrame)
         {
             tick.end = SDL_GetTicks();
-            tick.dt = tick.end - tick.start;
+            tick.dt = (S32)(tick.end - tick.start);
         }
         
         tick.start = tick.end;
