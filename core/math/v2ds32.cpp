@@ -51,7 +51,20 @@ public:
         return *this;
     }
     
+    V2DS32& operator*=(const S32 rhs)
+    {
+        this->x *= rhs;
+        this->y *= rhs;
+        return *this;
+    }
+
     friend V2DS32 operator*(V2DS32 lhs, const V2DS32& rhs)
+    {
+        lhs *= rhs;
+        return lhs;
+    }
+
+    friend V2DS32 operator*(V2DS32 lhs, const S32 rhs)
     {
         lhs *= rhs;
         return lhs;
@@ -73,6 +86,15 @@ public:
     inline F32 getLength()
     {
         return f32Sqrt(f32Square((F32)this->x) + f32Square((F32)this->y));
+    }
+
+    V2DF32 getNormalize()
+    {
+        F32 l = this->getLength();
+        V2DF32 n;
+        n.x = this->x / l;
+        n.y = this->y / l;
+        return n;
     }
 };
 

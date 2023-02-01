@@ -17,7 +17,7 @@ public:
         this->y = rhs.y;
         return *this;
     }
-
+    
     V2DF32& operator+=(const V2DF32& rhs)
     {
         this->x += rhs.x;
@@ -50,8 +50,21 @@ public:
         this->y *= rhs.y;
         return *this;
     }
-    
+   
+    V2DF32& operator*=(const F32 rhs)
+    {
+        this->x *= rhs;
+        this->y *= rhs;
+        return *this;
+    }
+
     friend V2DF32 operator*(V2DF32 lhs, const V2DF32& rhs)
+    {
+        lhs *= rhs;
+        return lhs;
+    }
+    
+    friend V2DF32 operator*(V2DF32 lhs, const F32 rhs)
     {
         lhs *= rhs;
         return lhs;
@@ -73,6 +86,22 @@ public:
     inline F32 getLength()
     {
         return f32Sqrt(f32Square(this->x) + f32Square(this->y));
+    }
+
+    V2DF32 getNormalize()
+    {
+        F32 l = this->getLength();
+        V2DF32 n;
+        n.x = this->x / l;
+        n.y = this->y / l;
+        return n;
+    }
+
+    void tonorm()
+    {
+        F32 l = this->getLength();
+        this->x /= l;
+        this->y /= l;
     }
 };
 

@@ -1,8 +1,8 @@
 /* 
 Author: github.com/annadostoevskaya
-
 File: bill.cpp
 Date: September 24th 2022 8:05 pm 
+
 Description: <empty>
 */
 
@@ -311,6 +311,15 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
     balls[CUE_BALL].isInit = true;
 }
 
+internal Entity ballUpdate(Entity *ball, F32 dt)
+{
+    V2DF32 a = ball->v * (-BALL_FRICTION);
+    Entity updated = *ball;
+    updated.p += a * 0.5f * f32Square(dt) + ball->v * dt;
+    updated.v += a * dt;
+    return updated;   
+}
+
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -358,9 +367,18 @@ internal void gtick(GameIO *io)
     {
         if (!cuestick->click)
         {
-            cuestick->pin.x = devices->mouseX;
-            cuestick->pin.y = devices->mouseY;
+            cuestick->clipos.x = devices->mouseX;
+            cuestick->clipos.y = devices->mouseY;
             cuestick->click = true;
+        }
+    }
+    
+    if (devices->mouseBtns[MOUSE_BTN_LEFT])
+    {
+        if (cuestick->click)
+        {
+            cuestick->vecdeltapos.x = cuestick->clipos.x - devices->mouseX;
+            cuestick->vecdeltapos.y = cuestick->clipos.y - devices->mouseY;
         }
     }
 
@@ -369,12 +387,19 @@ internal void gtick(GameIO *io)
         if (cuestick->click)
         {
             Entity *cueball = &balls[CUE_BALL];
-            V2DF32 impact;
-            impact.x = (F32)(cuestick->pin.x - devices->mouseX);
-            impact.y = (F32)(cuestick->pin.y - devices->mouseY);
-            cueball->v = impact;
+            cuestick->vecimpact = cuestick->vecdeltapos.getNormalize();
+            cueball->v = cuestick->vecimpact;
             cuestick->click = false;
         }
+    }
+
+    // NOTE(annad): Movement
+    F32 deltat = (F32)io->tick->dt / 1000.0f;
+    for(S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Entity *aball = &balls[i];
+        Entity updated = ballUpdate(aball, deltat);
+        *aball = updated;
     }
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
@@ -393,8 +418,8 @@ internal void gtick(GameIO *io)
         Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
                 balls[CUE_BALL].p.x, 
                 balls[CUE_BALL].p.y,
-                hRenderer->wScreen - devices->mouseX,
-                hRenderer->hScreen - devices->mouseY);
+                balls[CUE_BALL].p.x + cuestick->vecdeltapos.x,
+                balls[CUE_BALL].p.y + cuestick->vecdeltapos.y);
     }
 
     Renderer_pushCmd(hRenderer, RCMD_NULL);

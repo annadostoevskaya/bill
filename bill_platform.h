@@ -16,7 +16,7 @@ struct Tick
 {
     U64 start;
     U64 end;
-    S64 dt;
+    S32 dt;
 };
 
 struct GameStorage
