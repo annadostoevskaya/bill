@@ -96,5 +96,10 @@ public:
         n.y = this->y / l;
         return n;
     }
+
+    S32 inner(V2DS32 &a)
+    {
+        return this->x * a.x + this->y * a.y;
+    }
 };
 

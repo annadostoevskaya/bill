@@ -53,6 +53,14 @@ struct PriorityQueue
     S32 cursor;
 };
 
+struct Rect
+{
+    S32 x;
+    S32 y;
+    S32 w;
+    S32 h;
+};
+
 struct CueStick
 {
     V2DS32 clipos;
@@ -71,6 +79,7 @@ struct GameState
     M_Arena arena;
     Entity balls[BALL_COUNT];
     CueStick cuestick;
+    Rect table;
 
     PriorityQueue pq;
 

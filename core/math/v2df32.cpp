@@ -96,6 +96,11 @@ public:
         n.y = this->y / l;
         return n;
     }
+    
+    F32 inner(V2DF32 &a)
+    {
+        return this->x * a.x + this->y * a.y;
+    }
 
     void tonorm()
     {

@@ -11,6 +11,8 @@ globalv SDL_Window      *dbg_Window;
 globalv SDL_Renderer    *dbg_SdlRenderer;
 globalv RendererHandle  *dbg_HRenderer;
 
+#define DbgPrint(STR, ...) printf("[dbg] " STR, __VA_ARGS__)
+
 /*
 globalv GameState *DEBUG_game_state;
 globalv SDL_Renderer    *DEBUG_sdl_renderer;

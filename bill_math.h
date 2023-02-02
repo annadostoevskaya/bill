@@ -6,6 +6,7 @@ Date: September 25th 2022 9:54 pm
 Description: <empty>
 */
 
+#if 0
 #ifndef BILL_MATH_H
 #define BILL_MATH_H
 #define PRINT_VEC(V) printf("%s.x: %f\n%s.y: %f\n", #V, V.x, #V, V.y)
@@ -114,5 +115,6 @@ F32 defaultArcTan(F32 x)
     return (F32)atan(x);
 }
 
+#endif
 #endif //BILL_MATH_H
 

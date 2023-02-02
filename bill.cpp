@@ -325,6 +325,61 @@ internal Entity ballUpdate(Entity *ball, F32 dt)
     return updated;   
 }
 
+internal B8 ballCheckTableBoardCollide(Entity *ball, Rect *table, V2DF32 *nvecwall)
+{
+    if (ball->p.x >= table->x + table->w - BALL_RADIUS)
+    {
+        nvecwall->x = -1.0f;
+        nvecwall->y =  0.0f;
+        return true;
+    }
+
+    if (ball->p.x <= table->x + BALL_RADIUS)
+    {
+        nvecwall->x = 1.0f;
+        nvecwall->y = 0.0f;
+        return true;
+    }
+
+    if (ball->p.y <= table->y + BALL_RADIUS)
+    {
+        nvecwall->x =  0.0f;
+        nvecwall->y = -1.0f;
+        return true;
+    }
+
+    if (ball->p.y >= table->y + table->h - BALL_RADIUS)
+    {
+        nvecwall->x = 0.0f;
+        nvecwall->y = 1.0f;
+        return true;
+    }
+
+    return false;
+}
+
+internal Entity ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
+{
+#if BILL_CFG_DEV_MODE
+    localv S32 dbgCount = 0;
+    dbgCount = 0;
+#endif 
+    Entity updated = ballUpdate(ball, dt);
+    V2DF32 nvecwall = {};
+    while (ballCheckTableBoardCollide(&updated, table, &nvecwall))
+    {
+#if BILL_CFG_DEV_MODE
+        DbgPrint("velocity correcting (%d)\n", ++dbgCount);
+#endif
+        updated = *ball;
+        updated.v -= nvecwall * 2.0f * updated.v.inner(nvecwall);
+        ball->v = updated.v;
+        updated = ballUpdate(ball, dt);
+    }
+
+    return updated;
+}
+
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -359,7 +414,17 @@ internal void gtick(GameIO *io)
         S32 rackPosX = (S32)(0.75f * (F32)hRenderer->wScreen) - 5 * BALL_RADIUS;
         S32 rackPosY = (S32)(0.5f * (F32)hRenderer->hScreen) - 5 * BALL_RADIUS;
         ballsInit(balls, rackPosX, rackPosY);
+        
+        //
+        // Table
+        //
+        Rect table = {
+            0, 0, 
+            hRenderer->wScreen, 
+            hRenderer->hScreen
+        };
 
+        gstate->table = table; 
         gstate->isInit = true;
     }
     
@@ -397,11 +462,12 @@ internal void gtick(GameIO *io)
 
     // NOTE(annad): Movement
     F32 deltatime = (F32)io->tick->dt / 1000.0f;
+    Entity *b;
     for(S32 i = 0; i < BALL_COUNT; i += 1)
     {
-        Entity *aball = &balls[i];
-        Entity updated = ballUpdate(aball, deltatime);
-        *aball = updated;
+        b = &balls[i];
+        Entity updated = ballHandleTableBoard(b, &gstate->table, deltatime);
+        *b = updated;
     }
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);

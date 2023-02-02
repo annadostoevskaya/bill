@@ -35,15 +35,6 @@ typedef struct RGBA_U8
     };
 } RGBA_U8;
 
-typedef struct Rect
-{
-    S32 x;
-    S32 y;
-    S32 w;
-    S32 h;
-} Rect;
-
-
 #define BILL_CFG_FPS            30
 #define BILL_CFG_WINDOW_TITLE   "bill"
 #define BILL_CFG_HEIGHT         540
