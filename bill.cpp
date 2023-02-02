@@ -14,12 +14,10 @@ Description: <empty>
 #include "bill_math.h"
 #include "bill.h"
 
-#define BALL_SPEED 2500.0f
-#define BALL_FRICTION 3.0f
-// #define BALL_RADIUS 20.0f
-
+#if BILL_CFG_DEV_MODE
 #include "_debug.cpp"
-#pragma warning(disable : 4701)
+#endif 
+
 /*
 Ball update_ball(Ball *ball, F32 dt)
 {
@@ -287,6 +285,12 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
 }
 */
 
+#define BALL_SPEED 2500.0f
+#define BALL_FRICTION 3.0f
+// #define BALL_RADIUS 20.0f
+// TODO(annad): ODE?
+#define __STUB_CALC_ACCELERATION(Vel) (Vel * (-BALL_FRICTION))
+
 internal void ballsInit(Entity *balls, S32 x, S32 y)
 {
     S32 dy = 5;
@@ -299,6 +303,7 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
         for (S32 j = dy; j > 0; j -= 1)
         {
             Assert(ballIdx < BALL_COUNT);
+            balls[ballIdx].id = ballIdx;
             balls[ballIdx].p.y = (F32)(y + shift + j * (2 * BALL_RADIUS));
             balls[ballIdx].p.x = (F32)(x + i * (2 * BALL_RADIUS));
             balls[ballIdx].v.x = 0.0f;
@@ -308,6 +313,7 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
         }
     }
 
+    balls[CUE_BALL].id = CUE_BALL;
     balls[CUE_BALL].p.x = balls[BALL_16].p.x - (2 * BALL_RADIUS * 10);
     balls[CUE_BALL].p.y = balls[BALL_16].p.y;
     balls[CUE_BALL].v.x = 0.0f;
@@ -317,8 +323,7 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
 
 internal Entity ballUpdate(Entity *ball, F32 dt)
 {
-    // TODO(annad): ODE?
-    V2DF32 a = ball->v * (-BALL_FRICTION);
+    V2DF32 a = __STUB_CALC_ACCELERATION(ball->v);
     Entity updated = *ball;
     updated.p += (a * 0.5f * f32Square(dt) + ball->v * dt);
     updated.v += a * dt;
@@ -358,26 +363,106 @@ internal B8 ballCheckTableBoardCollide(Entity *ball, Rect *table, V2DF32 *nvecwa
     return false;
 }
 
-internal Entity ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
+internal void ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
 {
 #if BILL_CFG_DEV_MODE
-    localv S32 dbgCount = 0;
-    dbgCount = 0;
+    localv S32 dbg_Count = 0;
+    dbg_Count = 0;
 #endif 
     Entity updated = ballUpdate(ball, dt);
     V2DF32 nvecwall = {};
     while (ballCheckTableBoardCollide(&updated, table, &nvecwall))
     {
 #if BILL_CFG_DEV_MODE
-        DbgPrint("velocity correcting (%d)\n", ++dbgCount);
+        DbgPrint("velocity correcting (%d)\n", ++dbg_Count);
 #endif
         updated = *ball;
         updated.v -= nvecwall * 2.0f * updated.v.inner(nvecwall);
         ball->v = updated.v;
         updated = ballUpdate(ball, dt);
     }
+}
 
-    return updated;
+void pqCollidesReset(PQCollides *pqc)
+{
+    pqc->cursor = 0;
+}
+
+void pqCollidesPush(PQCollides *pqc, BallsCollide *bc)
+{
+    Assert(pqc->size >= pqc->cursor);
+    pqc->items[pqc->cursor] = *bc;
+}
+
+B8 ballCheckBallCollide(Entity *a, Entity *b)
+{
+    F32 d = (a->p - b->p).getLength();
+    return d < (2.0f * BALL_RADIUS);
+}
+
+F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
+{
+    V2DF32 d = ballB->p - ballB->p;
+
+    F32 cos = ballA->v.innerProduct(d) / (d.getLength() * ballA->v.getLength());
+    if ()
+    {
+        V2DF32 a = __STUB_CALC_ACCELERATION(ballA->v);
+    }
+
+    return 0.0f;
+}
+
+void 
+ballScanCollides(Entity *balls, B8 *updatedBalls, 
+        PQCollides *pqcollides, F32 dt)
+{
+    pqCollidesReset(pqcollides);
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        if (updatedBalls[i]) continue;
+        Entity *a = &balls[i];
+        Entity updated = ballUpdate(a, dt);
+        for (S32 j = 0; j < BALL_COUNT; j += 1)
+        {
+            if (i == j) continue;
+            Entity *b = &balls[j];
+            if (ballCheckBallCollide(&updated, b))
+            {
+                BallsCollide colinfo;
+                colinfo.idxBallA = a->id;
+                colinfo.idxBallB = b->id;
+                colinfo.timeBefore = ballTimeBeforeBallCollide(a, b);
+                pqCollidesPush(pqcollides, &colinfo);
+            }
+        }
+    }
+
+#if BILL_CFG_DEV_MODE
+    localv S32 dbg_Count = 0;
+    localv S32 dbg_LocalFrameCounter = 0;
+    if (dbg_LocalFrameCounter != dbg_GlobalFrameCounter)
+    {
+        dbg_Count = 0;
+    }
+    else
+    {
+        dbg_Count += 1;
+    }
+    
+    if (pqcollides->cursor)
+    {
+        DbgPrint("detect collides (%d)\n", dbg_Count);
+        BallsCollide *colinfo;
+        for (S32 i = 0; i < PQ_COLLIDES_SIZE; i += 1)
+        {
+            colinfo = &pqcollides->items[i];
+            DbgPrint("colinfo[%d] a = %d, b = %d, dt = %f\n", 
+                    i, colinfo->idxBallA, colinfo->idxBallB, 
+                    colinfo->timeBefore);
+        }
+    }
+#endif
 }
 
 internal void gtick(GameIO *io)
@@ -391,6 +476,7 @@ internal void gtick(GameIO *io)
     // NOTE(annad): Game layer
     Entity *balls = (Entity*)(&gstate->balls);
     CueStick *cuestick = &gstate->cuestick;
+    PQCollides *pqcollides = &gstate->pqcollides; 
 
     if (gstate->isInit == false)
     {
@@ -424,7 +510,14 @@ internal void gtick(GameIO *io)
             hRenderer->hScreen
         };
 
-        gstate->table = table; 
+        gstate->table = table;
+
+        // 
+        // PQCollide
+        //
+        pqcollides->size = PQ_COLLIDES_SIZE;
+        pqcollides->cursor = 0;
+
         gstate->isInit = true;
     }
     
@@ -463,10 +556,19 @@ internal void gtick(GameIO *io)
     // NOTE(annad): Movement
     F32 deltatime = (F32)io->tick->dt / 1000.0f;
     Entity *b;
-    for(S32 i = 0; i < BALL_COUNT; i += 1)
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         b = &balls[i];
-        Entity updated = ballHandleTableBoard(b, &gstate->table, deltatime);
+        ballHandleTableBoard(b, &gstate->table, deltatime);
+    }
+
+    B8 updatedBalls[BALL_COUNT] = {};
+    ballScanCollides(balls, (B8 *)updatedBalls, pqcollides, deltatime);
+
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        b = &balls[i];
+        Entity updated = ballUpdate(b, deltatime);
         *b = updated;
     }
 

@@ -44,13 +44,20 @@ struct CollideInfo
     F32 dt;
 };
 
-#define PQ_MAX_ITEMS_COUNT 16
+#define PQ_COLLIDES_SIZE 16
 
-struct PriorityQueue
+struct BallsCollide
 {
-    CollideInfo items[PQ_MAX_ITEMS_COUNT];
-    S32 size;
-    S32 cursor;
+    S32 idxBallA;
+    S32 idxBallB;
+    F32 timeBefore;
+};
+
+struct PQCollides
+{
+    BallsCollide items[PQ_COLLIDES_SIZE];
+    S16 size;
+    S16 cursor;
 };
 
 struct Rect
@@ -69,9 +76,10 @@ struct CueStick
 
 struct Entity
 {
+    S32 id;
+    B32 isInit;
     V2DF32 p;
     V2DF32 v;
-    B8 isInit;
 };
 
 struct GameState
@@ -80,8 +88,7 @@ struct GameState
     Entity balls[BALL_COUNT];
     CueStick cuestick;
     Rect table;
-
-    PriorityQueue pq;
+    PQCollides pqcollides;
 
     B8 isInit;
 };

@@ -141,6 +141,7 @@ int main(int, char**)
     io.storage = &storage;
     io.tick = &tick;
 
+#if BILL_CFG_DEV_MODE
     // 
     // debug
     //
@@ -148,7 +149,9 @@ int main(int, char**)
     dbg_Window = window;
     dbg_HRenderer = &hRenderer;
     dbg_GameIO = &io;
-    
+    dbg_GlobalFrameCounter = 0;
+#endif
+
     //
     // Event loop
     //
@@ -156,6 +159,9 @@ int main(int, char**)
     B32 quitFlag = false;
     while (!quitFlag)
     {
+#if BILL_CFG_DEV_MODE
+        dbg_GlobalFrameCounter++;
+#endif
         SDL_RenderClear(sdlRenderer);
         SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
         while (SDL_PollEvent(&event))

@@ -10,6 +10,7 @@ globalv GameIO          *dbg_GameIO;
 globalv SDL_Window      *dbg_Window;
 globalv SDL_Renderer    *dbg_SdlRenderer;
 globalv RendererHandle  *dbg_HRenderer;
+globalv S32             dbg_GlobalFrameCounter;
 
 #define DbgPrint(STR, ...) printf("[dbg] " STR, __VA_ARGS__)
 
