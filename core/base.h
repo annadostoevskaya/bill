@@ -176,7 +176,7 @@ typedef void VoidFunc(void);
 #define GB(x)   ((U64)(1024 * MB(x)))
 
 //
-//
+// 
 //
 
 #endif // TYPES_H

@@ -6,7 +6,7 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
-#include "core/math.h"
+#include "core/mmath.h"
 #include "core/memory.h"
 #include "core/memory_void.cpp"
 #include "core/memory.cpp"
@@ -299,13 +299,13 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
     for (S32 i = dx; i > 0; i -= 1)
     {
         dy = i;
-        S32 shift = ((5 - i) * BALL_RADIUS);
+        F32 shift = ((5.0f - (F32)i) * BALL_RADIUS);
         for (S32 j = dy; j > 0; j -= 1)
         {
             Assert(ballIdx < BALL_COUNT);
             balls[ballIdx].id = ballIdx;
-            balls[ballIdx].p.y = (F32)(y + shift + j * (2 * BALL_RADIUS));
-            balls[ballIdx].p.x = (F32)(x + i * (2 * BALL_RADIUS));
+            balls[ballIdx].p.y = (y + shift + (F32)j * (2.0f * BALL_RADIUS));
+            balls[ballIdx].p.x = (x + (F32)i * (2.0f * BALL_RADIUS));
             balls[ballIdx].v.x = 0.0f;
             balls[ballIdx].v.y = 0.0f;
             balls[ballIdx].isInit = true;
@@ -314,7 +314,7 @@ internal void ballsInit(Entity *balls, S32 x, S32 y)
     }
 
     balls[CUE_BALL].id = CUE_BALL;
-    balls[CUE_BALL].p.x = balls[BALL_16].p.x - (2 * BALL_RADIUS * 10);
+    balls[CUE_BALL].p.x = balls[BALL_16].p.x - (2.0f * BALL_RADIUS * 10.0f);
     balls[CUE_BALL].p.y = balls[BALL_16].p.y;
     balls[CUE_BALL].v.x = 0.0f;
     balls[CUE_BALL].v.y = 0.0f;
@@ -403,9 +403,22 @@ B8 ballCheckBallCollide(Entity *a, Entity *b)
 F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
 {
     V2DF32 d = ballB->p - ballB->p;
+    F32 dl = d.getLength();
+    if (dl <= (2.0f * (F32)BALL_RADIUS))
+    {
+        // NOTE(annad): Already collide!
+        return 0.0f;
+    }
 
-    F32 cos = ballA->v.innerProduct(d) / (d.getLength() * ballA->v.getLength());
-    if ()
+    F32 avl = ballA->v.getLength();
+    if (f32EpsCompare(avl, 0.0f, 0.01f)) // TODO(annad): kowalski analysis.
+    {
+        // NOTE(annad): Never collide!
+        return f32Infinity();
+    }
+
+    F32 cos = ballA->v.inner(d) / (dl * ballA->v.getLength());
+    if (true)
     {
         V2DF32 a = __STUB_CALC_ACCELERATION(ballA->v);
     }
@@ -578,7 +591,7 @@ internal void gtick(GameIO *io)
         Entity *e = &balls[i];
         if (e->isInit)
         {
-            Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, BALL_RADIUS);
+            Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)BALL_RADIUS);
         }
     }
     
