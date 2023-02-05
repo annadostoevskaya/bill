@@ -56,8 +56,8 @@ struct BallsCollide
 struct PQCollides
 {
     BallsCollide items[PQ_COLLIDES_SIZE];
-    S16 size;
-    S16 cursor;
+    S32 size;
+    S32 cursor;
 };
 
 struct Rect

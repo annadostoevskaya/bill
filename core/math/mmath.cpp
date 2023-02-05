@@ -28,8 +28,6 @@ F32 f32Round(F32 x)
     return roundf(x);
 }
 
-// #define FCOMPARE(R, L, E) (f32Abs((R) - (L)) < (E))
-
 B8 f32EpsCompare(F32 rhs, F32 lhs, F32 eps)
 {
     return f32Abs(rhs - lhs) < eps;

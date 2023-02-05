@@ -291,7 +291,7 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
 // TODO(annad): ODE?
 #define __STUB_CALC_ACCELERATION(Vel) (Vel * (-BALL_FRICTION))
 
-internal void ballsInit(Entity *balls, S32 x, S32 y)
+internal void ballsInit(Entity *balls, F32 x, F32 y)
 {
     S32 dy = 5;
     S32 dx = 5;
@@ -392,6 +392,34 @@ void pqCollidesPush(PQCollides *pqc, BallsCollide *bc)
 {
     Assert(pqc->size >= pqc->cursor);
     pqc->items[pqc->cursor] = *bc;
+    pqc->cursor += 1;
+}
+
+S32 pqCollidesPeek(PQCollides *pqc)
+{
+    F32 minTime = f32Infinity();
+    S32 idx = -1;
+    BallsCollide *colinfo;
+    for (S32 i = 0; i < pqc->cursor; i += 1)
+    {
+        colinfo = &pqc->items[i];
+        if (colinfo->timeBefore < minTime && colinfo->timeBefore > 0.0f)
+        {
+            idx = i;
+            minTime = colinfo->timeBefore;
+        }
+    }
+
+    return idx;
+}
+
+BallsCollide pqCollidesPop(PQCollides *pqc, S32 idx)
+{
+    Assert(pqc->cursor > idx);
+    BallsCollide swap = pqc->items[idx];
+    pqc->items[idx] = pqc->items[pqc->cursor];
+    pqc->cursor -= 1;
+    return swap;
 }
 
 B8 ballCheckBallCollide(Entity *a, Entity *b)
@@ -402,7 +430,8 @@ B8 ballCheckBallCollide(Entity *a, Entity *b)
 
 F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
 {
-    V2DF32 d = ballB->p - ballB->p;
+    // NOTE(annad): Last update, <date>
+    V2DF32 d = ballB->p - ballA->p;
     F32 dl = d.getLength();
     if (dl <= (2.0f * (F32)BALL_RADIUS))
     {
@@ -410,20 +439,63 @@ F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
         return 0.0f;
     }
 
-    F32 avl = ballA->v.getLength();
-    if (f32EpsCompare(avl, 0.0f, 0.01f)) // TODO(annad): kowalski analysis.
-    {
+    F32 v = ballA->v.getLength(); // NOTE(annad): 
+    if (f32EpsCompare(v, 0.0f, 0.01f)) // TODO(annad): kowalski analysis.
+    {                                  // is this at all possible?
         // NOTE(annad): Never collide!
         return f32Infinity();
     }
 
-    F32 cos = ballA->v.inner(d) / (dl * ballA->v.getLength());
-    if (true)
+    F32 cos = ballA->v.inner(d) / (dl * v);
+    if (f32EpsCompare(cos, 0.0f, 0.001f))
     {
-        V2DF32 a = __STUB_CALC_ACCELERATION(ballA->v);
+        // TODO(annad): Check this later
+        // if one of the values goes to zero we get this case
+        Assert(false);
     }
 
-    return 0.0f;
+    // NOTE(annad): Calculate distance between collide points
+    // 
+    // s(fi) = 2r * (1 / cos(w)) * sin( arcsin(2r*S*(1/cos(w))) + w ) where 
+    // w - angle berween distance B - A and Velocity vector
+    // r  - ball's radius
+    // S  - |B - A|
+    //
+    // See https://www.geogebra.org/m/qqy3e5q9 for more info.
+    F32 s = 0.0f;
+    if (f32EpsCompare(cos, 1.0f, 0.001f))
+    {
+        s = dl - (2.0f * BALL_RADIUS);
+    }
+    else
+    {
+        F32 aAngle = f32ArcCos(cos);
+        F32 A = 2.0f * BALL_RADIUS;
+        F32 B = dl;
+        F32 sinA = f32Sin(aAngle);
+        F32 sinB = (sinA / A) * B;
+
+        // TODO(annad): kowalski analysis.
+        // Can this be done better?
+        sinB = sinB > 1.0f  ?  1.0f : sinB;
+        sinB = sinB < -1.0f ? -1.0f : sinB;
+
+        F32 sinC = f32Sin(f32ArcSin(sinB) - aAngle);
+        F32 C = (A / sinA) * sinC;
+        s = C;
+
+        if (f32EpsCompare(s, 0.0f, 0.001f))
+        {
+            return 0.0f;
+        }
+    }
+
+    F32 a = 0.5f * __STUB_CALC_ACCELERATION(ballA->v).getLength();
+    F32 D = f32Sqrt(f32Square(v) - 4.0f * a * s);
+    Assert(D == D); // TODO(annad): If f32Sqrt pass x <= 0
+    F32 t = (v - D) / (2.0f * a);
+    
+    return t;
 }
 
 void 
@@ -465,14 +537,15 @@ ballScanCollides(Entity *balls, B8 *updatedBalls,
     
     if (pqcollides->cursor)
     {
+        __debugbreak();
         DbgPrint("detect collides (%d)\n", dbg_Count);
         BallsCollide *colinfo;
-        for (S32 i = 0; i < PQ_COLLIDES_SIZE; i += 1)
+        for (S32 i = 0; i < pqcollides->cursor; i += 1)
         {
             colinfo = &pqcollides->items[i];
             DbgPrint("colinfo[%d] a = %d, b = %d, dt = %f\n", 
-                    i, colinfo->idxBallA, colinfo->idxBallB, 
-                    colinfo->timeBefore);
+                     i, colinfo->idxBallA, colinfo->idxBallB, 
+                     colinfo->timeBefore);
         }
     }
 #endif
@@ -510,8 +583,8 @@ internal void gtick(GameIO *io)
         //
         // Balls
         //
-        S32 rackPosX = (S32)(0.75f * (F32)hRenderer->wScreen) - 5 * BALL_RADIUS;
-        S32 rackPosY = (S32)(0.5f * (F32)hRenderer->hScreen) - 5 * BALL_RADIUS;
+        F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
+        F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
         ballsInit(balls, rackPosX, rackPosY);
         
         //
@@ -537,8 +610,8 @@ internal void gtick(GameIO *io)
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
         // Reset game
-        S32 rackPosX = (S32)(0.75f * (F32)hRenderer->wScreen) - 5 * BALL_RADIUS;
-        S32 rackPosY = (S32)(0.5f * (F32)hRenderer->hScreen) - 5 * BALL_RADIUS;
+        F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
+        F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
         ballsInit(balls, rackPosX, rackPosY);
     }
 
@@ -572,9 +645,13 @@ internal void gtick(GameIO *io)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         b = &balls[i];
+
+        // TODO(annad): This function has cycle. We must extract him from 
+        // function and write SWITCH that will be detect COLLISION RULE
         ballHandleTableBoard(b, &gstate->table, deltatime);
     }
 
+    // NOTE(annad): Handle collide between balls
     B8 updatedBalls[BALL_COUNT] = {};
     ballScanCollides(balls, (B8 *)updatedBalls, pqcollides, deltatime);
 
