@@ -484,7 +484,7 @@ F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
         F32 C = (A / sinA) * sinC;
         s = C;
 
-        if (f32EpsCompare(s, 0.0f, 0.001f))
+        if (f32EpsCompare(s, 0.0f, 0.0001f))
         {
             return 0.0f;
         }
@@ -562,56 +562,36 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
 void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
 {
     // TODO(annad): Rewrite the code in terms of physics
-    V2DF32 v = a->v.getLength();
+    F32 v = a->v.getLength();
     if(!f32EpsCompare(v, 0.0f, 0.0001f))
     {
-        V2DF32 dBA = b->p - a->p;
-        V2DF32 dCA = c->p - a->p;
-        // ... 
+        V2DF32 BA = b->p - a->p;
+        V2DF32 CA = c->p - a->p;
+        F32 lBA = BA.getLength();
+        F32 lCA = CA.getLength();
+        V2DF32 directA = { a->v.x / v, a->v.y / v };
+        V2DF32 directB = { BA.x / lBA, BA.y / lBA };
+        V2DF32 directC = { CA.x / lCA, CA.y / lCA };
+        F32 cosB = a->v.inner(directB) / (v * directB.getLength());
+        // F32 cosC = a->v.inner(directC) / (v * directC.getLength());
+        // NOTE(annad): 
+        F32 vb = (2.0f * v * cosB) / (1.0f + 2.0f * f32Square(cosB));
+        // F32 vc = (2.0f * v * cosC) / (1.0f + 2.0f * f32Square(cosC));
+        b->v = directB * vb;
+        c->v = directC * vb;
+        a->v = directA * (v - (2.0f * vb * cosB));
     }
-
-    Vec2Dim<F32> delta_pos_ba = ball_b->pos - ball_a->pos; 
-    Vec2Dim<F32> delta_pos_ca = ball_c->pos - ball_a->pos;
-
-    Vec2Dim<F32> direct_b = {
-        delta_pos_ba.x / delta_pos_ba.getLength(),
-        delta_pos_ba.y / delta_pos_ba.getLength()
-    };
-
-    Vec2Dim<F32> direct_c = {
-        delta_pos_ca.x / delta_pos_ca.getLength(),
-        delta_pos_ca.y / delta_pos_ca.getLength()
-    };
-
-    Vec2Dim<F32> direct_a = {
-        ball_a->vel.x / ball_a->vel.getLength(),
-        ball_a->vel.y / ball_a->vel.getLength()
-    };
-
-    F32 cos_teta_b = ball_a->vel.innerProduct(direct_b)
-        / (ball_a->vel.getLength() * direct_b.getLength());
-    F32 cos_teta_c = ball_a->vel.innerProduct(direct_c)
-        / (ball_a->vel.getLength() * direct_c.getLength());
-
-    F32 vel_sclr_b = (2.0f * result_vel.getLength() * cos_teta_b) 
-        / 1.0f + 2.0f * f32Square(cos_teta_b);
-    F32 vel_sclr_c = (2.0f * result_vel.getLength() * cos_teta_c) 
-        / 1.0f + 2.0f * f32Square(cos_teta_c);
-
-    ball_b->vel = direct_b * vel_sclr_b;
-    ball_c->vel = direct_c * vel_sclr_c;
-    ball_a->vel = direct_a * (result_vel.getLength() - (2.0f * vel_sclr_b * cos_teta_b));
 }
 
 void ballSolveCollideOneBall(Entity *a, Entity *b)
 {
-    if(!f32EpsCompare(a->v.getLength(), 0.0f, 0.0001f))
+    F32 v = a->v.getLength();
+    if(!f32EpsCompare(v, 0.0f, 0.0001f))
     {
         V2DF32 d = b->p - a->p;
         F32 dl = d.getLength();
         V2DF32 directB = { d.x / dl, d.y / dl };
         V2DF32 directA = { directB.y, -directB.x };
-        F32 v = a->v.getLength();
         F32 cosA = a->v.inner(directA) / (v * directA.getLength());
         F32 cosB = a->v.inner(directB) / (v * directB.getLength());
         a->v = directA * v * cosA;
@@ -729,7 +709,7 @@ internal void gtick(GameIO *io)
         if (peak != -1)
         {
             BallsCollide masterColinfo = pqCollidesPop(pqcollides, peak);
-            BallsCollide *slaveColinfo;
+            BallsCollide *slaveColinfo = NULL;
             for (S32 i = 0; i < pqcollides->cursor; i += 1)
             {
                 BallsCollide *colinfo = &pqcollides->items[i];
