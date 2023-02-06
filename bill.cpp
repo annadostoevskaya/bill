@@ -492,20 +492,23 @@ F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
 
     F32 a = 0.5f * __STUB_CALC_ACCELERATION(ballA->v).getLength();
     F32 D = f32Sqrt(f32Square(v) - 4.0f * a * s);
-    Assert(D == D); // TODO(annad): If f32Sqrt pass x <= 0
+    Assert(D == D); // TODO(annad): If to f32Sqrt pass x <= 0
     F32 t = (v - D) / (2.0f * a);
     
     return t;
 }
 
 void 
-ballScanCollides(Entity *balls, B8 *updatedBalls, 
-        PQCollides *pqcollides, F32 dt)
+ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
 {
+#if BILL_CFG_DEV_MODE
+    localv S32 dbg_Count = 0;
+    localv S32 dbg_LocalFrameCounter = 0;
+    localv B8 dbg_CollidesDetected = false;
+#endif
     pqCollidesReset(pqcollides);
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
-        if (updatedBalls[i]) continue;
         Entity *a = &balls[i];
         Entity updated = ballUpdate(a, dt);
         for (S32 j = 0; j < BALL_COUNT; j += 1)
@@ -514,6 +517,9 @@ ballScanCollides(Entity *balls, B8 *updatedBalls,
             Entity *b = &balls[j];
             if (ballCheckBallCollide(&updated, b))
             {
+#if BILL_CFG_DEV_MODE
+                dbg_CollidesDetected = true;
+#endif
                 BallsCollide colinfo;
                 colinfo.idxBallA = a->id;
                 colinfo.idxBallB = b->id;
@@ -522,10 +528,13 @@ ballScanCollides(Entity *balls, B8 *updatedBalls,
             }
         }
     }
-
 #if BILL_CFG_DEV_MODE
-    localv S32 dbg_Count = 0;
-    localv S32 dbg_LocalFrameCounter = 0;
+    if (!dbg_CollidesDetected)
+    {
+        return;
+    }
+
+    dbg_CollidesDetected = false;
     if (dbg_LocalFrameCounter != dbg_GlobalFrameCounter)
     {
         dbg_Count = 0;
@@ -537,7 +546,6 @@ ballScanCollides(Entity *balls, B8 *updatedBalls,
     
     if (pqcollides->cursor)
     {
-        __debugbreak();
         DbgPrint("detect collides (%d)\n", dbg_Count);
         BallsCollide *colinfo;
         for (S32 i = 0; i < pqcollides->cursor; i += 1)
@@ -549,6 +557,66 @@ ballScanCollides(Entity *balls, B8 *updatedBalls,
         }
     }
 #endif
+}
+
+void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
+{
+    // TODO(annad): Rewrite the code in terms of physics
+    V2DF32 v = a->v.getLength();
+    if(!f32EpsCompare(v, 0.0f, 0.0001f))
+    {
+        V2DF32 dBA = b->p - a->p;
+        V2DF32 dCA = c->p - a->p;
+        // ... 
+    }
+
+    Vec2Dim<F32> delta_pos_ba = ball_b->pos - ball_a->pos; 
+    Vec2Dim<F32> delta_pos_ca = ball_c->pos - ball_a->pos;
+
+    Vec2Dim<F32> direct_b = {
+        delta_pos_ba.x / delta_pos_ba.getLength(),
+        delta_pos_ba.y / delta_pos_ba.getLength()
+    };
+
+    Vec2Dim<F32> direct_c = {
+        delta_pos_ca.x / delta_pos_ca.getLength(),
+        delta_pos_ca.y / delta_pos_ca.getLength()
+    };
+
+    Vec2Dim<F32> direct_a = {
+        ball_a->vel.x / ball_a->vel.getLength(),
+        ball_a->vel.y / ball_a->vel.getLength()
+    };
+
+    F32 cos_teta_b = ball_a->vel.innerProduct(direct_b)
+        / (ball_a->vel.getLength() * direct_b.getLength());
+    F32 cos_teta_c = ball_a->vel.innerProduct(direct_c)
+        / (ball_a->vel.getLength() * direct_c.getLength());
+
+    F32 vel_sclr_b = (2.0f * result_vel.getLength() * cos_teta_b) 
+        / 1.0f + 2.0f * f32Square(cos_teta_b);
+    F32 vel_sclr_c = (2.0f * result_vel.getLength() * cos_teta_c) 
+        / 1.0f + 2.0f * f32Square(cos_teta_c);
+
+    ball_b->vel = direct_b * vel_sclr_b;
+    ball_c->vel = direct_c * vel_sclr_c;
+    ball_a->vel = direct_a * (result_vel.getLength() - (2.0f * vel_sclr_b * cos_teta_b));
+}
+
+void ballSolveCollideOneBall(Entity *a, Entity *b)
+{
+    if(!f32EpsCompare(a->v.getLength(), 0.0f, 0.0001f))
+    {
+        V2DF32 d = b->p - a->p;
+        F32 dl = d.getLength();
+        V2DF32 directB = { d.x / dl, d.y / dl };
+        V2DF32 directA = { directB.y, -directB.x };
+        F32 v = a->v.getLength();
+        F32 cosA = a->v.inner(directA) / (v * directA.getLength());
+        F32 cosB = a->v.inner(directB) / (v * directB.getLength());
+        a->v = directA * v * cosA;
+        b->v = directB * v * cosB;
+    }
 }
 
 internal void gtick(GameIO *io)
@@ -645,15 +713,47 @@ internal void gtick(GameIO *io)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         b = &balls[i];
-
         // TODO(annad): This function has cycle. We must extract him from 
         // function and write SWITCH that will be detect COLLISION RULE
+        //
+        // Idk, what will happen, if ball A collides with wall, then
+        // go to ball B, and agail wall???
         ballHandleTableBoard(b, &gstate->table, deltatime);
     }
 
     // NOTE(annad): Handle collide between balls
-    B8 updatedBalls[BALL_COUNT] = {};
-    ballScanCollides(balls, (B8 *)updatedBalls, pqcollides, deltatime);
+    for (;;)
+    {
+        ballScanCollides(balls, pqcollides, deltatime);
+        S32 peak = pqCollidesPeek(pqcollides);
+        if (peak != -1)
+        {
+            BallsCollide masterColinfo = pqCollidesPop(pqcollides, peak);
+            BallsCollide *slaveColinfo;
+            for (S32 i = 0; i < pqcollides->cursor; i += 1)
+            {
+                BallsCollide *colinfo = &pqcollides->items[i];
+                if (masterColinfo.idxBallA == colinfo->idxBallA && 
+                    f32EpsCompare(masterColinfo.timeBefore, colinfo->timeBefore, 0.001))
+                {
+                    slaveColinfo = colinfo;
+                }
+            }
+
+            Entity *ballA = &balls[masterColinfo.idxBallA];
+            Entity *ballB = &balls[masterColinfo.idxBallB];
+            // TODO(annad): https://physics.stackexchange.com/questions/296767/multiple-colliding-balls
+            if (slaveColinfo)
+            {
+                Entity *ballC = &balls[slaveColinfo->idxBallB];
+                ballSolveCollide2Ball(ballA, ballB, ballC);
+            }
+            
+            ballSolveCollideOneBall(ballA, ballB);
+        }
+
+        break;
+    }
 
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
