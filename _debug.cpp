@@ -7,24 +7,35 @@ Description: <empty>
 */
 
 globalv GameIO          *dbg_GameIO;
+globalv GameState       *dbg_GameState;
 globalv SDL_Window      *dbg_Window;
 globalv SDL_Renderer    *dbg_SdlRenderer;
 globalv RendererHandle  *dbg_HRenderer;
 globalv S32             dbg_GlobalFrameCounter;
 
+
 #define DbgPrint(STR, ...) printf("[dbg] " STR, __VA_ARGS__)
 
-/*
-globalv GameState *DEBUG_game_state;
-globalv SDL_Renderer    *DEBUG_sdl_renderer;
-globalv SDL_Renderer    *sdl_renderer;
-globalv Renderer        *DEBUG_renderer;
-globalv Vec2Dim<F32> DEBUG_DIRECTION_BALL_A;
-globalv Vec2Dim<F32> DEBUG_DIRECTION_BALL_B;
-globalv S32 DEBUG_DIRECTION_BALL_A_ID;
-globalv S32 DEBUG_DIRECTION_BALL_B_ID;
-*/
 // void dbg_ForceUpdateScreen()
+
+void dbg_ForceUpdate()
+{
+    Renderer_pushCmd(dbg_HRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
+    Entity *balls = (Entity *)&dbg_GameState->balls;
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Entity *e = &balls[i];
+        if (e->isInit)
+        {
+            Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)BALL_RADIUS);
+        }
+    }
+
+    Renderer_pushCmd(dbg_HRenderer, RCMD_NULL);
+    SDLRenderer_exec(dbg_HRenderer);
+    SDL_RenderPresent(dbg_SdlRenderer);
+    SDL_UpdateWindowSurface(dbg_Window);
+}
 
 /*
 void FORCE_UPDATE()

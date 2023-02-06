@@ -314,6 +314,7 @@ internal void ballsInit(Entity *balls, F32 x, F32 y)
     balls[BALL_14].isInit = true;
 }
 
+#if 0
 internal void _ballsInit(Entity *balls, F32 x, F32 y)
 {
     S32 dy = 5;
@@ -343,6 +344,7 @@ internal void _ballsInit(Entity *balls, F32 x, F32 y)
     balls[CUE_BALL].v.y = 0.0f;
     balls[CUE_BALL].isInit = true;
 }
+#endif
 
 internal Entity ballUpdate(Entity *ball, F32 dt)
 {
@@ -426,7 +428,7 @@ S32 pqCollidesPeek(PQCollides *pqc)
     for (S32 i = 0; i < pqc->cursor; i += 1)
     {
         colinfo = &pqc->items[i];
-        if (colinfo->timeBefore < minTime && colinfo->timeBefore > 0.0f)
+        if (colinfo->timeBefore < minTime && colinfo->timeBefore >= 0.0f)
         {
             idx = i;
             minTime = colinfo->timeBefore;
@@ -456,7 +458,7 @@ F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     // NOTE(annad): Last update, <date>
     V2DF32 d = ballB->p - ballA->p;
     F32 dl = d.getLength();
-    if (dl <= (2.0f * (F32)BALL_RADIUS))
+    if (dl < (2.0f * (F32)BALL_RADIUS))
     {
         // NOTE(annad): Already collide!
         return 0.0f;
@@ -560,7 +562,8 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
     dbg_CollidesDetected = false;
     if (dbg_LocalFrameCounter != dbg_GlobalFrameCounter)
     {
-        dbg_Count = 0;
+        dbg_LocalFrameCounter = dbg_GlobalFrameCounter;
+        dbg_Count = 1;
     }
     else
     {
@@ -585,7 +588,7 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
 void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
 {
 #if BILL_CFG_DEV_MODE
-    DbgPrint("Two Balls %s", "\n");
+    DbgPrint("SolveCollide2%s", "\n");
 #endif
     // TODO(annad): Rewrite the code in terms of physics
     F32 v = a->v.getLength();
@@ -629,6 +632,7 @@ internal void gtick(GameIO *io)
     // NOTE(annad): Platform layer
     GameStorage *storage = io->storage;
     GameState *gstate = (GameState*)storage->permanent;
+    dbg_GameState = gstate;
     RendererHandle *hRenderer = io->hRenderer;
     InputDevices *devices = io->devices;
     
@@ -658,6 +662,8 @@ internal void gtick(GameIO *io)
         //
         F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
         F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
+        rackPosX = 100.0f;
+        rackPosY = 100.0f;
         ballsInit(balls, rackPosX, rackPosY);
         
         //
@@ -685,6 +691,9 @@ internal void gtick(GameIO *io)
         // Reset game
         F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
         F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
+        rackPosX = 100.0f;
+        rackPosY = 100.0f;
+
         ballsInit(balls, rackPosX, rackPosY);
     }
 
@@ -732,35 +741,37 @@ internal void gtick(GameIO *io)
     // NOTE(annad): Handle collide between balls
     for (;;)
     {
+        // TODO(annad): Before handling the collision, 
+        // you need to move the ball into place when the collision occurs
         ballScanCollides(balls, pqcollides, deltatime);
         S32 peak = pqCollidesPeek(pqcollides);
-        if (peak != -1)
+        if (peak == -1)
         {
-            BallsCollide masterColinfo = pqCollidesPop(pqcollides, peak);
-            BallsCollide *slaveColinfo = NULL;
-            for (S32 i = 0; i < pqcollides->cursor; i += 1)
-            {
-                BallsCollide *colinfo = &pqcollides->items[i];
-                if (masterColinfo.idxBallA == colinfo->idxBallA && 
-                    f32EpsCompare(masterColinfo.timeBefore, colinfo->timeBefore, 0.01f))
-                {
-                    slaveColinfo = colinfo;
-                }
-            }
-
-            Entity *ballA = &balls[masterColinfo.idxBallA];
-            Entity *ballB = &balls[masterColinfo.idxBallB];
-            // TODO(annad): https://physics.stackexchange.com/questions/296767/multiple-colliding-balls
-            if (slaveColinfo)
-            {
-                Entity *ballC = &balls[slaveColinfo->idxBallB];
-                ballSolveCollide2Ball(ballA, ballB, ballC);
-            }
-            
-            ballSolveCollideOneBall(ballA, ballB);
+            break;
         }
 
-        break;
+        BallsCollide masterColinfo = pqCollidesPop(pqcollides, peak);
+        BallsCollide *slaveColinfo = NULL;
+        for (S32 i = 0; i < pqcollides->cursor; i += 1)
+        {
+            BallsCollide *colinfo = &pqcollides->items[i];
+            if (masterColinfo.idxBallA == colinfo->idxBallA && 
+                f32EpsCompare(masterColinfo.timeBefore, colinfo->timeBefore, 0.01f))
+            {
+                slaveColinfo = colinfo;
+            }
+        }
+
+        Entity *ballA = &balls[masterColinfo.idxBallA];
+        Entity *ballB = &balls[masterColinfo.idxBallB];
+        // TODO(annad): https://physics.stackexchange.com/questions/296767/multiple-colliding-balls
+        if (slaveColinfo)
+        {
+            Entity *ballC = &balls[slaveColinfo->idxBallB];
+            ballSolveCollide2Ball(ballA, ballB, ballC);
+        }
+        
+        ballSolveCollideOneBall(ballA, ballB);
     }
 
     for (S32 i = 0; i < BALL_COUNT; i += 1)
