@@ -290,8 +290,31 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
 // #define BALL_RADIUS 20.0f
 // TODO(annad): ODE?
 #define __STUB_CALC_ACCELERATION(Vel) (Vel * (-BALL_FRICTION))
-
 internal void ballsInit(Entity *balls, F32 x, F32 y)
+{
+    balls[CUE_BALL].id = CUE_BALL;
+    balls[CUE_BALL].p.x = x;
+    balls[CUE_BALL].p.y = y;
+    balls[CUE_BALL].v.x = 0.0f;
+    balls[CUE_BALL].v.y = 0.0f;
+    balls[CUE_BALL].isInit = true;
+
+    balls[BALL_15].id = BALL_15;
+    balls[BALL_15].p.x = balls[CUE_BALL].p.x + 3.0f * BALL_RADIUS;
+    balls[BALL_15].p.y = balls[CUE_BALL].p.y - BALL_RADIUS;
+    balls[BALL_15].v.x = 0.0f;
+    balls[BALL_15].v.y = 0.0f;
+    balls[BALL_15].isInit = true;
+
+    balls[BALL_14].id = BALL_14;
+    balls[BALL_14].p.x = balls[CUE_BALL].p.x + 3.0f * BALL_RADIUS;
+    balls[BALL_14].p.y = balls[CUE_BALL].p.y + BALL_RADIUS;
+    balls[BALL_14].v.x = 0.0f;
+    balls[BALL_14].v.y = 0.0f;
+    balls[BALL_14].isInit = true;
+}
+
+internal void _ballsInit(Entity *balls, F32 x, F32 y)
 {
     S32 dy = 5;
     S32 dx = 5;
@@ -515,7 +538,7 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
         {
             if (i == j) continue;
             Entity *b = &balls[j];
-            if (ballCheckBallCollide(&updated, b))
+            if (b->isInit && ballCheckBallCollide(&updated, b))
             {
 #if BILL_CFG_DEV_MODE
                 dbg_CollidesDetected = true;
@@ -561,6 +584,9 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
 
 void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
 {
+#if BILL_CFG_DEV_MODE
+    DbgPrint("Two Balls %s", "\n");
+#endif
     // TODO(annad): Rewrite the code in terms of physics
     F32 v = a->v.getLength();
     if(!f32EpsCompare(v, 0.0f, 0.0001f))
@@ -573,12 +599,11 @@ void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
         V2DF32 directB = { BA.x / lBA, BA.y / lBA };
         V2DF32 directC = { CA.x / lCA, CA.y / lCA };
         F32 cosB = a->v.inner(directB) / (v * directB.getLength());
-        // F32 cosC = a->v.inner(directC) / (v * directC.getLength());
-        // NOTE(annad): 
+        F32 cosC = a->v.inner(directC) / (v * directC.getLength());
         F32 vb = (2.0f * v * cosB) / (1.0f + 2.0f * f32Square(cosB));
-        // F32 vc = (2.0f * v * cosC) / (1.0f + 2.0f * f32Square(cosC));
-        b->v = directB * vb;
-        c->v = directC * vb;
+        F32 vc = (2.0f * v * cosC) / (1.0f + 2.0f * f32Square(cosC));
+        b->v += directB * vb;
+        c->v += directC * vc;
         a->v = directA * (v - (2.0f * vb * cosB));
     }
 }
@@ -595,7 +620,7 @@ void ballSolveCollideOneBall(Entity *a, Entity *b)
         F32 cosA = a->v.inner(directA) / (v * directA.getLength());
         F32 cosB = a->v.inner(directB) / (v * directB.getLength());
         a->v = directA * v * cosA;
-        b->v = directB * v * cosB;
+        b->v += directB * v * cosB;
     }
 }
 
@@ -693,12 +718,15 @@ internal void gtick(GameIO *io)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         b = &balls[i];
-        // TODO(annad): This function has cycle. We must extract him from 
-        // function and write SWITCH that will be detect COLLISION RULE
-        //
-        // Idk, what will happen, if ball A collides with wall, then
-        // go to ball B, and agail wall???
-        ballHandleTableBoard(b, &gstate->table, deltatime);
+        if (b->isInit) 
+        {
+            // TODO(annad): This function has cycle. We must extract him from 
+            // function and write SWITCH that will be detect COLLISION RULE
+            //
+            // Idk, what will happen, if ball A collides with wall, then
+            // go to ball B, and agail wall???
+            ballHandleTableBoard(b, &gstate->table, deltatime);   
+        }
     }
 
     // NOTE(annad): Handle collide between balls
@@ -714,7 +742,7 @@ internal void gtick(GameIO *io)
             {
                 BallsCollide *colinfo = &pqcollides->items[i];
                 if (masterColinfo.idxBallA == colinfo->idxBallA && 
-                    f32EpsCompare(masterColinfo.timeBefore, colinfo->timeBefore, 0.001))
+                    f32EpsCompare(masterColinfo.timeBefore, colinfo->timeBefore, 0.01f))
                 {
                     slaveColinfo = colinfo;
                 }
@@ -738,8 +766,11 @@ internal void gtick(GameIO *io)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         b = &balls[i];
-        Entity updated = ballUpdate(b, deltatime);
-        *b = updated;
+        if (b->isInit)
+        {
+            Entity updated = ballUpdate(b, deltatime);
+            *b = updated;           
+        }
     }
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
