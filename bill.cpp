@@ -399,7 +399,7 @@ internal void ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
     while (ballCheckTableBoardCollide(&updated, table, &nvecwall))
     {
 #if BILL_CFG_DEV_MODE
-        DbgPrint("velocity correcting (%d)\n", ++dbg_Count);
+        DbgPrint("velocity correcting (%d)", ++dbg_Count);
 #endif
         updated = *ball;
         updated.v -= nvecwall * 2.0f * updated.v.inner(nvecwall);
@@ -408,19 +408,19 @@ internal void ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
     }
 }
 
-void pqCollidesReset(PQCollides *pqc)
+internal void pqCollidesReset(PQCollides *pqc)
 {
     pqc->cursor = 0;
 }
 
-void pqCollidesPush(PQCollides *pqc, BallsCollide *bc)
+internal void pqCollidesPush(PQCollides *pqc, BallsCollide *bc)
 {
     Assert(pqc->size >= pqc->cursor);
     pqc->items[pqc->cursor] = *bc;
     pqc->cursor += 1;
 }
 
-S32 pqCollidesPeek(PQCollides *pqc)
+internal S32 pqCollidesPeek(PQCollides *pqc)
 {
     F32 minTime = f32Infinity();
     S32 idx = -1;
@@ -438,7 +438,7 @@ S32 pqCollidesPeek(PQCollides *pqc)
     return idx;
 }
 
-BallsCollide pqCollidesPop(PQCollides *pqc, S32 idx)
+internal BallsCollide pqCollidesPop(PQCollides *pqc, S32 idx)
 {
     Assert(pqc->cursor > idx);
     BallsCollide swap = pqc->items[idx];
@@ -447,13 +447,13 @@ BallsCollide pqCollidesPop(PQCollides *pqc, S32 idx)
     return swap;
 }
 
-B8 ballCheckBallCollide(Entity *a, Entity *b)
+internal B8 ballCheckBallCollide(Entity *a, Entity *b)
 {
     F32 d = (a->p - b->p).getLength();
     return d < (2.0f * BALL_RADIUS);
 }
 
-F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
+internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
 {
     // NOTE(annad): Last update, <date>
     V2DF32 d = ballB->p - ballA->p;
@@ -523,7 +523,7 @@ F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     return t;
 }
 
-void 
+internal void 
 ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
 {
 #if BILL_CFG_DEV_MODE
@@ -572,7 +572,7 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
     
     if (pqcollides->cursor)
     {
-        DbgPrint("detect collides (%d)\n", dbg_Count);
+        DbgPrint("[COLLIDE] Detect, wall (%d)\n", dbg_Count);
         BallsCollide *colinfo;
         for (S32 i = 0; i < pqcollides->cursor; i += 1)
         {
@@ -585,7 +585,7 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
 #endif
 }
 
-void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
+internal void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
 {
 #if BILL_CFG_DEV_MODE
     DbgPrint("SolveCollide2%s", "\n");
@@ -611,7 +611,7 @@ void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
     }
 }
 
-void ballSolveCollideOneBall(Entity *a, Entity *b)
+internal void ballSolveCollideOneBall(Entity *a, Entity *b)
 {
     F32 v = a->v.getLength();
     if(!f32EpsCompare(v, 0.0f, 0.0001f))
@@ -627,6 +627,33 @@ void ballSolveCollideOneBall(Entity *a, Entity *b)
     }
 }
 
+internal void 
+collidePoll(Entity *balls, Rect *table, F32 dt, CollideEvent *colevent)
+{
+    Entity updated = {};
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Entity *b = &balls[i];
+        if (b->isInit)
+        {
+            updated = ballUpdate(b, dt);
+
+            V2DF32 *nvecwall = (V2DF32*)colevent->ctx;
+            if (ballCheckTableBoardCollide(&updated, table, nvecwall))
+            {
+#if BILL_CFG_DEV_MODE
+                DbgPrint("[COLLIDE] Detected, wall (eid %d)", b->id);
+#endif
+                colevent->eid = b->id;
+                colevent->type = COLLIDE_WALL;
+                return;
+            }
+        }
+    }
+
+    colevent->type = COLLIDE_UNDEFINED;
+}
+
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -640,7 +667,6 @@ internal void gtick(GameIO *io)
     Entity *balls = (Entity*)(&gstate->balls);
     CueStick *cuestick = &gstate->cuestick;
     PQCollides *pqcollides = &gstate->pqcollides; 
-
     if (gstate->isInit == false)
     {
         //
@@ -683,6 +709,13 @@ internal void gtick(GameIO *io)
         pqcollides->size = PQ_COLLIDES_SIZE;
         pqcollides->cursor = 0;
 
+        //
+        // CollideEvent
+        //
+        gstate->colevent.ctx = m_arena_push(&gstate->arena, COLLIDE_EVENT_CTX_SIZE);
+        gstate->colevent.eid = BALL_UNDEFINED;
+        gstate->colevent.type = COLLIDE_UNDEFINED;
+
         gstate->isInit = true;
     }
     
@@ -723,24 +756,37 @@ internal void gtick(GameIO *io)
 
     // NOTE(annad): Movement
     F32 deltatime = (F32)io->tick->dt / 1000.0f;
-    Entity *b;
-    for (S32 i = 0; i < BALL_COUNT; i += 1)
-    {
-        b = &balls[i];
-        if (b->isInit) 
-        {
-            // TODO(annad): This function has cycle. We must extract him from 
-            // function and write SWITCH that will be detect COLLISION RULE
-            //
-            // Idk, what will happen, if ball A collides with wall, then
-            // go to ball B, and agail wall???
-            ballHandleTableBoard(b, &gstate->table, deltatime);   
-        }
-    }
-
     // NOTE(annad): Handle collide between balls
-    for (;;)
+    B8 solved = false;
+    CollideEvent *colevent = &gstate->colevent;
+    while (!solved)
     {
+        collidePoll(balls, &gstate->table, deltatime, colevent);
+        switch(colevent->type)
+        {
+            case COLLIDE_WALL:
+            {
+                Entity *e = &balls[colevent->eid];
+                Assert(sizeof(V2DF32) < COLLIDE_EVENT_CTX_SIZE);
+                V2DF32 nvecwall = *((V2DF32*)colevent->ctx);
+                e->v -= nvecwall * 2.0f * e->v.inner(nvecwall);
+#if BILL_CFG_DEV_MODE
+                DbgPrint("[COLLIDE] Solve, wall (eid %d)", e->id);
+#endif
+                MemoryZero(colevent->ctx, sizeof(V2DF32));
+            } break;
+
+            case COLLIDE_BALL:
+            {
+                // ...
+            } break;
+
+            default: 
+            {
+                solved = true;
+            } break;
+        }
+/*
         // TODO(annad): Before handling the collision, 
         // you need to move the ball into place when the collision occurs
         ballScanCollides(balls, pqcollides, deltatime);
@@ -772,8 +818,10 @@ internal void gtick(GameIO *io)
         }
         
         ballSolveCollideOneBall(ballA, ballB);
+*/
     }
 
+    Entity *b = NULL;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         b = &balls[i];

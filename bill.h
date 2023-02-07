@@ -37,11 +37,22 @@ enum Ball
     BALL_UNDEFINED
 };
 
-struct CollideInfo
+enum CollideType
 {
-    S32 ball_a_idx;
-    S32 ball_b_idx;
-    F32 dt;
+    COLLIDE_WALL,
+    COLLIDE_BALL,
+
+    COLLIDE_COUNT,
+    COLLIDE_UNDEFINED
+};
+
+#define COLLIDE_EVENT_CTX_SIZE 0x40
+
+struct CollideEvent
+{
+    void *ctx;
+    S32 eid;
+    CollideType type;
 };
 
 #define PQ_COLLIDES_SIZE 16
@@ -89,6 +100,8 @@ struct GameState
     CueStick cuestick;
     Rect table;
     PQCollides pqcollides;
+    
+    CollideEvent colevent;
 
     B8 isInit;
 };
