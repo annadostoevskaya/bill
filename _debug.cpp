@@ -13,8 +13,11 @@ globalv SDL_Renderer    *dbg_SdlRenderer;
 globalv RendererHandle  *dbg_HRenderer;
 globalv S32             dbg_GlobalFrameCounter;
 
-
-#define DbgPrint(STR, ...) printf("[dbg] (%d) " STR "\n", dbg_GlobalFrameCounter __VA_OPT__(,) __VA_ARGS__)
+#if VA_OPT_SUPPORTED
+# define DbgPrint(STR, ...) printf("[dbg] (%d) " STR "\n", dbg_GlobalFrameCounter __VA_OPT__(,) __VA_ARGS__)
+#else
+# define DbgPrint(STR, ...) 
+#endif
 
 // void dbg_ForceUpdateScreen()
 

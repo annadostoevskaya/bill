@@ -11,7 +11,7 @@ Description: <empty>
 
 #define BALL_RADIUS 15.0f
 
-enum Ball
+enum EntityID
 {
     CUE_BALL = 0,
     BALL_BLACK = 1,
@@ -40,33 +40,34 @@ enum Ball
 enum CollideType
 {
     COLLIDE_WALL,
-    COLLIDE_BALL,
+    COLLIDE_ONE_BALL,
+    COLLIDE_TWO_BALL,
 
     COLLIDE_COUNT,
     COLLIDE_UNDEFINED
 };
 
-#define COLLIDE_EVENT_CTX_SIZE 0x40
-
 struct CollideEvent
 {
-    void *ctx;
-    S32 eid;
+    EntityID eid;
+    F32 dtBefore;
     CollideType type;
-};
 
-#define PQ_COLLIDES_SIZE 16
+    void *ctx;
+};
 
 struct BallsCollide
 {
-    S32 idxBallA;
-    S32 idxBallB;
+    EntityID idxBallA;
+    EntityID idxBallB;
     F32 timeBefore;
 };
 
-struct PQCollides
+#define COLLIDE_EVENT_QUEUE_COUNT 32
+
+struct CollideEventQueue
 {
-    BallsCollide items[PQ_COLLIDES_SIZE];
+    CollideEvent *items;
     S32 size;
     S32 cursor;
 };
@@ -87,10 +88,12 @@ struct CueStick
 
 struct Entity
 {
-    S32 id;
+    EntityID id;
+
     B16 isInit;
     B16 isUpdated;
     F32 dtUpdate;
+
     V2DF32 p;
     V2DF32 v;
 };
@@ -98,12 +101,12 @@ struct Entity
 struct GameState
 {
     M_Arena arena;
+    // TODO(annad): Balls is Entities? Idk.
     Entity balls[BALL_COUNT];
     CueStick cuestick;
     Rect table;
-    PQCollides pqcollides;
-    
-    CollideEvent colevent;
+
+    CollideEventQueue cequeue;
 
     B8 isInit;
 };

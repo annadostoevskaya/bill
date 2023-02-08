@@ -66,6 +66,18 @@ See at this channel: https://www.youtube.com/c/Mr4thProgramming
 #endif
 
 ////////////////////////////////
+// NOTE(annad): compilers
+//
+#if __cplusplus <= 201703 && defined __GNUC__ \
+  && !defined __clang__ && !defined __EDG__ // These compilers pretend to be GCC
+# define VA_OPT_SUPPORTED false
+#else
+# define PP_THIRD_ARG(a,b,c,...) c
+# define VA_OPT_SUPPORTED_I(...) PP_THIRD_ARG(__VA_OPT__(,),true,false,)
+# define VA_OPT_SUPPORTED VA_OPT_SUPPORTED_I(?)
+#endif
+
+////////////////////////////////
 // NOTE(annad): base_types.h
 typedef int8_t   S8;
 typedef int16_t  S16;

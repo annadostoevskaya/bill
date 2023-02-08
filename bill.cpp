@@ -6,6 +6,14 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
+#if 0
+# pragma warning(disable: 4505)
+# pragma warning(disable: 5189)
+# pragma warning(disable: 4127)
+# pragma warning(disable: 4189)
+# pragma warning(disable: 4100)
+#endif 
+
 #include "core/mmath.h"
 #include "core/memory.h"
 #include "core/memory_void.cpp"
@@ -416,6 +424,7 @@ internal void ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
     }
 }
 
+/*
 internal void pqCollidesReset(PQCollides *pqc)
 {
     pqc->cursor = 0;
@@ -454,6 +463,7 @@ internal BallsCollide pqCollidesPop(PQCollides *pqc, S32 idx)
     pqc->cursor -= 1;
     return swap;
 }
+*/
 
 internal B8 ballCheckBallCollide(Entity *a, Entity *b)
 {
@@ -531,6 +541,7 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     return t;
 }
 
+/*
 internal void 
 ballsScanCollidesBalls(Entity *balls, PQCollides *pqcollides)
 {
@@ -592,6 +603,7 @@ ballsScanCollidesBalls(Entity *balls, PQCollides *pqcollides)
     }
 #endif
 }
+*/
 
 internal void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
 {
@@ -635,18 +647,21 @@ internal void ballSolveCollideOneBall(Entity *a, Entity *b)
     }
 }
 
-internal void 
-collidePoll(M_Arena *arena, GameState *gstate, CollideEvent *colevent)
+internal B8
+collideEventPoll(CollideEventQueue *cequeue, CollideEvent *colevent, GameState *gstate)
 {
+/*
     Entity updated = {};
     Rect *table = &gstate->table;
+    Entity *balls = (Entity*)&gstate->balls;
+
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *b = &balls[i];
         if (b->isInit && !b->isUpdated)
         {
             updated = ballUpdate(b, b->dtUpdate);
-            Assert(sizeof(V2DF32) <= COLLIDE_EVENT_CTX_SIZE);
+            Assert(sizeof(V2DF32) <= COLLIDE_EVENT_QUEUE_COUNT);
             V2DF32 *nvecwall = (V2DF32*)colevent->ctx;
             if (ballCheckTableBoardCollide(&updated, table, nvecwall))
             {
@@ -655,15 +670,17 @@ collidePoll(M_Arena *arena, GameState *gstate, CollideEvent *colevent)
 #endif
                 colevent->eid = b->id;
                 colevent->type = COLLIDE_WALL;
-                return;
+                return true;
             }
         }
     }
-    
+
     Entity *balls = &gstate->balls;
     // NOTE(annad): Error, out of memory!
     Assert(sizeof(PQCollides) <= COLLIDE_EVENT_CTX_SIZE);
-    PQCollides *pqcol = (PQCollides*)colevent->ctx;
+    PQCollides pqcol = {};
+    pqcol->items = 
+    PQCollides *pqcol = (U8*)m_arena_push(arena, PQ_COLLIDES_SIZE);
     ballsScanCollides(balls, pqcol);
     S32 peak = pqCollidesPeek(pqcol);
     if (peak != -1)
@@ -693,8 +710,9 @@ collidePoll(M_Arena *arena, GameState *gstate, CollideEvent *colevent)
         colevent->type = COLLIDE_TWO_BALLS;
         return;
     }
+*/
 
-    colevent->type = COLLIDE_ALL_CLEAR;
+    return false;
 }
 
 internal void gtick(GameIO *io)
@@ -709,7 +727,6 @@ internal void gtick(GameIO *io)
     // NOTE(annad): Game layer
     Entity *balls = (Entity*)(&gstate->balls);
     CueStick *cuestick = &gstate->cuestick;
-    PQCollides *pqcollides = &gstate->pqcollides; 
     if (gstate->isInit == false)
     {
         //
@@ -746,18 +763,12 @@ internal void gtick(GameIO *io)
 
         gstate->table = table;
 
-        // 
-        // PQCollide
-        //
-        pqcollides->size = PQ_COLLIDES_SIZE;
-        pqcollides->cursor = 0;
-
         //
         // CollideEvent
         //
-        gstate->colevent.ctx = m_arena_push(&gstate->arena, COLLIDE_EVENT_CTX_SIZE);
-        gstate->colevent.eid = BALL_UNDEFINED;
-        gstate->colevent.type = COLLIDE_UNDEFINED;
+        gstate->cequeue.size = COLLIDE_EVENT_QUEUE_COUNT * sizeof(CollideEvent);
+        gstate->cequeue.items = (CollideEvent*)m_arena_push(&gstate->arena, gstate->cequeue.size);
+        gstate->cequeue.cursor = 0;
 
         gstate->isInit = true;
     }
@@ -807,9 +818,23 @@ internal void gtick(GameIO *io)
         }
     }
 
+    CollideEventQueue *cequeue = &gstate->cequeue;
+    CollideEvent colevent = {};
+    while (collideEventPoll(cequeue, &colevent, gstate))
+    {
+        switch (colevent.type)
+        {
+            case COLLIDE_WALL:
+            {
+                // ...
+            } break;
+        }
+    }
+
     // NOTE(annad): Handle collide between balls
+    /*
     B8 solved = false;
-    CollideEvent *colevent = &gstate->colevent;
+    CollideEventQueue *cequeue = &gstate->cequeue;
     while (!solved)
     {
         collidePoll(gstate, colevent);
@@ -844,6 +869,7 @@ internal void gtick(GameIO *io)
             } break;
         }
     }
+    */
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     for (S32 i = 0; i < BALL_COUNT; i += 1)
