@@ -298,20 +298,24 @@ internal void ballsInit(Entity *balls, F32 x, F32 y)
     balls[CUE_BALL].v.x = 0.0f;
     balls[CUE_BALL].v.y = 0.0f;
     balls[CUE_BALL].isInit = true;
-
+    balls[CUE_BALL].isUpdated = false;
+    balls[CUE_BALL].dtUpdate = 0.0f;
     balls[BALL_15].id = BALL_15;
     balls[BALL_15].p.x = balls[CUE_BALL].p.x + 3.0f * BALL_RADIUS;
     balls[BALL_15].p.y = balls[CUE_BALL].p.y - BALL_RADIUS;
     balls[BALL_15].v.x = 0.0f;
     balls[BALL_15].v.y = 0.0f;
     balls[BALL_15].isInit = true;
-
+    balls[BALL_15].isUpdated = false;
+    balls[BALL_15].dtUpdate = 0.0f;
     balls[BALL_14].id = BALL_14;
     balls[BALL_14].p.x = balls[CUE_BALL].p.x + 3.0f * BALL_RADIUS;
     balls[BALL_14].p.y = balls[CUE_BALL].p.y + BALL_RADIUS;
     balls[BALL_14].v.x = 0.0f;
     balls[BALL_14].v.y = 0.0f;
     balls[BALL_14].isInit = true;
+    balls[BALL_14].isUpdated = false;
+    balls[BALL_14].dtUpdate = 0.0f;
 }
 
 #if 0
@@ -333,6 +337,8 @@ internal void _ballsInit(Entity *balls, F32 x, F32 y)
             balls[ballIdx].v.x = 0.0f;
             balls[ballIdx].v.y = 0.0f;
             balls[ballIdx].isInit = true;
+            balls[ballIdx].isUpdated = false;
+            balls[ballIdx].dtUpdate = 0.0f;
             ballIdx += 1;
         }
     }
@@ -343,6 +349,8 @@ internal void _ballsInit(Entity *balls, F32 x, F32 y)
     balls[CUE_BALL].v.x = 0.0f;
     balls[CUE_BALL].v.y = 0.0f;
     balls[CUE_BALL].isInit = true;
+    balls[CUE_BALL].isUpdated = false;
+    balls[CUE_BALL].dtUpdate = 0.0f;
 }
 #endif
 
@@ -524,7 +532,7 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
 }
 
 internal void 
-ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
+ballsScanCollidesBalls(Entity *balls, PQCollides *pqcollides)
 {
 #if BILL_CFG_DEV_MODE
     localv S32 dbg_Count = 0;
@@ -535,12 +543,12 @@ ballScanCollides(Entity *balls, PQCollides *pqcollides, F32 dt)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *a = &balls[i];
-        Entity updated = ballUpdate(a, dt);
+        Entity updated = ballUpdate(a, a->dtUpdate);
         for (S32 j = 0; j < BALL_COUNT; j += 1)
         {
             if (i == j) continue;
             Entity *b = &balls[j];
-            if (b->isInit && ballCheckBallCollide(&updated, b))
+            if (b->isInit && !b->isUpdated && ballCheckBallCollide(&updated, b))
             {
 #if BILL_CFG_DEV_MODE
                 dbg_CollidesDetected = true;
@@ -628,16 +636,17 @@ internal void ballSolveCollideOneBall(Entity *a, Entity *b)
 }
 
 internal void 
-collidePoll(Entity *balls, Rect *table, F32 dt, CollideEvent *colevent)
+collidePoll(M_Arena *arena, GameState *gstate, CollideEvent *colevent)
 {
     Entity updated = {};
+    Rect *table = &gstate->table;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *b = &balls[i];
-        if (b->isInit)
+        if (b->isInit && !b->isUpdated)
         {
-            updated = ballUpdate(b, dt);
-
+            updated = ballUpdate(b, b->dtUpdate);
+            Assert(sizeof(V2DF32) <= COLLIDE_EVENT_CTX_SIZE);
             V2DF32 *nvecwall = (V2DF32*)colevent->ctx;
             if (ballCheckTableBoardCollide(&updated, table, nvecwall))
             {
@@ -650,8 +659,42 @@ collidePoll(Entity *balls, Rect *table, F32 dt, CollideEvent *colevent)
             }
         }
     }
+    
+    Entity *balls = &gstate->balls;
+    // NOTE(annad): Error, out of memory!
+    Assert(sizeof(PQCollides) <= COLLIDE_EVENT_CTX_SIZE);
+    PQCollides *pqcol = (PQCollides*)colevent->ctx;
+    ballsScanCollides(balls, pqcol);
+    S32 peak = pqCollidesPeek(pqcol);
+    if (peak != -1)
+    {
+        BallsCollide masterColinfo = pqCollidesPop(pqcol, peak);
+        BallsCollide *slaveColinfo = NULL;
+        for (S32 i = 0; i < pqcol->cursor; i += 1)
+        {
+            BallsCollide *colinfo = &pqcol->items[i];
+            if (masterColinfo.idxBallA == colinfo->idxBallA && 
+                f32EpsCompare(masterColinfo.timeBefore, colinfo->timeBefore, 0.01f))
+            {
+                slaveColinfo = colinfo;
+            }
+        }
+        
+        Entity *ballA = &balls[masterColinfo.idxBallA];
+        Entity *ballB = &balls[masterColinfo.idxBallB];
+        // TODO(annad): https://physics.stackexchange.com/questions/296767/multiple-colliding-balls
+        if (slaveColinfo)
+        {
+            Entity *ballC = &balls[slaveColinfo->idxBallB];
+            colevent->type = COLLIDE_ONE_BALLS;
+            return;
+        }
 
-    colevent->type = COLLIDE_UNDEFINED;
+        colevent->type = COLLIDE_TWO_BALLS;
+        return;
+    }
+
+    colevent->type = COLLIDE_ALL_CLEAR;
 }
 
 internal void gtick(GameIO *io)
@@ -718,7 +761,17 @@ internal void gtick(GameIO *io)
 
         gstate->isInit = true;
     }
-    
+   
+    F32 frametime = (F32)io->tick->dt / 1000.0f;
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        if (balls[i].isInit)
+        {
+            balls[i].isUpdated = false;
+            balls[i].dtUpdate = frametime;
+        }
+    }
+
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
         // Reset game
@@ -754,20 +807,18 @@ internal void gtick(GameIO *io)
         }
     }
 
-    // NOTE(annad): Movement
-    F32 deltatime = (F32)io->tick->dt / 1000.0f;
     // NOTE(annad): Handle collide between balls
     B8 solved = false;
     CollideEvent *colevent = &gstate->colevent;
     while (!solved)
     {
-        collidePoll(balls, &gstate->table, deltatime, colevent);
+        collidePoll(gstate, colevent);
         switch(colevent->type)
         {
             case COLLIDE_WALL:
             {
                 Entity *e = &balls[colevent->eid];
-                Assert(sizeof(V2DF32) < COLLIDE_EVENT_CTX_SIZE);
+                Assert(sizeof(V2DF32) <= COLLIDE_EVENT_CTX_SIZE);
                 V2DF32 nvecwall = *((V2DF32*)colevent->ctx);
                 e->v -= nvecwall * 2.0f * e->v.inner(nvecwall);
 #if BILL_CFG_DEV_MODE
@@ -781,54 +832,16 @@ internal void gtick(GameIO *io)
                 // ...
             } break;
 
-            default: 
+            case COLLIDE_ALL_CLEAR:
             {
                 solved = true;
             } break;
-        }
-/*
-        // TODO(annad): Before handling the collision, 
-        // you need to move the ball into place when the collision occurs
-        ballScanCollides(balls, pqcollides, deltatime);
-        S32 peak = pqCollidesPeek(pqcollides);
-        if (peak == -1)
-        {
-            break;
-        }
 
-        BallsCollide masterColinfo = pqCollidesPop(pqcollides, peak);
-        BallsCollide *slaveColinfo = NULL;
-        for (S32 i = 0; i < pqcollides->cursor; i += 1)
-        {
-            BallsCollide *colinfo = &pqcollides->items[i];
-            if (masterColinfo.idxBallA == colinfo->idxBallA && 
-                f32EpsCompare(masterColinfo.timeBefore, colinfo->timeBefore, 0.01f))
+            default: 
             {
-                slaveColinfo = colinfo;
-            }
-        }
-
-        Entity *ballA = &balls[masterColinfo.idxBallA];
-        Entity *ballB = &balls[masterColinfo.idxBallB];
-        // TODO(annad): https://physics.stackexchange.com/questions/296767/multiple-colliding-balls
-        if (slaveColinfo)
-        {
-            Entity *ballC = &balls[slaveColinfo->idxBallB];
-            ballSolveCollide2Ball(ballA, ballB, ballC);
-        }
-        
-        ballSolveCollideOneBall(ballA, ballB);
-*/
-    }
-
-    Entity *b = NULL;
-    for (S32 i = 0; i < BALL_COUNT; i += 1)
-    {
-        b = &balls[i];
-        if (b->isInit)
-        {
-            Entity updated = ballUpdate(b, deltatime);
-            *b = updated;           
+                // NOTE(annad): Invalid Program Path
+                Assert(false);
+            } break;
         }
     }
 

@@ -88,7 +88,9 @@ struct CueStick
 struct Entity
 {
     S32 id;
-    B32 isInit;
+    B16 isInit;
+    B16 isUpdated;
+    F32 dtUpdate;
     V2DF32 p;
     V2DF32 v;
 };
