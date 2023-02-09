@@ -39,6 +39,7 @@ enum EntityID
 
 enum CollideType
 {
+    COLLIDE_NO,
     COLLIDE_WALL,
     COLLIDE_ONE_BALL,
     COLLIDE_TWO_BALL,
@@ -47,13 +48,16 @@ enum CollideType
     COLLIDE_UNDEFINED
 };
 
+#define COLLIDE_EVENT_QUEUE_COUNT 32
+#define COLLIDE_EVENT_CUSTOM_SIZE 32
+
 struct CollideEvent
 {
     EntityID eid;
     F32 dtBefore;
     CollideType type;
-
-    void *ctx;
+    
+    U8 *custom;
 };
 
 struct BallsCollide
@@ -61,13 +65,11 @@ struct BallsCollide
     EntityID idxBallA;
     EntityID idxBallB;
     F32 timeBefore;
-};
-
-#define COLLIDE_EVENT_QUEUE_COUNT 32
+}; 
 
 struct CollideEventQueue
 {
-    CollideEvent *items;
+    CollideEvent *pool;
     S32 size;
     S32 cursor;
 };
@@ -105,9 +107,7 @@ struct GameState
     Entity balls[BALL_COUNT];
     CueStick cuestick;
     Rect table;
-
     CollideEventQueue cequeue;
-
     B8 isInit;
 };
 
