@@ -40,8 +40,8 @@ enum EntityID
 enum CollideType
 {
     COLLIDE_NO,
-    COLLIDE_WALL,
-    COLLIDE_ONE_BALL,
+    COLLIDE_BALL_WALL,
+    COLLIDE_BALL_BALL,
     COLLIDE_TWO_BALL,
 
     COLLIDE_COUNT,
@@ -57,21 +57,14 @@ struct CollideEvent
     F32 dtBefore;
     CollideType type;
     
-    U8 *custom;
+    U8 custom[8]; // NOTE(annad): Eight bytes for custom data.
 };
-
-struct BallsCollide
-{
-    EntityID idxBallA;
-    EntityID idxBallB;
-    F32 timeBefore;
-}; 
 
 struct CollideEventQueue
 {
     CollideEvent *pool;
-    S32 size;
-    S32 cursor;
+    S32 count;
+    S32 pointer;
 };
 
 struct Rect

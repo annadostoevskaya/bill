@@ -16,7 +16,7 @@ globalv S32             dbg_GlobalFrameCounter;
 #if VA_OPT_SUPPORTED
 # define DbgPrint(STR, ...) printf("[dbg] (%d) " STR "\n", dbg_GlobalFrameCounter __VA_OPT__(,) __VA_ARGS__)
 #else
-# define DbgPrint(STR, ...) 
+# define DbgPrint(STR, ...) printf("[dbg] (%d) " STR "\n", dbg_GlobalFrameCounter, __VA_ARGS__)
 #endif
 
 // void dbg_ForceUpdateScreen()

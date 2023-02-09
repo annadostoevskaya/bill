@@ -6,7 +6,7 @@ Date: September 24th 2022 8:05 pm
 Description: <empty>
 */
 
-#if 0
+#if 1
 # pragma warning(disable: 4505)
 # pragma warning(disable: 5189)
 # pragma warning(disable: 4127)
@@ -298,7 +298,7 @@ void update_collisions_pq(PriorityQueue *pq, Ball *balls, Ball *updated_ball)
 // #define BALL_RADIUS 20.0f
 // TODO(annad): ODE?
 #define __STUB_CALC_ACCELERATION(Vel) (Vel * (-BALL_FRICTION))
-internal void ballsInit(Entity *balls, F32 x, F32 y)
+internal void _ballsInit(Entity *balls, F32 x, F32 y)
 {
     balls[CUE_BALL].id = CUE_BALL;
     balls[CUE_BALL].p.x = x;
@@ -326,8 +326,8 @@ internal void ballsInit(Entity *balls, F32 x, F32 y)
     balls[BALL_14].dtUpdate = 0.0f;
 }
 
-#if 0
-internal void _ballsInit(Entity *balls, F32 x, F32 y)
+#if 1
+internal void ballsInit(Entity *balls, F32 x, F32 y)
 {
     S32 dy = 5;
     S32 dx = 5;
@@ -339,7 +339,7 @@ internal void _ballsInit(Entity *balls, F32 x, F32 y)
         for (S32 j = dy; j > 0; j -= 1)
         {
             Assert(ballIdx < BALL_COUNT);
-            balls[ballIdx].id = ballIdx;
+            balls[ballIdx].id = (EntityID)ballIdx;
             balls[ballIdx].p.y = (y + shift + (F32)j * (2.0f * BALL_RADIUS));
             balls[ballIdx].p.x = (x + (F32)i * (2.0f * BALL_RADIUS));
             balls[ballIdx].v.x = 0.0f;
@@ -426,14 +426,7 @@ internal void ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
 
 internal void eventQueueClear(CollideEventQueue *cequeue)
 {
-    cequeue->cursor = 0;
-}
-
-internal void eventQueuePush(CollideEventQueue *cequeue, CollideEvent *event)
-{
-    Assert(cequeue->size >= cequeue->cursor);
-    cequeue->pool[cequeue->cursor] = *event;
-    cequeue->cursor += 1;
+    cequeue->pointer = 0;
 }
 
 /*
@@ -473,6 +466,10 @@ internal B8 ballCheckBallCollide(Entity *a, Entity *b)
 
 internal F32 ballTimeBeforeWallCollide(Entity *ballA, Rect *table, V2DF32 *nvecwall)
 {
+    (void)ballA;
+    (void)table;
+    (void)nvecwall;
+    // TODO(annad): Now, is maximum priority level! 
     return 0.0f;
 }
 
@@ -499,7 +496,8 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     {
         // TODO(annad): Check this later
         // if one of the values goes to zero we get this case
-        Assert(false);
+        // Assert(false);
+        return 0.0f;
     }
 
     // NOTE(annad): Calculate distance between collide points
@@ -657,10 +655,10 @@ internal S32 eventQueuePeek(CollideEventQueue *cequeue)
     F32 minTime = f32Infinity();
     S32 idx = -1;
     CollideEvent *event;
-    for (S32 i = 0; i < cequeue->cursor; i += 1)
+    for (S32 i = 0; i < cequeue->pointer; i += 1)
     {
         event = &(cequeue->pool[i]);
-        if (event->dtBefore < minTime && event->dtBefore >= 0.0f)
+        if (event->dtBefore < minTime && event->dtBefore > 0.0f)
         {
             idx = i;
             minTime = event->dtBefore;
@@ -670,36 +668,67 @@ internal S32 eventQueuePeek(CollideEventQueue *cequeue)
     return idx;
 }
 
-internal void
-collideEventNext(CollideEventQueue *queue)
+internal void eventQueuePush(CollideEventQueue *cequeue, CollideEvent *event)
 {
-    
+    Assert(cequeue->count > cequeue->pointer);
+    cequeue->pool[cequeue->pointer] = *event;
+    cequeue->pointer += 1;
 }
 
 internal B8
 collideEventPoll(GameState *gstate, CollideEvent *colevent)
 {
     CollideEventQueue *queue = &gstate->cequeue;
+    eventQueueClear(queue);
     Entity updated = {};
     Rect *table = &gstate->table;
     Entity *balls = (Entity*)(&gstate->balls);
-    CollideEvent *e = &queue->pool[0];
+    CollideEvent e = {};
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *b = &balls[i];
         if (b->isInit && !b->isUpdated)
         {
             updated = ballUpdate(b, b->dtUpdate);
+            // NOTE(annad): Out of memory!
+            StaticAssert(sizeof(V2DF32) <= sizeof(e.custom));
             V2DF32 *nvecwall = (V2DF32*)(e.custom);
             if (ballCheckTableBoardCollide(&updated, table, nvecwall))
             {
 #if BILL_CFG_DEV_MODE
-                DbgPrint("[COLLIDE] >Detected, wall (eid %d)", b->id);
+                DbgPrint("[COLLIDE] >Detected, ball-wall (eid %d, dt %f)", b->id, e.dtBefore);
 #endif
                 e.eid = b->id;
-                e.type = COLLIDE_WALL;
+                e.type = COLLIDE_BALL_WALL;
                 e.dtBefore = ballTimeBeforeWallCollide(b, table, nvecwall);
                 eventQueuePush(queue, &e);
+            }
+        }
+    }
+
+    for (S32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Entity *a = &balls[i];
+        if (!a->isInit) continue;
+        if (a->isUpdated) continue;
+        updated = ballUpdate(a, a->dtUpdate);
+        for (S32 j = 0; j < BALL_COUNT; j += 1)
+        {
+            if (i == j) continue;
+            Entity *b = &balls[j];
+            if (!b->isInit) continue;
+            if (b->isUpdated) continue;
+            if (ballCheckBallCollide(&updated, b))
+            {
+                e.eid = a->id;
+                e.type = COLLIDE_BALL_BALL;
+                e.dtBefore = ballTimeBeforeBallCollide(a, b);
+                S32 *ballbeid = (S32*)e.custom;
+                *ballbeid = b->id;
+                eventQueuePush(queue, &e);
+#if BILL_CFG_DEV_MODE
+                DbgPrint("[COLLIDE] >Detected, ball-ball (a_eid %d, b_eid %d, dt %f)", a->id, b->id, e.dtBefore);
+#endif
             }
         }
     }
@@ -711,7 +740,6 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
     }
     
     *colevent = queue->pool[eventidx];
-    
     return true;
 #if 0
             updated = ballUpdate(b, b->dtUpdate);
@@ -753,6 +781,7 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
     PQCollides *pqcol = (U8*)m_arena_push(arena, PQ_COLLIDES_SIZE);
     ballsScanCollides(balls, pqcol);
     S32 peak = pqCollidesPeek(pqcol);
+    
     if (peak != -1)
     {
         BallsCollide masterColinfo = pqCollidesPop(pqcol, peak);
@@ -818,8 +847,8 @@ internal void gtick(GameIO *io)
         //
         F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
         F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
-        rackPosX = 100.0f;
-        rackPosY = 100.0f;
+        // rackPosX = 100.0f;
+        // rackPosY = 100.0f;
         ballsInit(balls, rackPosX, rackPosY);
         
         //
@@ -837,15 +866,11 @@ internal void gtick(GameIO *io)
         // CollideEventQueue
         //
         CollideEventQueue cequeue;
-        cequeue.size = COLLIDE_EVENT_QUEUE_COUNT * sizeof(CollideEvent);
-        cequeue.cursor = 0;
-        cequeue.pool = (CollideEvent*)m_arena_push(&gstate->arena, cequeue.size);
-        for (S32 i = 0; i < COLLIDE_EVENT_QUEUE_COUNT; i += 1)
-        {
-            cequeue.pool[i].custom = (U8*)m_arena_push(&gstate->arena, COLLIDE_EVENT_CUSTOM_SIZE);
-        }
-
+        cequeue.count = COLLIDE_EVENT_QUEUE_COUNT;
+        cequeue.pointer = 0;
+        cequeue.pool = (CollideEvent*)m_arena_push(&gstate->arena, cequeue.count * sizeof(CollideEvent));
         gstate->cequeue = cequeue;
+
         gstate->isInit = true;
     }
    
@@ -864,8 +889,8 @@ internal void gtick(GameIO *io)
         // Reset game
         F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
         F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
-        rackPosX = 100.0f;
-        rackPosY = 100.0f;
+        // rackPosX = 100.0f;
+        // rackPosY = 100.0f;
 
         ballsInit(balls, rackPosX, rackPosY);
     }
@@ -894,22 +919,39 @@ internal void gtick(GameIO *io)
         }
     }
 
-    Entity *e = &(balls[BALL_1]);
-    EvalPrintF(e->v.x);
-    EvalPrintF(e->v.y);
-
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
         switch(colevent.type)
         {
-            case COLLIDE_WALL:
+            case COLLIDE_BALL_WALL:
             {
                 Entity *e = &balls[colevent.eid];
                 V2DF32 *nvecwall = (V2DF32*)(colevent.custom);
                 e->v -= (*nvecwall) * 2.0f * e->v.inner(*nvecwall);
 #if BILL_CFG_DEV_MODE
-                DbgPrint("[COLLIDE] Solve, wall (eid %d)", e->id);
+                DbgPrint("[COLLIDE] >Solve, ball-wall (eid %d, dt %f)", e->id, colevent.dtBefore);
+#endif
+            } break;
+
+            case COLLIDE_BALL_BALL:
+            {
+                Entity *a = &balls[colevent.eid];
+                Entity *b = &balls[*((S32*)colevent.custom)];
+                *a = ballUpdate(a, colevent.dtBefore);
+                if (f32EpsCompare(a->dtUpdate - colevent.dtBefore, 0.0f, 0.0001f))
+                {
+                    a->dtUpdate = 0.0f;
+                    a->isUpdated = true;
+                }
+                else
+                {
+                    a->dtUpdate -= colevent.dtBefore;
+                }
+
+                ballSolveCollideOneBall(a, b);
+#if BILL_CFG_DEV_MODE
+                DbgPrint("[COLLIDE] >Solve, ball-ball (a_eid %d, b_eid %d, dt %f)", a->id, b->id, colevent.dtBefore);
 #endif
             } break;
 
