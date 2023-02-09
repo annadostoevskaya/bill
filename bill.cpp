@@ -340,8 +340,8 @@ internal void ballsInit(Entity *balls, F32 x, F32 y)
         {
             Assert(ballIdx < BALL_COUNT);
             balls[ballIdx].id = (EntityID)ballIdx;
-            balls[ballIdx].p.y = (y + shift + (F32)j * (2.0f * BALL_RADIUS));
-            balls[ballIdx].p.x = (x + (F32)i * (2.0f * BALL_RADIUS));
+            balls[ballIdx].p.y = (y + shift + (F32)j * (2.0f * (BALL_RADIUS)));
+            balls[ballIdx].p.x = (x + (F32)i * (2.0f * (BALL_RADIUS)));
             balls[ballIdx].v.x = 0.0f;
             balls[ballIdx].v.y = 0.0f;
             balls[ballIdx].isInit = true;
@@ -496,8 +496,8 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     {
         // TODO(annad): Check this later
         // if one of the values goes to zero we get this case
-        // Assert(false);
-        return 0.0f;
+        Assert(false);
+        // return 0.0f;
     }
 
     // NOTE(annad): Calculate distance between collide points
@@ -658,7 +658,7 @@ internal S32 eventQueuePeek(CollideEventQueue *cequeue)
     for (S32 i = 0; i < cequeue->pointer; i += 1)
     {
         event = &(cequeue->pool[i]);
-        if (event->dtBefore < minTime && event->dtBefore > 0.0f)
+        if (event->dtBefore < minTime && event->dtBefore >= 0.0f)
         {
             idx = i;
             minTime = event->dtBefore;
@@ -709,15 +709,13 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *a = &balls[i];
-        if (!a->isInit) continue;
-        if (a->isUpdated) continue;
+        if (!a->isInit || a->isUpdated) continue;
         updated = ballUpdate(a, a->dtUpdate);
         for (S32 j = 0; j < BALL_COUNT; j += 1)
         {
             if (i == j) continue;
             Entity *b = &balls[j];
             if (!b->isInit) continue;
-            if (b->isUpdated) continue;
             if (ballCheckBallCollide(&updated, b))
             {
                 e.eid = a->id;
@@ -938,17 +936,13 @@ internal void gtick(GameIO *io)
             {
                 Entity *a = &balls[colevent.eid];
                 Entity *b = &balls[*((S32*)colevent.custom)];
-                *a = ballUpdate(a, colevent.dtBefore);
-                if (f32EpsCompare(a->dtUpdate - colevent.dtBefore, 0.0f, 0.0001f))
+                if (f32EpsCompare(colevent.dtBefore, 0.0f, 0.001f))
                 {
-                    a->dtUpdate = 0.0f;
+                    // TODO(annad): It's not solve problem, just hide here
                     a->isUpdated = true;
                 }
-                else
-                {
-                    a->dtUpdate -= colevent.dtBefore;
-                }
-
+                *a = ballUpdate(a, colevent.dtBefore);
+                a->dtUpdate -= colevent.dtBefore;
                 ballSolveCollideOneBall(a, b);
 #if BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Solve, ball-ball (a_eid %d, b_eid %d, dt %f)", a->id, b->id, colevent.dtBefore);
