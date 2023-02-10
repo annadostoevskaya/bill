@@ -496,8 +496,8 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     {
         // TODO(annad): Check this later
         // if one of the values goes to zero we get this case
-        Assert(false);
-        // return 0.0f;
+        // Assert(false);
+        return 0.0f;
     }
 
     // NOTE(annad): Calculate distance between collide points
@@ -960,7 +960,7 @@ internal void gtick(GameIO *io)
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
-        if (e->isInit)
+        if (e->isInit && !e->isUpdated)
         {
             *e = ballUpdate(e, e->dtUpdate);
             e->dtUpdate = 0.0f;
