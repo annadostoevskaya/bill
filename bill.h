@@ -39,6 +39,7 @@ enum EntityID
 
 enum CollideType
 {
+    // TODO(annad): https://physics.stackexchange.com/questions/296767/multiple-colliding-balls
     COLLIDE_NO,
     COLLIDE_BALL_WALL,
     COLLIDE_BALL_BALL,
