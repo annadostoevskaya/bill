@@ -23,7 +23,7 @@ Description: <empty>
 #include "bill.h"
 
 #if BILL_CFG_DEV_MODE
-#include "_debug.cpp"
+#include "bill_debug.h"
 #endif 
 
 #define BALL_SPEED 2500.0f
@@ -182,16 +182,21 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     // NOTE(annad): Last update, <date>
     V2DF32 d = ballB->p - ballA->p;
     F32 dl = d.getLength();
-    if (dl < (2.0f * (F32)BALL_RADIUS))
+    // NOTE(annad): Block with corner cases!
+    if (ballCheckBallCollide(ballA, ballB))
     {
         // NOTE(annad): Already collide!
+#if BILL_CFG_DEV_MODE
+        DbgPrint("[INFO] Already collide%s", "!");
+#endif
         return 0.0f;
     }
 
-    F32 v = ballA->v.getLength(); // NOTE(annad): 
+    F32 v = ballA->v.getLength(); 
     if (f32EpsCompare(v, 0.0f, 0.01f)) // TODO(annad): kowalski analysis.
     {                                  // is this at all possible?
         // NOTE(annad): Never collide!
+        // Assert(false);
         return f32Infinity();
     }
 
@@ -233,7 +238,6 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
         F32 sinC = f32Sin(f32ArcSin(sinB) - aAngle);
         F32 C = (A / sinA) * sinC;
         s = C;
-
         if (f32EpsCompare(s, 0.0f, 0.0001f))
         {
             return 0.0f;
@@ -244,7 +248,6 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
     F32 D = f32Sqrt(f32Square(v) - 4.0f * a * s);
     Assert(D == D); // TODO(annad): If to f32Sqrt pass x <= 0
     F32 t = (v - D) / (2.0f * a);
-    
     return t;
 }
 
@@ -381,6 +384,10 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
     return true;
 }
 
+#if BILL_CFG_DEV_MODE
+#include "bill_debug.cpp"
+#endif 
+
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -505,14 +512,26 @@ internal void gtick(GameIO *io)
             {
                 Entity *a = &balls[colevent.eid];
                 Entity *b = &balls[*((S32*)colevent.custom)];
-                if (f32EpsCompare(colevent.dtBefore, 0.0f, 0.001f))
+                if (a->v.getLength() <= 10.0f)
                 {
-                    // TODO(annad): It's not solve problem, just hide here
-                    a->isUpdated = true;
+                    a->v = {};
+                    a->isUpdated = true; // TODO(annad): Idk, where is it really supposed to be?
                 }
-                *a = ballUpdate(a, colevent.dtBefore);
-                a->dtUpdate -= colevent.dtBefore;
-                ballSolveCollideOneBall(a, b);
+                else
+                {
+                    if (f32EpsCompare(colevent.dtBefore, 0.0f, 0.001f))
+                    {
+                        // TODO(annad): It's not solve problem, just hide here
+                        a->isUpdated = true;
+                    }
+                    else
+                    {
+                        *a = ballUpdate(a, colevent.dtBefore);
+                        a->dtUpdate -= colevent.dtBefore;
+                    }
+
+                    ballSolveCollideOneBall(a, b);
+                }
 #if BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Solve, ball-ball (a_eid %d, b_eid %d, dt %f)", a->id, b->id, colevent.dtBefore);
 #endif
@@ -532,7 +551,7 @@ internal void gtick(GameIO *io)
         if (e->isInit && !e->isUpdated)
         {
             *e = ballUpdate(e, e->dtUpdate);
-            e->dtUpdate = 0.0f;
+            // e->dtUpdate = 0.0f;
             e->isUpdated = true;
         }
     }
@@ -546,7 +565,7 @@ internal void gtick(GameIO *io)
             Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)BALL_RADIUS);
         }
     }
-    
+
     if (cuestick->click)
     {
         Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0x00, 0x00, 0xff);
