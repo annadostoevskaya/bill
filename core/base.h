@@ -132,7 +132,7 @@ typedef void VoidFunc(void);
 # define Assert(expr)
 #endif
 
-#define StaticAssert(expr) static_assert(expr);
+#define StaticAssert(expr) static_assert(expr)
 
 #define globalv static
 #define localv static

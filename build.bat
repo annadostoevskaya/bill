@@ -4,7 +4,7 @@ SET CL_DEV_OPTS=-D_ENABLED_ASSERT -D_CLI_DEV_MODE
 SET CL_OPTS=-FC -GR- -EHa- -nologo -Zi -WX -W4 %CL_DEV_OPTS%
 SET SRC=%cd%
 
-SET SDL_DIR=%SRC%/thirdparty/SDL2
+SET SDL_DIR=%SRC%/3rdparty/SDL2
 SET SDL_LIB_PATH=%SDL_DIR%/lib
 SET SDL_INC_PATH=%SDL_DIR%/include
 
@@ -18,8 +18,8 @@ SET LastError=%ERRORLEVEL%
 %SRC%/dev/ctime/ctime.exe -end bill.ctm %LastError%
 
 IF NOT EXIST SDL2.dll (
-    IF EXIST ..\thirdparty\SDL2\bin\SDL2.dll (
-        COPY ..\thirdparty\SDL2\bin\SDL2.dll SDL2.dll
+    IF EXIST ..\3rdparty\SDL2\bin\SDL2.dll (
+        COPY ..\3rdparty\SDL2\bin\SDL2.dll SDL2.dll
     )
 )
 
