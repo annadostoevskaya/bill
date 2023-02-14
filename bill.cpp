@@ -26,8 +26,7 @@ Description: <empty>
 #include "bill_debug.h"
 #endif 
 
-#define BALL_SPEED 2500.0f
-#define BALL_FRICTION 3.0f
+#define BALL_FRICTION 0.5f
 // #define BALL_RADIUS 20.0f
 // TODO(annad): ODE?
 #define __STUB_CALC_ACCELERATION(Vel) (Vel * (-BALL_FRICTION))
