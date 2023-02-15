@@ -102,6 +102,21 @@ internal S32 SDLRenderer_setDrawColor(RendererHandle *hRenderer, U8 *cmdPointer)
     return sizeof(Renderer_Command) + 4 * sizeof(U8);
 }
 
+internal S32 SDLRenderer_drawRect(RendererHandle *hRenderer, U8 *cmdPointer)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->peak - sizeof(Renderer_Command) - 4 * sizeof(S32) >= 0);
+    // NOTE(annad): Error, invalid command code!
+    Assert(*cmdPointer == RCMD_DRAW_RECT);
+    S32 *args = (S32*)(cmdPointer + sizeof(Renderer_Command));
+    SDL_Rect rect = {
+        args[0], args[1],
+        args[2], args[3],
+    };
+    SDL_RenderDrawRect((SDL_Renderer*)hRenderer->ctx, &rect);
+    return sizeof(Renderer_Command) + 4 * sizeof(S32);
+}
+
 void SDLRenderer_exec(RendererHandle *hRenderer)
 {
     Assert(hRenderer->peak < hRenderer->size);
@@ -143,6 +158,13 @@ void SDLRenderer_exec(RendererHandle *hRenderer)
             case RCMD_DRAW_CIRCLE:
             {
                 S32 shift = SDLRenderer_drawCircle(hRenderer, cmdPointer);
+                hRenderer->peak -= shift;
+                cmdPointer += shift;
+            } break;
+
+            case RCMD_DRAW_RECT:
+            {
+                S32 shift = SDLRenderer_drawRect(hRenderer, cmdPointer);
                 hRenderer->peak -= shift;
                 cmdPointer += shift;
             } break;

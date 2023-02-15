@@ -11,15 +11,14 @@ Description: <empty>
 
 #define RCMD_BUFFER_SIZE BYTE(0x200)
 
-// NOTE(annad): 1 byte ruining cache line!
-enum Renderer_Command : S32
+enum Renderer_Command : U8
 {
     RCMD_NULL = 0,
     RCMD_SET_RENDER_COLOR,
     RCMD_DRAW_LINE,
     RCMD_DRAW_POINT,
     RCMD_DRAW_CIRCLE,
-    // RCMD_DRAW_FILL_RECT,
+    RCMD_DRAW_RECT,
     // RCMD_DRAW_FILL_CIRCLE,
     
     RCMD_COUNT,

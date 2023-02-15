@@ -1,5 +1,11 @@
 ================== [ METRICS ] ================= 
 *   Table size: 2.7 per 1.4 meters
-*   Ball radius: 5,715/2 centimeter
+        h/w index = 0.5185... 
+*   Ball diameter: 52mm
 
+[-] Resources:
+    * https://en.wikipedia.org/wiki/Pool_(cue_sports)
+    * https://en.wikipedia.org/wiki/Eight-ball
+    * https://en.wikipedia.org/wiki/Billiard_table
+    * https://en.wikipedia.org/wiki/Billiard_ball
 

@@ -27,40 +27,18 @@ Description: <empty>
 #endif 
 
 #define BALL_FRICTION 0.5f
-// #define BALL_RADIUS 20.0f
-// TODO(annad): ODE?
-#define __STUB_CALC_ACCELERATION(Vel) (Vel * (-BALL_FRICTION))
-internal void _ballsInit(Entity *balls, F32 x, F32 y)
+#define BALL_RADIUS 10.0f
+
+inline V2DF32 ballCalcAcc(Entity *ball)
 {
-    balls[CUE_BALL].id = CUE_BALL;
-    balls[CUE_BALL].p.x = x;
-    balls[CUE_BALL].p.y = y;
-    balls[CUE_BALL].v.x = 0.0f;
-    balls[CUE_BALL].v.y = 0.0f;
-    balls[CUE_BALL].isInit = true;
-    balls[CUE_BALL].isUpdated = false;
-    balls[CUE_BALL].dtUpdate = 0.0f;
-    balls[BALL_15].id = BALL_15;
-    balls[BALL_15].p.x = balls[CUE_BALL].p.x + 3.0f * BALL_RADIUS;
-    balls[BALL_15].p.y = balls[CUE_BALL].p.y - BALL_RADIUS;
-    balls[BALL_15].v.x = 0.0f;
-    balls[BALL_15].v.y = 0.0f;
-    balls[BALL_15].isInit = true;
-    balls[BALL_15].isUpdated = false;
-    balls[BALL_15].dtUpdate = 0.0f;
-    balls[BALL_14].id = BALL_14;
-    balls[BALL_14].p.x = balls[CUE_BALL].p.x + 3.0f * BALL_RADIUS;
-    balls[BALL_14].p.y = balls[CUE_BALL].p.y + BALL_RADIUS;
-    balls[BALL_14].v.x = 0.0f;
-    balls[BALL_14].v.y = 0.0f;
-    balls[BALL_14].isInit = true;
-    balls[BALL_14].isUpdated = false;
-    balls[BALL_14].dtUpdate = 0.0f;
+    return ball->v * -BALL_FRICTION;
 }
 
-#if 1
-internal void ballsInit(Entity *balls, F32 x, F32 y)
+internal void ballsInitRack(Entity *balls, F32 x, F32 y)
 {
+    Assert(BALL_COUNT == 16); // TODO(annad):  5! = 16 and 
+    // inverse of factorial is 
+    // https://math.stackexchange.com/questions/2078997/inverse-of-a-factorial
     S32 dy = 5;
     S32 dx = 5;
     S32 ballIdx = BALL_2;
@@ -73,7 +51,8 @@ internal void ballsInit(Entity *balls, F32 x, F32 y)
             Assert(ballIdx < BALL_COUNT);
             balls[ballIdx].id = (EntityID)ballIdx;
             balls[ballIdx].p.y = (y + shift + (F32)j * (2.0f * (BALL_RADIUS)));
-            balls[ballIdx].p.x = (x + (F32)i * (2.0f * (BALL_RADIUS)));
+            // TODO(annad): METRIX, keep going later!
+            balls[ballIdx].p.x = (x + (F32)i * (2.0f * (BALL_RADIUS))) + (2.0f * BALL_RADIUS * 10.0f);
             balls[ballIdx].v.x = 0.0f;
             balls[ballIdx].v.y = 0.0f;
             balls[ballIdx].isInit = true;
@@ -92,11 +71,17 @@ internal void ballsInit(Entity *balls, F32 x, F32 y)
     balls[CUE_BALL].isUpdated = false;
     balls[CUE_BALL].dtUpdate = 0.0f;
 }
-#endif
+
+internal void ballsInit(Rect *table, Entity *balls, F32 x, F32 y)
+{
+    F32 rackPosX = (x * (F32)table->w);
+    F32 rackPosY = (y * (F32)table->h);
+    ballsInitRack(balls, rackPosX, rackPosY);
+}
 
 internal Entity ballUpdate(Entity *ball, F32 dt)
 {
-    V2DF32 a = __STUB_CALC_ACCELERATION(ball->v);
+    V2DF32 a = ballCalcAcc(ball);
     Entity updated = *ball;
     updated.p += (a * 0.5f * f32Square(dt) + ball->v * dt);
     updated.v += a * dt;
@@ -134,31 +119,6 @@ internal B8 ballCheckTableBoardCollide(Entity *ball, Rect *table, V2DF32 *nvecwa
     }
 
     return false;
-}
-
-internal void ballHandleTableBoard(Entity *ball, Rect *table, F32 dt)
-{
-#if BILL_CFG_DEV_MODE
-    localv S32 dbg_Count = 0;
-    dbg_Count = 0;
-#endif 
-    Entity updated = ballUpdate(ball, dt);
-    V2DF32 nvecwall = {};
-    while (ballCheckTableBoardCollide(&updated, table, &nvecwall))
-    {
-#if BILL_CFG_DEV_MODE
-        DbgPrint("[COLLIDE] >Solve, wall (%d)", ++dbg_Count);
-#endif
-        updated = *ball;
-        updated.v -= nvecwall * 2.0f * updated.v.inner(nvecwall);
-        ball->v = updated.v;
-        updated = ballUpdate(ball, dt);
-    }
-}
-
-internal void eventQueueClear(CollideEventQueue *cequeue)
-{
-    cequeue->pointer = 0;
 }
 
 internal B8 ballCheckBallCollide(Entity *a, Entity *b)
@@ -243,13 +203,14 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB)
         }
     }
 
-    F32 a = 0.5f * __STUB_CALC_ACCELERATION(ballA->v).getLength();
+    F32 a = 0.5f * ballCalcAcc(ballA).getLength();
     F32 D = f32Sqrt(f32Square(v) - 4.0f * a * s);
     Assert(D == D); // TODO(annad): If to f32Sqrt pass x <= 0
     F32 t = (v - D) / (2.0f * a);
     return t;
 }
 
+#if 0
 internal void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
 {
 #if BILL_CFG_DEV_MODE
@@ -275,6 +236,7 @@ internal void ballSolveCollide2Ball(Entity *a, Entity *b, Entity *c)
         a->v = directA * (v - (2.0f * vb * cosB));
     }
 }
+#endif
 
 internal void ballSolveCollideOneBall(Entity *a, Entity *b)
 {
@@ -290,6 +252,11 @@ internal void ballSolveCollideOneBall(Entity *a, Entity *b)
         a->v = directA * v * cosA;
         b->v += directB * v * cosB;
     }
+}
+
+internal void eventQueueClear(CollideEventQueue *cequeue)
+{
+    cequeue->pointer = 0;
 }
 
 internal S32 eventQueuePeek(CollideEventQueue *cequeue)
@@ -416,24 +383,23 @@ internal void gtick(GameIO *io)
         Assert(hRenderer->byteCode != NULL);
         
         //
-        // Balls
-        //
-        F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
-        F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
-        // rackPosX = 100.0f;
-        // rackPosY = 100.0f;
-        ballsInit(balls, rackPosX, rackPosY);
-        
-        //
         // Table
         //
-        Rect table = {
-            0, 0, 
-            hRenderer->wScreen, 
-            hRenderer->hScreen
+#define TBL_HW_INDEX 0.5185f
+#define TBL_WIDTH_F32 0.75f
+        S32 tblWidth = (S32)(TBL_WIDTH_F32 * (F32)hRenderer->wScreen);
+        S32 tblHeight = (S32)(TBL_HW_INDEX * tblWidth);
+        S32 tblXPos = (hRenderer->wScreen - tblWidth - 10);
+        S32 tblYPos = (hRenderer->hScreen - tblHeight - 10);
+        gstate->table = {
+            tblXPos, tblYPos, 
+            tblWidth, tblHeight
         };
 
-        gstate->table = table;
+        //
+        // Balls
+        //
+        ballsInit(&gstate->table, balls, 0.0f, 0.0f);
 
         // 
         // CollideEventQueue
@@ -460,12 +426,7 @@ internal void gtick(GameIO *io)
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
         // Reset game
-        F32 rackPosX = (0.75f * (F32)hRenderer->wScreen) - 5.0f * BALL_RADIUS;
-        F32 rackPosY = (0.5f * (F32)hRenderer->hScreen) - 5.0f * BALL_RADIUS;
-        // rackPosX = 100.0f;
-        // rackPosY = 100.0f;
-
-        ballsInit(balls, rackPosX, rackPosY);
+        ballsInit(&gstate->table, balls, 0.75f, 0.5f);
     }
 
     if (devices->mouseBtns[MOUSE_BTN_LEFT])
@@ -491,7 +452,7 @@ internal void gtick(GameIO *io)
             cuestick->click = false;
         }
     }
-
+#if 0
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
@@ -554,13 +515,14 @@ internal void gtick(GameIO *io)
             e->isUpdated = true;
         }
     }
+#endif 
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
-        if (e->isInit)
-        {
+        if (e->isInit) // TODO(annad): For branch prediction optimizations we must 
+        {              // sort entities by array with initialized entities and uninitialized!
             Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)BALL_RADIUS);
         }
     }
@@ -574,6 +536,9 @@ internal void gtick(GameIO *io)
                 (S32)balls[CUE_BALL].p.x + cuestick->clipos.x - devices->mouseX,
                 (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
     }
+
+    Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0x00, 0xff);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, gstate->table.x, gstate->table.y, gstate->table.w, gstate->table.h);
 
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }

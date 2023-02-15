@@ -3,7 +3,9 @@ Author: github.com/annadostoevskaya
 File: bill_renderer.cpp
 Date: September 29th 2022 9:13 pm 
 
-Description: <empty>
+Description: 
+    [02/15/2023] annad: An absolutely useless work of shifting 
+        data that could never be done.
 */
 
 #include "bill_renderer.h"
@@ -62,6 +64,19 @@ internal void Renderer_setDrawColor(RendererHandle *hRenderer, U8 r, U8 g, U8 b,
     hRenderer->peak += 4 * sizeof(U8);
 }
 
+internal void Renderer_drawRect(RendererHandle *hRenderer, S32 x, S32 y, S32 w, S32 h)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command) + 4 * sizeof(S32));
+    Renderer_insertCmd(hRenderer, RCMD_DRAW_RECT);
+    S32 *args = (S32*)(hRenderer->byteCode + hRenderer->peak);
+    args[0] = x;
+    args[1] = y;
+    args[2] = w;
+    args[3] = h;
+    hRenderer->peak += 4 * sizeof(S32);
+}
+
 internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd, ...)
 {
     va_list argptr;
@@ -106,6 +121,15 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
             S32 y = va_arg(argptr, S32);
             S32 r = va_arg(argptr, S32);
             Renderer_drawCircle(hRenderer, x, y, r);
+        } break;
+
+        case RCMD_DRAW_RECT:
+        {
+            S32 x = va_arg(argptr, S32);
+            S32 y = va_arg(argptr, S32);
+            S32 w = va_arg(argptr, S32);
+            S32 h = va_arg(argptr, S32);
+            Renderer_drawRect(hRenderer, x, y, w, h);
         } break;
 
         default: 

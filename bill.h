@@ -9,8 +9,6 @@ Description: <empty>
 #ifndef BILL_H
 #define BILL_H
 
-#define BALL_RADIUS 15.0f
-
 enum EntityID
 {
     CUE_BALL = 0,

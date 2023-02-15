@@ -35,7 +35,7 @@ typedef struct RGBA_U8
     };
 } RGBA_U8;
 
-#define BILL_CFG_FPS            30
+#define BILL_CFG_FPS            60
 #define BILL_CFG_WINDOW_TITLE   "bill"
 #define BILL_CFG_HEIGHT         540
 #define BILL_CFG_WIDTH          960
