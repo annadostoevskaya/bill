@@ -2,7 +2,9 @@
 *   Table size: 2.7 per 1.4 meters
         h/w index = 0.5185... 
 *   Ball diameter: 52mm
-
+    52mm = 20px;
+    20/960 = 0.0208333333333
+    
 [-] Resources:
     * https://en.wikipedia.org/wiki/Pool_(cue_sports)
     * https://en.wikipedia.org/wiki/Eight-ball

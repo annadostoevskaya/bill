@@ -19,22 +19,6 @@ Description: <empty>
 // NOTE(annad): On anon structures
 #pragma warning(disable : 4201)
 
-typedef struct RGBA_U8
-{
-    union
-    {
-        struct
-        {
-            U8 r;
-            U8 g;
-            U8 b;
-            U8 a;
-        };
-        
-        U8 e[4];
-    };
-} RGBA_U8;
-
 #define BILL_CFG_FPS            60
 #define BILL_CFG_WINDOW_TITLE   "bill"
 #define BILL_CFG_HEIGHT         540
