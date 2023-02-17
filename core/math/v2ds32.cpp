@@ -103,3 +103,5 @@ public:
     }
 };
 
+typedef V2DS32 P2DS32;
+

@@ -20,6 +20,12 @@ struct Rect
     S32 h;
 };
 
+struct LNP2DS32
+{
+    P2DS32 a;
+    P2DS32 b;
+};
+
 struct CueStick
 {
     V2DS32 clipos;
@@ -32,7 +38,10 @@ struct GameState
     // TODO(annad): Balls is Entities? Idk.
     Entity balls[BALL_COUNT];
     CueStick cuestick;
+    
     Rect table;
+    LNP2DS32 baulkline;
+
     CollideEventQueue cequeue;
     
     S32 base;

@@ -5,9 +5,14 @@
     52mm = 20px;
     20/960 = 0.0208333333333
     
+Table Markup:
+    * https://www.libertygames.co.uk/images/faqs/extended/73/snooker-table-markings.jpg
+
+*   Home 2/8
+*   cue stick 148 cm
+
 [-] Resources:
     * https://en.wikipedia.org/wiki/Pool_(cue_sports)
     * https://en.wikipedia.org/wiki/Eight-ball
     * https://en.wikipedia.org/wiki/Billiard_table
     * https://en.wikipedia.org/wiki/Billiard_ball
-

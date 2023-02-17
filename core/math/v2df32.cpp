@@ -110,3 +110,5 @@ public:
     }
 };
 
+typedef V2DF32 P2DF32;
+

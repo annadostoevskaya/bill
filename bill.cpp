@@ -67,7 +67,7 @@ internal void gtick(GameIO *io)
         //
         // Table
         //
-#define TABLE_H_PER_W               0.5185f
+#define TABLE_H_PER_W 0.5185f
         S32 tblwidth = 36 * gstate->base;
         S32 tblheight = (S32)(TABLE_H_PER_W * (F32)tblwidth);
         S32 tblxpos = (hRenderer->wScreen - tblwidth - gstate->base);
@@ -77,10 +77,15 @@ internal void gtick(GameIO *io)
             tblwidth, tblheight
         };
 
+        gstate->baulkline.a.x = (S32)((F32)(gstate->table.x + gstate->table.w) - (1.0f / 5.0f * (F32)gstate->table.w));
+        gstate->baulkline.a.y = (gstate->table.y + gstate->table.h);
+        gstate->baulkline.b.x = (S32)((F32)(gstate->table.x + gstate->table.w) - (1.0f / 5.0f * (F32)gstate->table.w));
+        gstate->baulkline.b.y = gstate->table.y;
+
         //
         // Balls
         //
-        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.0f, 0.0f);
+        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.75f, 0.5f);
 
         // 
         // CollideEventQueue
@@ -94,7 +99,6 @@ internal void gtick(GameIO *io)
         gstate->isInit = true;
     }
    
-
     F32 radius = gstate->balldiam / 2;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
@@ -135,7 +139,8 @@ internal void gtick(GameIO *io)
             cuestick->click = false;
         }
     }
-#if 0
+
+#if 1
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
@@ -221,8 +226,14 @@ internal void gtick(GameIO *io)
     }
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0x00, 0xff);
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, gstate->table.x, gstate->table.y, gstate->table.w, gstate->table.h);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
+            gstate->table.x, gstate->table.y, 
+            gstate->table.w, gstate->table.h);
 
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
+            gstate->baulkline.a.x, gstate->baulkline.a.y,
+            gstate->baulkline.b.x, gstate->baulkline.b.y);
+    
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }
 
