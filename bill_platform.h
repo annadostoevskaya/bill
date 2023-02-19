@@ -9,8 +9,9 @@ Description: <empty>
 #ifndef BILL_PLATFORM_H
 #define BILL_PLATFORM_H
 
-#define PLATFORM_PERMANENT_STRG_SZ KB(4)
-#define PLATFORM_PERSISTENT_STRG_SZ MB(256)
+#define PLATFORM_PERMANENT_STRG_SZ   KB(4)
+#define PLATFORM_PERSISTENT_STRG_SZ  MB(64)
+#define PLATFORM_ASSETS_STRG_SZ      MB(128)
 
 struct Tick
 {
@@ -25,6 +26,8 @@ struct GameStorage
     S32 permanSize;
     void *persistent;
     S32 persistSize;
+    void *assets;
+    S32 assetsSize;
 };
 
 enum MouseBtn

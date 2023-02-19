@@ -97,11 +97,35 @@ int main(int, char**)
     GameStorage storage = {};
     storage.permanSize = PLATFORM_PERMANENT_STRG_SZ;
     storage.persistSize = PLATFORM_PERSISTENT_STRG_SZ;
-    size_t commonMemBlockSz = storage.permanSize + storage.persistSize;
+    storage.assetsSize = PLATFORM_ASSETS_STRG_SZ;
+    size_t commonMemBlockSz = storage.permanSize + storage.persistSize + storage.assetsSize;
     U8 *commonMemBlockPtr = (U8*)SDL_malloc(commonMemBlockSz);
     MemoryZero(commonMemBlockPtr, commonMemBlockSz);
     storage.permanent = commonMemBlockPtr;
     storage.persistent = commonMemBlockPtr + storage.permanSize;
+    storage.assets = commonMemBlockPtr + storage.permanSize + storage.persistSize;
+
+    //
+    // assets
+    //
+    SDL_RWops *assetsBundle = SDL_RWFromFile("./assets/table.bmp", "rb");
+    if (!assetsBundle)
+    {
+        printf("Failed to load assets.bundle\n");
+        printf("SDL message: %s\n", SDL_GetError());
+        return -1;
+    }
+
+    U64 assetsBundleSize = assetsBundle->size(assetsBundle);
+    Assert(assetsBundleSize < storage.assetsSize);
+    if (assetsBundle->read(assetsBundle, storage.assets, assetsBundleSize, 1) != 1)
+    {
+        printf("Failed to load assets.bundle");
+        printf("SDL message: %s\n", SDL_GetError());
+        return -1;
+    }
+
+    assetsBundle->close(assetsBundle);
 
     // 
     // renderer

@@ -3,7 +3,7 @@ Author: github.com/annadostoevskaya
 File: bill.cpp
 Date: September 24th 2022 8:05 pm 
 
-Description: <empty>
+Description: <empty> 
 */
 
 #if 1
@@ -12,6 +12,7 @@ Description: <empty>
 # pragma warning(disable: 4127)
 # pragma warning(disable: 4189)
 # pragma warning(disable: 4100)
+# pragma warning(disable: 4702)
 #endif 
 
 #include "core/mmath.h"
@@ -29,6 +30,40 @@ Description: <empty>
 #include "bill_debug.cpp"
 #endif 
 
+#pragma pack(push, 1)
+struct BMPHeader
+{
+    U16 type; // 2
+    U32 size; // 6
+    U32 RESERVED; // 10
+    U32 offset; // 14 bytes
+};
+
+struct BMPInfo
+{
+    U32 size;
+    S32 width;
+    S32 height;
+    U16 planes; // STUB
+    U16 bitcount; // STUB
+    U32 compression; // STUB
+    U32 imgsize;
+    S32 xpxperMeter; // STUB
+    S32 ypxperMeter; // STUB
+    U32 colorsUsed; // STUB
+    U32 colorsImportant; // STUB // 40 
+    U32 BGRA[1]; // STUB // 44 bytes
+};
+#pragma pack(pop)
+
+struct BMP 
+{
+    BMPHeader   *header;
+    BMPInfo     *info;
+    U32         *bitmap;
+};
+
+
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -37,7 +72,7 @@ internal void gtick(GameIO *io)
     dbg_GameState = gstate;
     RendererHandle *hRenderer = io->hRenderer;
     InputDevices *devices = io->devices;
-    
+
     // NOTE(annad): Game layer
     Entity *balls = (Entity*)(&gstate->balls);
     CueStick *cuestick = &gstate->cuestick;
@@ -47,7 +82,7 @@ internal void gtick(GameIO *io)
         // Metrics
         //
 #define BALLDIAM_PER_WIDTH 0.021f
-        gstate->base = BALLDIAM_PER_WIDTH * hRenderer->wScreen;
+        gstate->base = (S32)(BALLDIAM_PER_WIDTH * (F32)hRenderer->wScreen);
         gstate->balldiam = (F32)gstate->base;
 
         //
@@ -98,7 +133,25 @@ internal void gtick(GameIO *io)
 
         gstate->isInit = true;
     }
-   
+
+    BMP img;
+    img.header = (BMPHeader*)storage->assets;
+    img.info = (BMPInfo*)((U8*)storage->assets + sizeof(BMPHeader));
+    img.bitmap = (U32*)((U8*)storage->assets + img.header->offset);
+
+    SDL_Surface *sf = SDL_CreateRGBSurfaceFrom((void*)img.bitmap, 
+            img.info->width, img.info->height, 
+            img.info->bitcount, img.info->width * (img.info->bitcount / 8), 
+            0xFF0000, 0x00FF00, 0x0000FF, 0xFF000000);
+            // 0xFF, 0xFF0000, 0xFF00, 0xFF);
+    SDL_Texture *tx = SDL_CreateTextureFromSurface((SDL_Renderer*)hRenderer->ctx, sf);
+    SDL_RenderCopy((SDL_Renderer*)hRenderer->ctx, tx, NULL, NULL);
+    return;
+    // https://wiki.libsdl.org/SDL2/SDL_RenderCopy
+    // https://wiki.libsdl.org/SDL2/SDL_CreateTextureFromSurface
+    // https://wiki.libsdl.org/SDL2/SDL_CreateRGBSurfaceFrom
+
+
     F32 radius = gstate->balldiam / 2;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)

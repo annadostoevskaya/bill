@@ -67,30 +67,30 @@ internal Entity ballUpdate(Entity *ball, F32 dt)
     return updated;   
 }
 
-internal B8 ballCheckTableBoardCollide(Entity *ball, S32 radius, Rect *table, V2DF32 *nvecwall)
+internal B8 ballCheckTableBoardCollide(Entity *ball, F32 radius, Rect *table, V2DF32 *nvecwall)
 {
-    if (ball->p.x >= table->x + table->w - radius)
+    if (ball->p.x >= (F32)(table->x + table->w) - radius)
     {
         nvecwall->x = -1.0f;
         nvecwall->y =  0.0f;
         return true;
     }
 
-    if (ball->p.x <= table->x + radius)
+    if (ball->p.x <= (F32)table->x + radius)
     {
         nvecwall->x = 1.0f;
         nvecwall->y = 0.0f;
         return true;
     }
 
-    if (ball->p.y <= table->y + radius)
+    if (ball->p.y <= (F32)table->y + radius)
     {
         nvecwall->x =  0.0f;
         nvecwall->y = -1.0f;
         return true;
     }
 
-    if (ball->p.y >= table->y + table->h - radius)
+    if (ball->p.y >= (F32)(table->y + table->h) - radius)
     {
         nvecwall->x = 0.0f;
         nvecwall->y = 1.0f;
@@ -100,7 +100,7 @@ internal B8 ballCheckTableBoardCollide(Entity *ball, S32 radius, Rect *table, V2
     return false;
 }
 
-internal B8 ballCheckBallCollide(Entity *a, Entity *b, S32 radius)
+internal B8 ballCheckBallCollide(Entity *a, Entity *b, F32 radius)
 {
     F32 d = (a->p - b->p).getLength();
     return d < (2.0f * radius);
@@ -115,7 +115,7 @@ internal F32 ballTimeBeforeWallCollide(Entity *ballA, Rect *table, V2DF32 *nvecw
     return 0.0f;
 }
 
-internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB, S32 radius)
+internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB, F32 radius)
 {
     // NOTE(annad): Last update, <date>
     V2DF32 d = ballB->p - ballA->p;
@@ -232,3 +232,4 @@ internal void ballSolveCollideOneBall(Entity *a, Entity *b)
         b->v += directB * v * cosB;
     }
 }
+

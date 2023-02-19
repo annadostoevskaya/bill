@@ -55,7 +55,7 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
             // NOTE(annad): Out of memory!
             StaticAssert(sizeof(V2DF32) <= sizeof(e.custom));
             V2DF32 *nvecwall = (V2DF32*)(e.custom);
-            if (ballCheckTableBoardCollide(&updated, gstate->balldiam / 2.0f, table, nvecwall))
+            if (ballCheckTableBoardCollide(&updated, radius, table, nvecwall))
             {
 #if BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Detected, ball-wall (eid %d, dt %f)", b->id, e.dtBefore);
@@ -102,5 +102,4 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
     *colevent = queue->pool[eventidx];
     return true;
 }
-
 
