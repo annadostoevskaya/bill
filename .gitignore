@@ -1,4 +1,3 @@
-build
-assets
-documents
+/build
+/documents
 
