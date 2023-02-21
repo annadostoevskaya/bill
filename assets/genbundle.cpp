@@ -5,7 +5,9 @@ Date: 20/02/23 09:13:13
 
 Description: Simple assets.bundle generator for bill.
 */
+
 #define _CRT_SECURE_NO_WARNINGS 1
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,7 +99,9 @@ int main(int argc, char **argv)
     // BMP bmp = loadbmp("./bmp/test.bmp");
     // displaybmp(&bmp);
     // unloadbmp(&bmp);
-    Chain bmpChain = chainInit(32);
+    //
+    char *files = scandir("./bmp", ".bmp");
+    printf("%s\n", files);
     
     return 0;
 }

@@ -6,6 +6,8 @@ Date: 21/02/23 09:19:41
 Description: <empty>
 */
 
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -36,10 +38,5 @@ char *scandir(const char *dir, const char *targetExt)
     }
     
     return NULL;
-}
-
-void freedir()
-{
-
 }
 

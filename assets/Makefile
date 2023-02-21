@@ -1,8 +1,8 @@
+CC = clang++
+
 ifeq ($(OS), Windows_NT)
-	CC = clang-cl
 	TARGET = genbundle.exe
 else
-	CC = clang++
 	TARGET = genbundle
 endif
 
