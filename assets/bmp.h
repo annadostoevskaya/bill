@@ -6,6 +6,8 @@ Date: 20/02/23 09:16:45
 Description: <empty>
 */
 
+#include <stdint.h>
+
 #pragma pack(push, 1)
 struct BMPHeader
 {

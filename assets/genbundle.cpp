@@ -6,103 +6,67 @@ Date: 20/02/23 09:13:13
 Description: Simple assets.bundle generator for bill.
 */
 
-#define _CRT_SECURE_NO_WARNINGS 1
+#include <iostream> // TODO(annad): Write in output log
+#include <fstream>
+#include <string>
+#include <filesystem>
+#include <cassert>
+#include <cctype>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <assert.h>
-#include "bmp.h"
-#include "scandir.h"
-
-uint32_t getfilesize(FILE *fp)
+void to_c_style_const(std::string &s)
 {
-    fseek(fp, 0L, SEEK_END);
-    uint32_t fsz = (uint32_t)ftell(fp);
-    fseek(fp, 0L, SEEK_SET);
-    return fsz;
-}
-
-BMP loadbmp(const char *filename)
-{
-    FILE *fp = fopen(filename, "r");
-    uint32_t fsz = getfilesize(fp);
-    void *buf = malloc(fsz);
-    fread(buf, fsz, 1, fp);
-    fclose(fp);
-
-    BMP bmp = {};
-    assert(strlen(filename) < BMP_DEFAULT_FILENAME_SIZE); // Error: Too long filename
-    strcpy((char*)bmp.filename, filename);
-    bmp.header = (BMPHeader*)buf;
-    bmp.info = (BMPInfo*)((uint8_t*)buf + sizeof(BMPHeader));
-    bmp.bitmap = (uint32_t*)((uint8_t*)buf + bmp.header->offset);
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmultichar"
-    assert(bmp.header->type == 'BM'); // Error: Filetype identificate failed.
-#pragma clang diagnostic pop
-    return bmp;
-}
-
-void unloadbmp(BMP *bmp)
-{
-    free((void*)bmp->header);
-}
-
-void displaybmp(BMP *bmp)
-{
-    printf("name: %s\n\
-size: %d bytes\n\
-width: %d\n\
-height: %d\n\
-imgsize: %d bytes\n\
-pixels: %d\n", bmp->filename, 
-        bmp->header->size, 
-        bmp->info->width, bmp->info->height,
-        bmp->info->imgsize, bmp->info->imgsize/(bmp->info->bitcount / 8));
-}
-
-#define PrintInfo(STR, ...) printf("[genbundle] " STR "\n" __VA_OPT__(,) __VA_ARGS__)
-
-struct Chain
-{
-    struct Chain *next;
-    void *data;
-};
-
-Chain *chainNext(Chain *c, size_t dataSize)
-{
-    Chain *last = c;
-    for (;;)
+    for (auto iter = s.begin(); iter != s.end(); iter++)
     {
-        if (last->next) 
+        if (*iter == '.')
         {
-            last = last->next;
+            *iter = '_';
         }
+        
+        *iter = std::toupper(static_cast<unsigned char>(*iter));
     }
-    
-    last->next = (Chain*)malloc(sizeof(Chain));
-    last->next->data = malloc(dataSize);
-    return last;
-}
-
-Chain chainInit(size_t dataSize)
-{
-    Chain c;
-    c.data = malloc(dataSize);
-    return c;
 }
 
 int main(int argc, char **argv)
 {
-    // BMP bmp = loadbmp("./bmp/test.bmp");
-    // displaybmp(&bmp);
-    // unloadbmp(&bmp);
-    //
-    char *files = scandir("./bmp", ".bmp");
-    printf("%s\n", files);
+    std::ofstream bundle("./../build/assets.bundle", std::ios::out | std::ios::binary | std::ios::ate);
+    std::ofstream assets_h("./../assets.h", std::ios::out);
     
+    assets_h << "/*" << std::endl;
+    assets_h << "    This file generated with 'genbundle' program!" << std::endl;
+    assets_h << "    See ./assets/README.txt for more information." << std::endl;
+    assets_h << "*/" << std::endl;
+    assets_h << std::endl;
+    assets_h << "enum ASSETS_BUNDLE" << std::endl;
+    assets_h << "{" << std::endl;
+    std::uintmax_t file_begin_from = 0;
+    for (const auto &entry : std::filesystem::directory_iterator("./bmp"))
+    {
+        std::filesystem::path file_path = entry.path();
+        std::ifstream bmp_file(file_path.string(), std::ios::in | std::ios::binary);
+        
+        std::string filename = file_path.filename().string();
+        to_c_style_const(filename);
+        std::uintmax_t file_size = entry.file_size();
+
+        assets_h << "   ASSETS_BUNDLE_" 
+            << filename << "_START = " << file_begin_from 
+            << ", " << std::endl;
+        assets_h << "   ASSETS_BUNDLE_" 
+            << filename << "_END = " << file_begin_from + file_size 
+            << ", ";
+        assets_h << "// sizeof: 0x" << std::hex << file_size << std::dec << std::endl;
+         
+        assert(bmp_file.is_open()); // NOTE(annad): Can't open this file.
+        file_begin_from += file_size;
+
+        bundle << bmp_file.rdbuf();
+        
+        bmp_file.close();
+    }
+
+    assets_h << "}" << std::endl;
+    assets_h << std::endl;
+
     return 0;
 }
 
