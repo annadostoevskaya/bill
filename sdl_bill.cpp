@@ -108,7 +108,7 @@ int main(int, char**)
     //
     // assets
     //
-    SDL_RWops *assetsBundle = SDL_RWFromFile("./assets/table.bmp", "rb");
+    SDL_RWops *assetsBundle = SDL_RWFromFile("./assets.bundle", "rb");
     if (!assetsBundle)
     {
         printf("Failed to load assets.bundle\n");

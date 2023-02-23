@@ -167,7 +167,7 @@ typedef void VoidFunc(void);
 #define EvalPrintF(x)     printf("%s = %f [%e]\n", #x, (F64)(x), (F64)(x))
 #define EvalPrintB(x)     printf("%s = %s\n",      #x, (char*)((x) ? "true" : "false"))
 #define EvalPrintS(x)     printf("%s = %s\n",      #x, (char*)(x))
-#define EvalPrintAddr(x)  printf("%s = 0x%p\n",    #x, (void*)(&x))
+#define EvalPrintAddr(x)  printf("%s = %p\n",    #x, (void*)(&x))
 #define EvalPrintHex(x)   printf("%s = 0x%x\n",    #x, (unsigned int)(x))
 #define EvalPrintHexLL(x) printf("%s = 0x%llx\n",  #x, (unsigned long long)(x))
 

@@ -32,6 +32,11 @@ struct CueStick
     B8 click;
 };
 
+struct Table
+{
+    
+};
+
 struct GameState
 {
     M_Arena arena;
@@ -40,8 +45,6 @@ struct GameState
     CueStick cuestick;
     
     Rect table;
-    LNP2DS32 baulkline;
-
     CollideEventQueue cequeue;
     
     S32 base;

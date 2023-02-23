@@ -19,6 +19,9 @@ enum Renderer_Command : U8
     RCMD_DRAW_POINT,
     RCMD_DRAW_CIRCLE,
     RCMD_DRAW_RECT,
+
+    RCMD_DRAW_BMP,
+
     // RCMD_DRAW_FILL_CIRCLE,
     
     RCMD_COUNT,

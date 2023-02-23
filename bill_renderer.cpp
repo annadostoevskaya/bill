@@ -77,6 +77,21 @@ internal void Renderer_drawRect(RendererHandle *hRenderer, S32 x, S32 y, S32 w, 
     hRenderer->peak += 4 * sizeof(S32);
 }
 
+internal void Renderer_drawBmp(RendererHandle *hRenderer, BMP* img, Rect *r)
+{
+    // NOTE(annad): Error, out of memory!
+    Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command) 
+            + 4 * sizeof(S32) + sizeof(BMP*));
+    Renderer_insertCmd(hRenderer, RCMD_DRAW_BMP);
+    S32 *args = (S32*)(hRenderer->byteCode + hRenderer->peak);
+    args[0] = r->x;
+    args[1] = r->y;
+    args[2] = r->w;
+    args[3] = r->h;
+    *(U64*)(args[4]) = img;
+    hRenderer->peak += 4 * sizeof(S32) + sizeof(BMP*);
+}
+
 internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd, ...)
 {
     va_list argptr;
@@ -130,6 +145,13 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
             S32 w = va_arg(argptr, S32);
             S32 h = va_arg(argptr, S32);
             Renderer_drawRect(hRenderer, x, y, w, h);
+        } break;
+
+        case RCMD_DRAW_BMP:
+        {
+            BMP *bmp = (BMP*)va_arg(argptr, (BMP*));
+            Rect *rect = (Rect*)va_arg(argptr, (Rect*));
+            Renderer_drawBmp(hRenderer, bmp, rect);
         } break;
 
         default: 

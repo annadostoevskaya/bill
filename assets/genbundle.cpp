@@ -6,7 +6,7 @@ Date: 20/02/23 09:13:13
 Description: Simple assets.bundle generator for bill.
 */
 
-#include <iostream> // TODO(annad): Write in output log
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <filesystem>
@@ -30,6 +30,7 @@ int main(int argc, char **argv)
 {
     std::ofstream bundle("./../build/assets.bundle", std::ios::out | std::ios::binary | std::ios::ate);
     std::ofstream assets_h("./../assets.h", std::ios::out);
+    assert(bundle.is_open() && assets_h.is_open());
     
     assets_h << "/*" << std::endl;
     assets_h << "    This file generated with 'genbundle' program!" << std::endl;
@@ -47,24 +48,20 @@ int main(int argc, char **argv)
         std::string filename = file_path.filename().string();
         to_c_style_const(filename);
         std::uintmax_t file_size = entry.file_size();
-
-        assets_h << "   ASSETS_BUNDLE_" 
-            << filename << "_START = " << file_begin_from 
-            << ", " << std::endl;
-        assets_h << "   ASSETS_BUNDLE_" 
-            << filename << "_END = " << file_begin_from + file_size 
-            << ", ";
-        assets_h << "// sizeof: 0x" << std::hex << file_size << std::dec << std::endl;
-         
+        
+        assets_h << "   ASSETS_BUNDLE_" << filename << " = " << file_begin_from 
+            << ", // sizeof: 0x" << std::hex << file_size << std::dec << std::endl;
+        
         assert(bmp_file.is_open()); // NOTE(annad): Can't open this file.
         file_begin_from += file_size;
-
-        bundle << bmp_file.rdbuf();
         
+        bundle << bmp_file.rdbuf();
+        std::cout << "[GENBUNDLE] (" << file_size / 1024 << "KB) " << file_path.filename().string() << std::endl;
+
         bmp_file.close();
     }
 
-    assets_h << "}" << std::endl;
+    assets_h << "};" << std::endl;
     assets_h << std::endl;
 
     return 0;

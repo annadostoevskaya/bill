@@ -30,6 +30,8 @@ Description: <empty>
 #include "bill_debug.cpp"
 #endif 
 
+#include "assets.h"
+
 #pragma pack(push, 1)
 struct BMPHeader
 {
@@ -112,11 +114,6 @@ internal void gtick(GameIO *io)
             tblwidth, tblheight
         };
 
-        gstate->baulkline.a.x = (S32)((F32)(gstate->table.x + gstate->table.w) - (1.0f / 5.0f * (F32)gstate->table.w));
-        gstate->baulkline.a.y = (gstate->table.y + gstate->table.h);
-        gstate->baulkline.b.x = (S32)((F32)(gstate->table.x + gstate->table.w) - (1.0f / 5.0f * (F32)gstate->table.w));
-        gstate->baulkline.b.y = gstate->table.y;
-
         //
         // Balls
         //
@@ -135,17 +132,21 @@ internal void gtick(GameIO *io)
     }
 
     BMP img;
-    img.header = (BMPHeader*)storage->assets;
-    img.info = (BMPInfo*)((U8*)storage->assets + sizeof(BMPHeader));
-    img.bitmap = (U32*)((U8*)storage->assets + img.header->offset);
+    EvalPrint(ASSETS_BUNDLE_TABLE_BMP);
+    U8 *tableImg = (U8*)storage->assets + (U32)ASSETS_BUNDLE_TABLE_BMP;
+    EvalPrintAddr(storage->assets);
+    EvalPrintAddr(tableImg); 
+    img.header = (BMPHeader*)tableImg;
+    img.info = (BMPInfo*)((U8*)tableImg + sizeof(BMPHeader));
+    img.bitmap = (U32*)((U8*)tableImg + img.header->offset);
 
     SDL_Surface *sf = SDL_CreateRGBSurfaceFrom((void*)img.bitmap, 
             img.info->width, img.info->height, 
             img.info->bitcount, img.info->width * (img.info->bitcount / 8), 
             0xFF0000, 0x00FF00, 0x0000FF, 0xFF000000);
             // 0xFF, 0xFF0000, 0xFF00, 0xFF);
-    SDL_Texture *tx = SDL_CreateTextureFromSurface((SDL_Renderer*)hRenderer->ctx, sf);
-    SDL_RenderCopy((SDL_Renderer*)hRenderer->ctx, tx, NULL, NULL);
+    SDL_Texture *tx = SDL_CreateTextureFromSurface((SDL_Renderer*)hRenderer->ctx, sf); 
+    SDL_RenderCopy((SDL_Renderer*)hRenderer->ctx, tx, NULL, (const SDL_Rect*)(&gstate->table));
     return;
     // https://wiki.libsdl.org/SDL2/SDL_RenderCopy
     // https://wiki.libsdl.org/SDL2/SDL_CreateTextureFromSurface
@@ -279,14 +280,32 @@ internal void gtick(GameIO *io)
     }
 
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0x00, 0xff);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, &tableBmp, &gstate->table);
+    Rect tableBoard = {
+        gstate->table.x - 20,
+        gstate->table.y + 20,
+        20, 20
+    };
+    /*
+        TODO(annad): We must save
+        two sets of coord.
+        1. Position of table in image
+        2. Position table whos we draw?
+        Positions relative right-up of image.
+        
+        w and h of table.
+        x and y for image
+        x and y image in screen
+        x and y table in screen??????
+
+        managment of colliders and image 
+        view and controller?????
+    */ 
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, &tableBoardBmp, &tableBoard)
     Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
             gstate->table.x, gstate->table.y, 
             gstate->table.w, gstate->table.h);
 
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-            gstate->baulkline.a.x, gstate->baulkline.a.y,
-            gstate->baulkline.b.x, gstate->baulkline.b.y);
-    
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }
 
