@@ -51,10 +51,10 @@ internal void ballsInitRack(Entity *balls, F32 radius, F32 x, F32 y)
     balls[CUE_BALL].dtUpdate = 0.0f;
 }
 
-internal void ballsInit(Rect *table, Entity *balls, F32 radius, F32 x, F32 y)
+internal void ballsInit(Table *table, Entity *balls, F32 radius, F32 x, F32 y)
 {
-    F32 rackPosX = (x * (F32)table->w);
-    F32 rackPosY = (y * (F32)table->h);
+    F32 rackPosX = (x * (F32)table->collider.w);
+    F32 rackPosY = (y * (F32)table->collider.h);
     ballsInitRack(balls, radius, rackPosX, rackPosY);
 }
 

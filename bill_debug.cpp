@@ -10,7 +10,7 @@ void dbg_VerifyCollides()
 {
     Entity *balls = (Entity*)&dbg_GameState->balls;
     F32 radius = dbg_GameState->balldiam / 2.0f;
-    Rect *tbl= &dbg_GameState->table;
+    Rect *tbl= &dbg_GameState->table.collider;
     V2DF32 nvecwall = {};
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {

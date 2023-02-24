@@ -116,7 +116,7 @@ internal S32 SDLRenderer_drawRect(RendererHandle *hRenderer, U8 *cmdPointer)
     SDL_RenderDrawRect((SDL_Renderer*)hRenderer->ctx, &rect);
     return sizeof(Renderer_Command) + 4 * sizeof(S32);
 }
-
+#if 0
 internal S32 SDLRenderer_drawBmp(RendererHandle *hRenderer, U8 *cmdPointer)
 {
     // NOTE(annad): Error, out of memory!
@@ -139,7 +139,7 @@ internal S32 SDLRenderer_drawBmp(RendererHandle *hRenderer, U8 *cmdPointer)
     SDL_RenderCopy((SDL_Renderer*)hRenderer->ctx, texture, NULL, (const SDL_Rect*)(&gstate->table));
     return sizeof(Renderer_Command) + 4 * sizeof(S32) + sizeof(BMP*);
 }
-
+#endif
 void SDLRenderer_exec(RendererHandle *hRenderer)
 {
     Assert(hRenderer->peak < hRenderer->size);
@@ -184,14 +184,14 @@ void SDLRenderer_exec(RendererHandle *hRenderer)
                 hRenderer->peak -= shift;
                 cmdPointer += shift;
             } break;
-            
+#if 0            
             case RCMD_DRAW_BMP:
             {
                 S32 shift = SDLRenderer_drawBmp(hRenderer, cmdPointer);
                 hRenderer->peak -= shift;
                 cmdPointer += shift;               
             } break;
-
+#endif
             case RCMD_DRAW_RECT:
             {
                 S32 shift = SDLRenderer_drawRect(hRenderer, cmdPointer);

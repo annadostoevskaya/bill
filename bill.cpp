@@ -30,41 +30,7 @@ Description: <empty>
 #include "bill_debug.cpp"
 #endif 
 
-#include "assets.h"
-
-#pragma pack(push, 1)
-struct BMPHeader
-{
-    U16 type; // 2
-    U32 size; // 6
-    U32 RESERVED; // 10
-    U32 offset; // 14 bytes
-};
-
-struct BMPInfo
-{
-    U32 size;
-    S32 width;
-    S32 height;
-    U16 planes; // STUB
-    U16 bitcount; // STUB
-    U32 compression; // STUB
-    U32 imgsize;
-    S32 xpxperMeter; // STUB
-    S32 ypxperMeter; // STUB
-    U32 colorsUsed; // STUB
-    U32 colorsImportant; // STUB // 40 
-    U32 BGRA[1]; // STUB // 44 bytes
-};
-#pragma pack(pop)
-
-struct BMP 
-{
-    BMPHeader   *header;
-    BMPInfo     *info;
-    U32         *bitmap;
-};
-
+#include "bill_assets.h"
 
 internal void gtick(GameIO *io)
 {
@@ -80,6 +46,11 @@ internal void gtick(GameIO *io)
     CueStick *cuestick = &gstate->cuestick;
     if (gstate->isInit == false)
     {
+        //
+        // Assets
+        //
+        U8 *assets = (U8*)storage->assets;
+
         //
         // Metrics
         //
@@ -105,14 +76,17 @@ internal void gtick(GameIO *io)
         // Table
         //
 #define TABLE_H_PER_W 0.5185f
-        S32 tblwidth = 36 * gstate->base;
-        S32 tblheight = (S32)(TABLE_H_PER_W * (F32)tblwidth);
-        S32 tblxpos = (hRenderer->wScreen - tblwidth - gstate->base);
-        S32 tblypos = (hRenderer->hScreen - tblheight - gstate->base);
-        gstate->table = {
-            tblxpos, tblypos, 
-            tblwidth, tblheight
-        };
+        Table *table = &gstate->table;
+        U8 *tableBitmap = (U8*)storage->assets + ASSETS_BUNDLE_TABLE_BMP;
+        S32 tableColliderWidth = 36 * gstate->base;
+        S32 tableColliderHeight = (S32)(TABLE_H_PER_W * (F32)tableColliderWidth);
+        table->collider.w = tableColliderWidth;
+        table->collider.h = tableColliderHeight;
+        table->pos.x = (hRenderer->wScreen - tableColliderWidth - gstate->base);
+        table->pos.y = (hRenderer->hScreen - tableColliderHeight - gstate->base);
+        table->img.header = (BMPHeader*)(tableBitmap);
+        table->img.info = (BMPInfo*)(tableBitmap + sizeof(BMPHeader));
+        table->img.bitmap = (U32*)(tableBitmap + table->img.header->offset);
 
         //
         // Balls
@@ -130,28 +104,6 @@ internal void gtick(GameIO *io)
 
         gstate->isInit = true;
     }
-
-    BMP img;
-    EvalPrint(ASSETS_BUNDLE_TABLE_BMP);
-    U8 *tableImg = (U8*)storage->assets + (U32)ASSETS_BUNDLE_TABLE_BMP;
-    EvalPrintAddr(storage->assets);
-    EvalPrintAddr(tableImg); 
-    img.header = (BMPHeader*)tableImg;
-    img.info = (BMPInfo*)((U8*)tableImg + sizeof(BMPHeader));
-    img.bitmap = (U32*)((U8*)tableImg + img.header->offset);
-
-    SDL_Surface *sf = SDL_CreateRGBSurfaceFrom((void*)img.bitmap, 
-            img.info->width, img.info->height, 
-            img.info->bitcount, img.info->width * (img.info->bitcount / 8), 
-            0xFF0000, 0x00FF00, 0x0000FF, 0xFF000000);
-            // 0xFF, 0xFF0000, 0xFF00, 0xFF);
-    SDL_Texture *tx = SDL_CreateTextureFromSurface((SDL_Renderer*)hRenderer->ctx, sf); 
-    SDL_RenderCopy((SDL_Renderer*)hRenderer->ctx, tx, NULL, (const SDL_Rect*)(&gstate->table));
-    return;
-    // https://wiki.libsdl.org/SDL2/SDL_RenderCopy
-    // https://wiki.libsdl.org/SDL2/SDL_CreateTextureFromSurface
-    // https://wiki.libsdl.org/SDL2/SDL_CreateRGBSurfaceFrom
-
 
     F32 radius = gstate->balldiam / 2;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
@@ -278,34 +230,8 @@ internal void gtick(GameIO *io)
                 (S32)balls[CUE_BALL].p.x + cuestick->clipos.x - devices->mouseX,
                 (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
     }
-
-    Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0x00, 0xff);
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, &tableBmp, &gstate->table);
-    Rect tableBoard = {
-        gstate->table.x - 20,
-        gstate->table.y + 20,
-        20, 20
-    };
-    /*
-        TODO(annad): We must save
-        two sets of coord.
-        1. Position of table in image
-        2. Position table whos we draw?
-        Positions relative right-up of image.
-        
-        w and h of table.
-        x and y for image
-        x and y image in screen
-        x and y table in screen??????
-
-        managment of colliders and image 
-        view and controller?????
-    */ 
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, &tableBoardBmp, &tableBoard)
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
-            gstate->table.x, gstate->table.y, 
-            gstate->table.w, gstate->table.h);
-
+    
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, );
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }
 

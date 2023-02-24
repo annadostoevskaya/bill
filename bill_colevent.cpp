@@ -43,7 +43,7 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
     F32 radius = gstate->balldiam / 2.0f;
     eventQueueClear(queue);
     Entity updated = {};
-    Rect *table = &gstate->table;
+    Rect *tableCollider = &gstate->table.collider;
     Entity *balls = (Entity*)(&gstate->balls);
     CollideEvent e = {};
     for (S32 i = 0; i < BALL_COUNT; i += 1)
@@ -55,14 +55,14 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
             // NOTE(annad): Out of memory!
             StaticAssert(sizeof(V2DF32) <= sizeof(e.custom));
             V2DF32 *nvecwall = (V2DF32*)(e.custom);
-            if (ballCheckTableBoardCollide(&updated, radius, table, nvecwall))
+            if (ballCheckTableBoardCollide(&updated, radius, tableCollider, nvecwall))
             {
 #if BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Detected, ball-wall (eid %d, dt %f)", b->id, e.dtBefore);
 #endif
                 e.eid = b->id;
                 e.type = COLLIDE_BALL_WALL;
-                e.dtBefore = ballTimeBeforeWallCollide(b, table, nvecwall);
+                e.dtBefore = ballTimeBeforeWallCollide(b, tableCollider, nvecwall);
                 eventQueuePush(queue, &e);
             }
         }

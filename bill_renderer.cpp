@@ -77,6 +77,7 @@ internal void Renderer_drawRect(RendererHandle *hRenderer, S32 x, S32 y, S32 w, 
     hRenderer->peak += 4 * sizeof(S32);
 }
 
+#if 0
 internal void Renderer_drawBmp(RendererHandle *hRenderer, BMP* img, Rect *r)
 {
     // NOTE(annad): Error, out of memory!
@@ -91,7 +92,7 @@ internal void Renderer_drawBmp(RendererHandle *hRenderer, BMP* img, Rect *r)
     *(U64*)(args[4]) = img;
     hRenderer->peak += 4 * sizeof(S32) + sizeof(BMP*);
 }
-
+#endif
 internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd, ...)
 {
     va_list argptr;
