@@ -269,7 +269,7 @@ int main(int, char**)
         tick.start = tick.end;
     }
     
-    free(commonMemBlockPtr);
+    SDL_free(commonMemBlockPtr);
     SDL_DestroyRenderer(sdlRenderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

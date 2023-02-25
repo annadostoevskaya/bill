@@ -20,6 +20,53 @@ Description: <empty>
 #include "core/memory_void.cpp"
 #include "core/memory.cpp"
 #include "bill_renderer.cpp"
+
+#pragma pack(push, 1)
+struct BMPHeader
+{
+    U16 type; // 2
+    U32 size; // 6
+    U32 RESERVED; // 10
+    U32 offset; // 14 bytes
+};
+
+struct BMPInfo
+{
+    U32 size;
+    S32 width;
+    S32 height;
+    U16 planes; // STUB
+    U16 bitcount;
+    U32 compression; // STUB
+    U32 imgsize;
+    S32 xpxperMeter; // STUB
+    S32 ypxperMeter; // STUB
+    U32 colorsUsed; // STUB
+    U32 colorsImportant; // STUB // 40 
+    U32 BGRA[1]; // STUB // 44 bytes
+};
+#pragma pack(pop)
+
+struct ImageAsset
+{
+    U16 width;
+    U16 height;
+    U32 *bitmap;
+};
+
+ImageAsset createImageAsset(U8 *bmpAsset)
+{
+    BMPHeader *bmpHeader = (BMPHeader*)bmpAsset;
+    BMPInfo *bmpInfo = (BMPInfo*)(bmpAsset + sizeof(BMPHeader));
+    Assert(bmpInfo->bitcount == 32); // NOTE(annad): RGBA ever!
+    ImageAsset imgAsset;
+    imgAsset.width = (U16)bmpInfo->width;
+    imgAsset.height = (U16)bmpInfo->height;
+    imgAsset.bitmap = (U32*)(bmpAsset + bmpHeader->offset);
+
+    return imgAsset;
+}
+
 #include "bill.h"
 #if BILL_CFG_DEV_MODE
 #include "bill_debug.h"
@@ -43,6 +90,7 @@ internal void gtick(GameIO *io)
 
     // NOTE(annad): Game layer
     Entity *balls = (Entity*)(&gstate->balls);
+    Table *table = &gstate->table;
     CueStick *cuestick = &gstate->cuestick;
     if (gstate->isInit == false)
     {
@@ -76,18 +124,16 @@ internal void gtick(GameIO *io)
         // Table
         //
 #define TABLE_H_PER_W 0.5185f
-        Table *table = &gstate->table;
-        U8 *tableBitmap = (U8*)storage->assets + ASSETS_BUNDLE_TABLE_BMP;
         S32 tableColliderWidth = 36 * gstate->base;
         S32 tableColliderHeight = (S32)(TABLE_H_PER_W * (F32)tableColliderWidth);
         table->collider.w = tableColliderWidth;
         table->collider.h = tableColliderHeight;
         table->pos.x = (hRenderer->wScreen - tableColliderWidth - gstate->base);
         table->pos.y = (hRenderer->hScreen - tableColliderHeight - gstate->base);
-        table->img.header = (BMPHeader*)(tableBitmap);
-        table->img.info = (BMPInfo*)(tableBitmap + sizeof(BMPHeader));
-        table->img.bitmap = (U32*)(tableBitmap + table->img.header->offset);
-
+        
+        U8 *tableBitmap = (U8*)storage->assets + ASSETS_BUNDLE_TABLE_BMP;
+        table->img = createImageAsset(tableBitmap);
+        
         //
         // Balls
         //
@@ -146,7 +192,7 @@ internal void gtick(GameIO *io)
         }
     }
 
-#if 1
+#if 0
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
@@ -231,7 +277,7 @@ internal void gtick(GameIO *io)
                 (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
     }
     
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, );
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, devices->mouseX, devices->mouseY, 100, 100, table->img.bitmap, table->img.width, table->img.height);
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }
 

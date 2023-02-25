@@ -46,4 +46,19 @@ inline void Renderer_insertCmd(RendererHandle *hRenderer, Renderer_Command cmd)
     hRenderer->peak += sizeof(Renderer_Command);
 }
 
+#define RENDERER_PUSH_ARG(ARG_PTR, VAR, TYPE, BYTE_COUNTER) \
+    do { \
+        *((TYPE*)ARG_PTR) = VAR; \
+        ARG_PTR += sizeof(TYPE); \
+        BYTE_COUNTER += sizeof(TYPE); \
+    } while(0)
+
+#define RENDERER_POP_ARG(ARG_PTR, VAR, TYPE, BYTE_COUNTER) \
+    do \
+    { \
+        VAR = *((TYPE*)ARG_PTR); \
+        ARG_PTR += sizeof(TYPE); \
+        BYTE_COUNTER += sizeof(TYPE); \
+    } while(0)
+
 #endif // BILL_RENDERER_H

@@ -77,22 +77,26 @@ internal void Renderer_drawRect(RendererHandle *hRenderer, S32 x, S32 y, S32 w, 
     hRenderer->peak += 4 * sizeof(S32);
 }
 
-#if 0
-internal void Renderer_drawBmp(RendererHandle *hRenderer, BMP* img, Rect *r)
+internal void Renderer_drawBmp(RendererHandle *hRenderer,
+        S32 x, S32 y, S32 targetFrameW, S32 targetFrameH, 
+        U32* bitmap, U16 w, U16 h)
 {
     // NOTE(annad): Error, out of memory!
-    Assert(hRenderer->size > hRenderer->peak + sizeof(Renderer_Command) 
-            + 4 * sizeof(S32) + sizeof(BMP*));
     Renderer_insertCmd(hRenderer, RCMD_DRAW_BMP);
-    S32 *args = (S32*)(hRenderer->byteCode + hRenderer->peak);
-    args[0] = r->x;
-    args[1] = r->y;
-    args[2] = r->w;
-    args[3] = r->h;
-    *(U64*)(args[4]) = img;
-    hRenderer->peak += 4 * sizeof(S32) + sizeof(BMP*);
+    U8 *args = (U8*)(hRenderer->byteCode + hRenderer->peak);
+    S32 byteCounter = 0;
+
+    RENDERER_PUSH_ARG(args, x,                  S32,  byteCounter);
+    RENDERER_PUSH_ARG(args, y,                  S32,  byteCounter);
+    RENDERER_PUSH_ARG(args, targetFrameW,       S32,  byteCounter);
+    RENDERER_PUSH_ARG(args, targetFrameH,       S32,  byteCounter);
+    RENDERER_PUSH_ARG(args, bitmap, U32*, byteCounter);
+    RENDERER_PUSH_ARG(args, w,      U16,  byteCounter);
+    RENDERER_PUSH_ARG(args, h,      U16,  byteCounter);
+    Assert(hRenderer->size > hRenderer->peak + byteCounter);
+    hRenderer->peak += byteCounter;
 }
-#endif
+
 internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd, ...)
 {
     va_list argptr;
@@ -150,9 +154,16 @@ internal void Renderer_pushCmd(RendererHandle *hRenderer, Renderer_Command rcmd,
 
         case RCMD_DRAW_BMP:
         {
-            BMP *bmp = (BMP*)va_arg(argptr, (BMP*));
-            Rect *rect = (Rect*)va_arg(argptr, (Rect*));
-            Renderer_drawBmp(hRenderer, bmp, rect);
+            S32 targetFrameX = va_arg(argptr, S32);
+            S32 targetFrameY = va_arg(argptr, S32);
+            S32 targetFrameW = va_arg(argptr, S32);
+            S32 targetFrameH = va_arg(argptr, S32);
+            U32 *bitmap = va_arg(argptr, U32*);
+            U16 bitmapWidth = va_arg(argptr, U16);
+            U16 bitmapHeight = va_arg(argptr, U16);
+            Renderer_drawBmp(hRenderer, 
+                    targetFrameX, targetFrameY, targetFrameW, targetFrameH, 
+                    bitmap, bitmapWidth, bitmapHeight);
         } break;
 
         default: 
