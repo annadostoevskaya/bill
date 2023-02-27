@@ -92,6 +92,7 @@ internal void gtick(GameIO *io)
     Entity *balls = (Entity*)(&gstate->balls);
     Table *table = &gstate->table;
     CueStick *cuestick = &gstate->cuestick;
+
     if (gstate->isInit == false)
     {
         //
@@ -123,21 +124,21 @@ internal void gtick(GameIO *io)
         //
         // Table
         //
-#define TABLE_H_PER_W 0.5185f
-        S32 tableColliderWidth = 36 * gstate->base;
-        S32 tableColliderHeight = (S32)(TABLE_H_PER_W * (F32)tableColliderWidth);
-        table->collider.w = tableColliderWidth;
-        table->collider.h = tableColliderHeight;
-        table->pos.x = (hRenderer->wScreen - tableColliderWidth - gstate->base);
-        table->pos.y = (hRenderer->hScreen - tableColliderHeight - gstate->base);
-        
-        U8 *tableBitmap = (U8*)storage->assets + ASSETS_BUNDLE_TABLE_BMP;
+        table->targetFrameWidth = 37 * gstate->base;
+        table->targetFrameHeight = 19 * gstate->base;
+        table->pos.x = (hRenderer->wScreen - table->targetFrameWidth - gstate->base);
+        table->pos.y = (hRenderer->hScreen - table->targetFrameHeight - gstate->base);
+        table->collider.x = table->pos.x + 2 * gstate->base;
+        table->collider.y = table->pos.y + (S32)(1.9f * (F32)gstate->base);
+        table->collider.w = table->targetFrameWidth - 4 * gstate->base;
+        table->collider.h = table->targetFrameHeight - (S32)(3.8f * (F32)gstate->base);
+        U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
         table->img = createImageAsset(tableBitmap);
         
         //
         // Balls
         //
-        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.75f, 0.5f);
+        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.7f, 0.9f);
 
         // 
         // CollideEventQueue
@@ -161,11 +162,15 @@ internal void gtick(GameIO *io)
             balls[i].dtUpdate = frametime;
         }
     }
+    localv S32 w = 10;
+    localv S32 h = 10;
+
 
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
         // Reset game
-        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.75f, 0.5f);
+        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.7f, 0.9f);
+        h++; w++;
     }
 
     if (devices->mouseBtns[MOUSE_BTN_LEFT])
@@ -192,7 +197,6 @@ internal void gtick(GameIO *io)
         }
     }
 
-#if 0
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
@@ -255,9 +259,10 @@ internal void gtick(GameIO *io)
             e->isUpdated = true;
         }
     }
-#endif 
 
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, table->pos.x, table->pos.y, table->targetFrameWidth, table->targetFrameHeight, table->img.bitmap, table->img.width, table->img.height);
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, table->pos.x, table->pos.y, table->targetFrameWidth, table->targetFrameHeight);
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
@@ -275,9 +280,28 @@ internal void gtick(GameIO *io)
                 (S32)balls[CUE_BALL].p.y,
                 (S32)balls[CUE_BALL].p.x + cuestick->clipos.x - devices->mouseX,
                 (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
+        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     }
-    
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, devices->mouseX, devices->mouseY, 100, 100, table->img.bitmap, table->img.width, table->img.height);
+
+    P2DF32 p1 = {
+        (F32)table->collider.x + 200.0f,
+        (F32)table->collider.y + 20.0f
+    };
+
+    P2DF32 p2 = {
+        (F32)(table->collider.x + table->collider.w) - 50.0f,
+        (F32)(table->collider.y) + 200.0f
+    };
+
+    if (ballCheckWallCollider(&balls[CUE_BALL], 0.0f, p1, p2))
+    {
+         Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
+                (S32)p1.x, (S32)p1.y, 
+                (S32)p2.x, (S32)p2.y);       
+    }
+
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, table->collider.x, table->collider.y, table->collider.w, table->collider.h);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, devices->mouseX, devices->mouseY, w, h);
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }
 

@@ -29,6 +29,8 @@ struct CueStick
 struct Table
 {
     V2DS32 pos;
+    S32 targetFrameWidth;
+    S32 targetFrameHeight;
     Rect collider;
     ImageAsset img;
 };

@@ -67,6 +67,19 @@ internal Entity ballUpdate(Entity *ball, F32 dt)
     return updated;   
 }
 
+internal B8 ballCheckWallCollider(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
+{
+    if (ball->p.x >= a.x + radius && ball->p.x <= b.x + radius)
+    {
+        if (ball->p.y >= a.y + radius && ball->p.y <= b.y + radius)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 internal B8 ballCheckTableBoardCollide(Entity *ball, F32 radius, Rect *table, V2DF32 *nvecwall)
 {
     if (ball->p.x >= (F32)(table->x + table->w) - radius)
