@@ -1,3 +1,5 @@
 /build
 /documents
+# for each OS (Window/Linux) generate own file.
+assets.h 
 
