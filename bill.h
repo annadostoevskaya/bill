@@ -35,6 +35,12 @@ struct Table
     ImageAsset img;
 };
 
+struct P2DF32_pull
+{
+    P2DF32 buffer[4];
+    U32 cursor;
+};
+
 struct GameState
 {
     M_Arena arena;
@@ -42,6 +48,7 @@ struct GameState
     // i mean struct Ball {...
     Entity balls[BALL_COUNT];
     Table table;
+    P2DF32_pull pull;
 
     CueStick cuestick;
     CollideEventQueue cequeue;

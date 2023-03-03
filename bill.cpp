@@ -79,16 +79,72 @@ ImageAsset createImageAsset(U8 *bmpAsset)
 
 #include "bill_assets.h"
 
-internal V2DF32 checkLineCollide(Entity *ball, P2DF32 a, P2DF32 b)
-{   
-    V2DF32 nx = (b - a).getNormalize(); 
+internal B8 ballCheckLineCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
+{
+    V2DF32 line = b - a;
+    V2DF32 nx = line.getNormalize(); 
     V2DF32 ny = {-nx.y, nx.x};
     V2DF32 p = {
         (a - ball->p).inner(nx), 
         (a - ball->p).inner(ny),
     };
 
-    return p;
+    return (radius >= f32Abs(p.y));
+}
+
+inline U32 P2DF32_pull_size(P2DF32_pull *pull)
+{
+    return sizeof(pull->buffer) / sizeof(pull->buffer[0]);
+}
+
+void P2DF32_pull_push(P2DF32_pull *pull, P2DF32 point)
+{
+    if (pull->cursor >= P2DF32_pull_size(pull)) {
+        return;
+    }
+
+    pull->buffer[pull->cursor] = point;
+    pull->cursor += 1;
+}
+
+void P2DF32_pull_print(P2DF32_pull *pull)
+{
+    for (U32 i = 0; i < pull->cursor; i += 1)
+    {
+        printf("pull[%d]: x=%f, y=%f\n", i, 
+            pull->buffer[i].x, pull->buffer[i].y);
+    }
+}
+
+void P2DF32_pull_draw(RendererHandle *hRenderer, Entity *e, F32 radius, P2DF32_pull *pull)
+{
+    for (U32 i = 1; i < P2DF32_pull_size(pull); i += 1)
+    {
+        P2DF32 a = pull->buffer[i - 1];
+        P2DF32 b = pull->buffer[i];
+        B8 isCollide = ballCheckLineCollide(e, radius, a, b);
+        if (isCollide)
+        {
+            Renderer_pushCmd(hRenderer, 
+                    RCMD_SET_RENDER_COLOR, 
+                    0xff, 0x00, 0x00, 0xff);
+        }
+
+        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
+            (S32)a.x, (S32)a.y, 
+            (S32)b.x, (S32)b.y);
+
+        if (isCollide)
+        {
+            Renderer_pushCmd(hRenderer, 
+                    RCMD_SET_RENDER_COLOR, 
+                    0xff, 0xff, 0xff, 0xff);
+        }
+    }
+
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE,
+        (S32)pull->buffer[pull->cursor - 1].x, (S32)pull->buffer[pull->cursor - 1].y,
+        (S32)pull->buffer[0].x, (S32)pull->buffer[0].y);
 }
 
 internal void gtick(GameIO *io)
@@ -104,7 +160,6 @@ internal void gtick(GameIO *io)
     Entity *balls = (Entity*)(&gstate->balls);
     Table *table = &gstate->table;
     CueStick *cuestick = &gstate->cuestick;
-
     if (gstate->isInit == false)
     {
         //
@@ -161,10 +216,11 @@ internal void gtick(GameIO *io)
         cequeue.pool = (CollideEvent*)m_arena_push(&gstate->arena, cequeue.count * sizeof(CollideEvent));
         gstate->cequeue = cequeue;
 
+        gstate->pull = {};
         gstate->isInit = true;
     }
 
-    F32 radius = gstate->balldiam / 2;
+    F32 radius = gstate->balldiam / 2.0f;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
@@ -174,15 +230,11 @@ internal void gtick(GameIO *io)
             balls[i].dtUpdate = frametime;
         }
     }
-    localv S32 w = 10;
-    localv S32 h = 10;
-
 
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
         // Reset game
-        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.7f, 0.9f);
-        h++; w++;
+        ballsInit(&gstate->table, balls, radius, 0.7f, 0.9f);
     }
 
     if (devices->mouseBtns[MOUSE_BTN_LEFT])
@@ -205,10 +257,17 @@ internal void gtick(GameIO *io)
                 (F32)(cuestick->clipos.y - devices->mouseY),
             };
 
+            P2DF32_pull_push(&gstate->pull, {
+                (F32)devices->mouseX, 
+                (F32)devices->mouseY
+            });
+
+            P2DF32_pull_print(&gstate->pull);
+
             cuestick->click = false;
         }
     }
-#if 0 
+#if 0
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
@@ -295,8 +354,27 @@ internal void gtick(GameIO *io)
         Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     }
 
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, table->collider.x, table->collider.y, table->collider.w, table->collider.h);
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, devices->mouseX, devices->mouseY, w, h);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
+        table->collider.x, table->collider.y, 
+        table->collider.w, table->collider.h);
+
+    P2DF32 a = { 0.0f, 0.0f };
+    P2DF32 b = { (F32)hRenderer->wScreen, (F32)hRenderer->hScreen };
+    B8 isCollide = ballCheckLineCollide(&balls[CUE_BALL], gstate->balldiam / 2.0f, a, b);
+    if (isCollide)
+    {
+        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 
+                0xff, 0x00, 0x00, 0xff);
+    }
+
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
+        (S32)a.x, (S32)a.y, 
+        (S32)b.x, (S32)b.y);
+    if (gstate->pull.cursor == P2DF32_pull_size(&gstate->pull))
+    {
+        P2DF32_pull_draw(hRenderer, &balls[CUE_BALL], radius, &gstate->pull);
+    }
+
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }
 
