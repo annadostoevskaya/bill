@@ -85,11 +85,17 @@ internal B8 ballCheckLineCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
     V2DF32 nx = line.getNormalize(); 
     V2DF32 ny = {-nx.y, nx.x};
     V2DF32 p = {
-        (a - ball->p).inner(nx), 
-        (a - ball->p).inner(ny),
+        (ball->p - a).inner(nx), 
+        (ball->p - a).inner(ny),
     };
+    printf("=========\n");
+    EvalPrint(p.x);
+    EvalPrint(p.y);
+    EvalPrint(line.getLength());
+    printf("=========\n");
 
-    return (radius >= f32Abs(p.y));
+    return (radius >= f32Abs(p.y) && 
+        p.x >= 0.0f && p.x <= line.getLength());
 }
 
 inline U32 P2DF32_pull_size(P2DF32_pull *pull)
@@ -142,9 +148,12 @@ void P2DF32_pull_draw(RendererHandle *hRenderer, Entity *e, F32 radius, P2DF32_p
         }
     }
 
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE,
-        (S32)pull->buffer[pull->cursor - 1].x, (S32)pull->buffer[pull->cursor - 1].y,
-        (S32)pull->buffer[0].x, (S32)pull->buffer[0].y);
+    if (P2DF32_pull_size(pull) > 2)
+    {
+        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE,
+            (S32)pull->buffer[pull->cursor - 1].x, (S32)pull->buffer[pull->cursor - 1].y,
+            (S32)pull->buffer[0].x, (S32)pull->buffer[0].y);
+    }
 }
 
 internal void gtick(GameIO *io)
@@ -358,18 +367,6 @@ internal void gtick(GameIO *io)
         table->collider.x, table->collider.y, 
         table->collider.w, table->collider.h);
 
-    P2DF32 a = { 0.0f, 0.0f };
-    P2DF32 b = { (F32)hRenderer->wScreen, (F32)hRenderer->hScreen };
-    B8 isCollide = ballCheckLineCollide(&balls[CUE_BALL], gstate->balldiam / 2.0f, a, b);
-    if (isCollide)
-    {
-        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 
-                0xff, 0x00, 0x00, 0xff);
-    }
-
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-        (S32)a.x, (S32)a.y, 
-        (S32)b.x, (S32)b.y);
     if (gstate->pull.cursor == P2DF32_pull_size(&gstate->pull))
     {
         P2DF32_pull_draw(hRenderer, &balls[CUE_BALL], radius, &gstate->pull);

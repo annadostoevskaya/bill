@@ -37,7 +37,7 @@ struct Table
 
 struct P2DF32_pull
 {
-    P2DF32 buffer[4];
+    P2DF32 buffer[2];
     U32 cursor;
 };
 
