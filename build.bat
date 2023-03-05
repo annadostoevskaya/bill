@@ -1,5 +1,12 @@
 @ECHO OFF
 
+WHERE /q cl
+SET ISNOTANNAD=0
+IF NOT %ERRORLEVEL% == 0 (
+   CALL "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+   SET ISNOTANNAD=1
+)
+
 SET CL_DEV_OPTS=-D_ENABLED_ASSERT -D_CLI_DEV_MODE
 SET CL_OPTS=-FC -GR- -EHa- -nologo -Zi -WX -W4 %CL_DEV_OPTS%
 SET SRC=%cd%
@@ -17,12 +24,13 @@ cl %CL_OPTS% %SRC%\sdl_bill.cpp -Fesdl_bill.exe -I%SDL_INC_PATH%^
 SET LastError=%ERRORLEVEL%
 %SRC%/dev/ctime/ctime.exe -end bill.ctm %LastError%
 
-IF NOT EXIST SDL2.dll (
-    IF EXIST ..\3rdparty\SDL2\bin\SDL2.dll (
-        COPY ..\3rdparty\SDL2\bin\SDL2.dll SDL2.dll
-    )
+IF NOT EXIST SDL2.dll IF EXIST ..\3rdparty\SDL2\bin\SDL2.dll (
+    COPY ..\3rdparty\SDL2\bin\SDL2.dll SDL2.dll
 )
 
 POPD
+
+:: NOTE(annad): For user whos start .bat file without cl compiler
+IF %ISNOTANNAD%==1 PAUSE
 
 EXIT /B %LastError%

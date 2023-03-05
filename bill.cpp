@@ -79,7 +79,10 @@ ImageAsset createImageAsset(U8 *bmpAsset)
 
 #include "bill_assets.h"
 
-internal B8 ballCheckLineCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
+/*
+ * TODO(annad): Here it is necessary to explain how it works!!!
+ */ 
+internal B8 ballCheckWallCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
 {
     V2DF32 line = b - a;
     V2DF32 nx = line.getNormalize(); 
@@ -88,72 +91,11 @@ internal B8 ballCheckLineCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
         (ball->p - a).inner(nx), 
         (ball->p - a).inner(ny),
     };
-    printf("=========\n");
-    EvalPrint(p.x);
-    EvalPrint(p.y);
-    EvalPrint(line.getLength());
-    printf("=========\n");
 
-    return (radius >= f32Abs(p.y) && 
-        p.x >= 0.0f && p.x <= line.getLength());
-}
-
-inline U32 P2DF32_pull_size(P2DF32_pull *pull)
-{
-    return sizeof(pull->buffer) / sizeof(pull->buffer[0]);
-}
-
-void P2DF32_pull_push(P2DF32_pull *pull, P2DF32 point)
-{
-    if (pull->cursor >= P2DF32_pull_size(pull)) {
-        return;
-    }
-
-    pull->buffer[pull->cursor] = point;
-    pull->cursor += 1;
-}
-
-void P2DF32_pull_print(P2DF32_pull *pull)
-{
-    for (U32 i = 0; i < pull->cursor; i += 1)
-    {
-        printf("pull[%d]: x=%f, y=%f\n", i, 
-            pull->buffer[i].x, pull->buffer[i].y);
-    }
-}
-
-void P2DF32_pull_draw(RendererHandle *hRenderer, Entity *e, F32 radius, P2DF32_pull *pull)
-{
-    for (U32 i = 1; i < P2DF32_pull_size(pull); i += 1)
-    {
-        P2DF32 a = pull->buffer[i - 1];
-        P2DF32 b = pull->buffer[i];
-        B8 isCollide = ballCheckLineCollide(e, radius, a, b);
-        if (isCollide)
-        {
-            Renderer_pushCmd(hRenderer, 
-                    RCMD_SET_RENDER_COLOR, 
-                    0xff, 0x00, 0x00, 0xff);
-        }
-
-        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-            (S32)a.x, (S32)a.y, 
-            (S32)b.x, (S32)b.y);
-
-        if (isCollide)
-        {
-            Renderer_pushCmd(hRenderer, 
-                    RCMD_SET_RENDER_COLOR, 
-                    0xff, 0xff, 0xff, 0xff);
-        }
-    }
-
-    if (P2DF32_pull_size(pull) > 2)
-    {
-        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE,
-            (S32)pull->buffer[pull->cursor - 1].x, (S32)pull->buffer[pull->cursor - 1].y,
-            (S32)pull->buffer[0].x, (S32)pull->buffer[0].y);
-    }
+    EvalPrintF(p.x);
+    EvalPrintF(p.y);
+    return (radius >= p.y && 
+        p.x >= -radius && p.x <= line.getLength() + radius);
 }
 
 internal void gtick(GameIO *io)
@@ -164,7 +106,6 @@ internal void gtick(GameIO *io)
     dbg_GameState = gstate;
     RendererHandle *hRenderer = io->hRenderer;
     InputDevices *devices = io->devices;
-
     // NOTE(annad): Game layer
     Entity *balls = (Entity*)(&gstate->balls);
     Table *table = &gstate->table;
@@ -175,22 +116,16 @@ internal void gtick(GameIO *io)
         // Assets
         //
         U8 *assets = (U8*)storage->assets;
-
-        //
         // Metrics
         //
-#define BALLDIAM_PER_WIDTH 0.021f
-        gstate->base = (S32)(BALLDIAM_PER_WIDTH * (F32)hRenderer->wScreen);
+#define BALLDIAM_PER_WIDTH 0.021f // TODO(annad): What the fuck, remove this!!!!
+        gstate->base = (BALLDIAM_PER_WIDTH * (F32)hRenderer->wScreen);
         gstate->balldiam = (F32)gstate->base;
-
-        //
         // Arena
         // TODO(annad): Memory aligment???
         M_BaseMemory *mVtbl = m_void_base_memory(storage->persistent, storage->persistSize);
         gstate->arena = m_make_arena_reserve(mVtbl, storage->persistSize);
         Assert(gstate->arena.memory != NULL);
-
-        //
         // Renderer
         //
         hRenderer->size = RCMD_BUFFER_SIZE;
@@ -200,21 +135,46 @@ internal void gtick(GameIO *io)
         //
         // Table
         //
-        table->targetFrameWidth = 37 * gstate->base;
-        table->targetFrameHeight = 19 * gstate->base;
-        table->pos.x = (hRenderer->wScreen - table->targetFrameWidth - gstate->base);
-        table->pos.y = (hRenderer->hScreen - table->targetFrameHeight - gstate->base);
-        table->collider.x = table->pos.x + 2 * gstate->base;
-        table->collider.y = table->pos.y + (S32)(1.9f * (F32)gstate->base);
-        table->collider.w = table->targetFrameWidth - 4 * gstate->base;
-        table->collider.h = table->targetFrameHeight - (S32)(3.8f * (F32)gstate->base);
+        table->w = 37 * (S32)gstate->base;
+        table->h = 19 * (S32)gstate->base;
+        table->pos.x = (hRenderer->wScreen - table->w - (S32)gstate->base);
+        table->pos.y = (hRenderer->hScreen - table->h - (S32)gstate->base);
+        table->collider.x = (S32)((F32)table->pos.x + 1.5f * gstate->base);
+        table->collider.y = (S32)((F32)table->pos.y + 1.4f * gstate->base);
+        table->collider.w = (S32)((F32)table->w - (1.5f + 1.5f) * gstate->base);
+        table->collider.h = (S32)((F32)table->h - (1.4f + 1.4f) * gstate->base);
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
         table->img = createImageAsset(tableBitmap);
-        
+
+        V2DF32 kTable[6][4] = {
+            { { 2.87f, 1.45f}, { 0.4f,   0.4f}, { 14.15f,  0.0f }, { 0.12f, -0.4f} },
+            { { 1.65f, 0.0f }, { 0.12f,  0.4f}, { 14.15f,  0.0f }, { 0.4f,  -0.4f} },
+            { { 1.3f,  1.2f }, {-0.4f,   0.4f}, { 0.0f,    12.8f}, { 0.4f,   0.4f} },
+            { {-1.3f,  1.2f }, {-0.4f,  -0.4f}, {-14.15f,  0.0f }, {-0.12f,  0.4f} },
+            { {-1.65f, 0.0f }, {-0.12f, -0.4f}, {-14.15f,  0.0f }, {-0.4f,   0.4f} },
+            { {-1.3f, -1.2f }, { 0.4f,  -0.4f}, { 0.0f,   -12.8f}, {-0.4f,  -0.4f} },
+        };
+
+        table->boards[0].p[0] = {
+            (F32)table->pos.x + kTable[0][0].x * gstate->base, 
+            (F32)table->pos.y + kTable[0][0].y * gstate->base
+        };
+        table->boards[0].p[1] = table->boards[0].p[0] + kTable[0][1] * gstate->base;
+        table->boards[0].p[2] = table->boards[0].p[1] + kTable[0][2] * gstate->base;
+        table->boards[0].p[3] = table->boards[0].p[2] + kTable[0][3] * gstate->base;
+
+        for (U16 i = 1; i < 6; i += 1)
+        {
+            table->boards[i].p[0] = table->boards[i-1].p[3] + kTable[i][0] * gstate->base;
+            table->boards[i].p[1] = table->boards[i].p[0]   + kTable[i][1] * gstate->base;
+            table->boards[i].p[2] = table->boards[i].p[1]   + kTable[i][2] * gstate->base;
+            table->boards[i].p[3] = table->boards[i].p[2]   + kTable[i][3] * gstate->base;
+        }
+
         //
         // Balls
         //
-        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.7f, 0.9f);
+        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.626f, 0.71f);
 
         // 
         // CollideEventQueue
@@ -225,7 +185,6 @@ internal void gtick(GameIO *io)
         cequeue.pool = (CollideEvent*)m_arena_push(&gstate->arena, cequeue.count * sizeof(CollideEvent));
         gstate->cequeue = cequeue;
 
-        gstate->pull = {};
         gstate->isInit = true;
     }
 
@@ -243,7 +202,7 @@ internal void gtick(GameIO *io)
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
         // Reset game
-        ballsInit(&gstate->table, balls, radius, 0.7f, 0.9f);
+        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.626f, 0.71f);
     }
 
     if (devices->mouseBtns[MOUSE_BTN_LEFT])
@@ -265,13 +224,6 @@ internal void gtick(GameIO *io)
                 (F32)(cuestick->clipos.x - devices->mouseX),
                 (F32)(cuestick->clipos.y - devices->mouseY),
             };
-
-            P2DF32_pull_push(&gstate->pull, {
-                (F32)devices->mouseX, 
-                (F32)devices->mouseY
-            });
-
-            P2DF32_pull_print(&gstate->pull);
 
             cuestick->click = false;
         }
@@ -339,10 +291,13 @@ internal void gtick(GameIO *io)
             e->isUpdated = true;
         }
     }
-
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, table->pos.x, table->pos.y, table->targetFrameWidth, table->targetFrameHeight, table->img.bitmap, table->img.width, table->img.height);
+    
+    // TODO(annad): srcrect...
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, 
+        table->pos.x, table->pos.y, table->w, table->h, 
+        table->img.bitmap, table->img.width, table->img.height);
     Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, table->pos.x, table->pos.y, table->targetFrameWidth, table->targetFrameHeight);
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, table->pos.x, table->pos.y, table->w, table->h);
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
@@ -356,21 +311,46 @@ internal void gtick(GameIO *io)
     {
         Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0x00, 0x00, 0xff);
         Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-                (S32)balls[CUE_BALL].p.x, 
+                (S32)balls[CUE_BALL].p.x,
                 (S32)balls[CUE_BALL].p.y,
                 (S32)balls[CUE_BALL].p.x + cuestick->clipos.x - devices->mouseX,
                 (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
         Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     }
 
+#if BILL_CFG_DEV_MODE
+    Entity *_e = &balls[CUE_BALL];
+    for (U32 j = 0; j < sizeof(table->boards) / sizeof(table->boards[0]); j += 1)
+    {
+        for (U32 i = 0; i < sizeof(table->boards[0]) / sizeof(table->boards[0].p[0]) - 1; i += 1)
+        {
+            P2DF32 a = table->boards[j].p[i];
+            P2DF32 b = table->boards[j].p[i+1];
+            B8 isCollide = ballCheckWallCollide(_e, radius, a, b);
+            if (isCollide)
+            {
+                Renderer_pushCmd(hRenderer, 
+                    RCMD_SET_RENDER_COLOR, 
+                    0xff, 0x00, 0x00, 0xff);
+            }
+
+            Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
+                (S32)a.x, (S32)a.y, 
+                (S32)b.x, (S32)b.y);
+
+            if (isCollide)
+            {
+                Renderer_pushCmd(hRenderer, 
+                    RCMD_SET_RENDER_COLOR, 
+                    0xff, 0xff, 0xff, 0xff);
+            }
+        }
+    }
+
     Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
         table->collider.x, table->collider.y, 
         table->collider.w, table->collider.h);
-
-    if (gstate->pull.cursor == P2DF32_pull_size(&gstate->pull))
-    {
-        P2DF32_pull_draw(hRenderer, &balls[CUE_BALL], radius, &gstate->pull);
-    }
+#endif
 
     Renderer_pushCmd(hRenderer, RCMD_NULL);
 }

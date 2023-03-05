@@ -26,19 +26,19 @@ struct CueStick
     B8 click;
 };
 
+struct TableBoard
+{
+    P2DF32 p[4];
+};
+
 struct Table
 {
     V2DS32 pos;
-    S32 targetFrameWidth;
-    S32 targetFrameHeight;
+    S32 w;
+    S32 h;
+    TableBoard boards[6];
     Rect collider;
     ImageAsset img;
-};
-
-struct P2DF32_pull
-{
-    P2DF32 buffer[2];
-    U32 cursor;
 };
 
 struct GameState
@@ -48,12 +48,11 @@ struct GameState
     // i mean struct Ball {...
     Entity balls[BALL_COUNT];
     Table table;
-    P2DF32_pull pull;
 
     CueStick cuestick;
     CollideEventQueue cequeue;
     
-    S32 base;
+    F32 base;
     F32 balldiam;
 
     B8 isInit;

@@ -9,7 +9,7 @@ Description: <empty>
 #ifndef BILL_RENDERER_H
 #define BILL_RENDERER_H
 
-#define RCMD_BUFFER_SIZE BYTE(0x200)
+#define RCMD_BUFFER_SIZE BYTE(0x400)
 
 enum Renderer_Command : U8
 {

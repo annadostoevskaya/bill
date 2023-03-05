@@ -138,7 +138,9 @@ internal S32 SDLRenderer_drawBmp(RendererHandle *hRenderer, U8 *cmdPointer)
     SDL_Surface *surface = SDL_CreateRGBSurfaceFrom((void*)bitmap, 
             bitmapWidth, bitmapHeight, 32, 4 * bitmapWidth, 
             0xFF0000, 0x00FF00, 0x0000FF, 0xFF000000);
-    /* FIXME(annad): SDL_CreateTexture allocate memory size of bmp->h * bmp->pitch each EVERY TIME! */
+    /* 
+     * FIXME(annad): SDL_CreateTexture allocate memory size of bmp->h * bmp->pitch each EVERY TIME! 
+     */
     SDL_Texture *texture = SDL_CreateTextureFromSurface((SDL_Renderer*)hRenderer->ctx, surface);
     SDL_RenderCopy((SDL_Renderer*)hRenderer->ctx, texture, NULL, &targetFrame);
     SDL_FreeSurface(surface);

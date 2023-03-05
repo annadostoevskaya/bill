@@ -53,8 +53,8 @@ internal void ballsInitRack(Entity *balls, F32 radius, F32 x, F32 y)
 
 internal void ballsInit(Table *table, Entity *balls, F32 radius, F32 x, F32 y)
 {
-    F32 rackPosX = (x * (F32)table->collider.w);
-    F32 rackPosY = (y * (F32)table->collider.h);
+    F32 rackPosX = (x * (F32)table->w);
+    F32 rackPosY = (y * (F32)table->h);
     ballsInitRack(balls, radius, rackPosX, rackPosY);
 }
 
