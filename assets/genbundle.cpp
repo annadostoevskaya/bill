@@ -15,14 +15,10 @@ Description: Simple assets.bundle generator for bill.
 
 void to_c_style_const(std::string &s)
 {
-    for (auto iter = s.begin(); iter != s.end(); iter++)
+    for (char& c : s)
     {
-        if (*iter == '.')
-        {
-            *iter = '_';
-        }
-        
-        *iter = std::toupper(static_cast<unsigned char>(*iter));
+        if (c == '.') c = '_';
+        c = std::toupper(c);
     }
 }
 
@@ -32,13 +28,13 @@ int main(int argc, char **argv)
     std::ofstream assets_h("./../assets.h", std::ios::out);
     assert(bundle.is_open() && assets_h.is_open());
     
-    assets_h << "/*" << std::endl;
-    assets_h << "    This file generated with 'genbundle' program!" << std::endl;
-    assets_h << "    See ./assets/README.txt for more information." << std::endl;
-    assets_h << "*/" << std::endl;
-    assets_h << std::endl;
-    assets_h << "enum ASSETS_BUNDLE" << std::endl;
-    assets_h << "{" << std::endl;
+    assets_h << "/*\n";
+    assets_h << "    This file generated with 'genbundle' program!\n";
+    assets_h << "    See ./assets/README.txt for more information.\n";
+    assets_h << "*/\n";
+    assets_h << '\n';
+    assets_h << "enum ASSETS_BUNDLE\n";
+    assets_h << "{\n";
     std::uintmax_t file_begin_from = 0;
     for (const auto &entry : std::filesystem::directory_iterator("./bmp"))
     {
@@ -50,19 +46,18 @@ int main(int argc, char **argv)
         std::uintmax_t file_size = entry.file_size();
         
         assets_h << "   ASSETS_BUNDLE_" << filename << " = " << file_begin_from 
-            << ", // sizeof: 0x" << std::hex << file_size << std::dec << std::endl;
+            << ", // sizeof: 0x" << std::hex << file_size << std::dec << '\n';
         
         assert(bmp_file.is_open()); // NOTE(annad): Can't open this file.
         file_begin_from += file_size;
         
         bundle << bmp_file.rdbuf();
-        std::cout << "[GENBUNDLE] (" << file_size / 1024 << "KB) " << file_path.filename().string() << std::endl;
+        std::cout << "[GENBUNDLE] (" << file_size / 1024 << "KB) " << file_path.filename().string() << '\n';
 
         bmp_file.close();
     }
 
-    assets_h << "};" << std::endl;
-    assets_h << std::endl;
+    assets_h << "};\n\n";
 
     return 0;
 }
