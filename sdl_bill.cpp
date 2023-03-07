@@ -21,8 +21,8 @@ Description: <empty>
 
 #define BILL_CFG_FPS            60
 #define BILL_CFG_WINDOW_TITLE   "bill"
-#define BILL_CFG_HEIGHT         (1080)
-#define BILL_CFG_WIDTH          (1920)
+#define BILL_CFG_WIDTH          (1366)
+#define BILL_CFG_HEIGHT         (768)
 #define BILL_CFG_FULLSCREEN     false
 
 #if _CLI_DEV_MODE

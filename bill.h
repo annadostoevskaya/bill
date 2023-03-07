@@ -51,10 +51,8 @@ struct GameState
 
     CueStick cuestick;
     CollideEventQueue cequeue;
-    
-    F32 base;
-    F32 balldiam;
 
+    F32 radius;
     B8 isInit;
 };
 

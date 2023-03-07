@@ -9,7 +9,7 @@ Description: <empty>
 void dbg_VerifyCollides()
 {
     Entity *balls = (Entity*)&dbg_GameState->balls;
-    F32 radius = dbg_GameState->balldiam / 2.0f;
+    F32 radius = dbg_GameState->radius;
     Rect *tbl= &dbg_GameState->table.collider;
     V2DF32 nvecwall = {};
     for (S32 i = 0; i < BALL_COUNT; i += 1)
@@ -38,13 +38,21 @@ void dbg_ForceUpdateScreen()
 {
     Renderer_pushCmd(dbg_HRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     Entity *balls = (Entity *)&dbg_GameState->balls;
-    F32 radius = dbg_GameState->balldiam / 2.0f;
+    Table *table = &dbg_GameState->table;
+    Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_BMP, 
+        table->pos.x, table->pos.y, table->w, table->h, 
+        table->img.bitmap, table->img.width, table->img.height);
+
+    F32 radius = dbg_GameState->radius;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
         if (e->isInit)
         {
-            Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)radius);
+            // Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)radius);
+            Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_BMP, 
+                (S32)(e->p.x - radius), (S32)(e->p.y - radius), (S32)(2.0f * radius), (S32)(2.0f * radius), 
+                e->img.bitmap, e->img.width, e->img.height);
         }
     }
 

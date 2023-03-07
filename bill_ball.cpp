@@ -20,7 +20,7 @@ internal void ballsInitRack(Entity *balls, F32 radius, F32 x, F32 y)
     // https://math.stackexchange.com/questions/2078997/inverse-of-a-factorial
     S32 dy = 5;
     S32 dx = 5;
-    S32 ballIdx = BALL_2;
+    S32 ballIdx = 1;
     for (S32 i = dx; i > 0; i -= 1)
     {
         dy = i;
@@ -42,8 +42,8 @@ internal void ballsInitRack(Entity *balls, F32 radius, F32 x, F32 y)
     }
 
     balls[CUE_BALL].id = CUE_BALL;
-    balls[CUE_BALL].p.x = balls[BALL_16].p.x - (2.0f * radius * 10.0f);
-    balls[CUE_BALL].p.y = balls[BALL_16].p.y;
+    balls[CUE_BALL].p.x = balls[BALL_15].p.x - (2.0f * radius * 10.0f);
+    balls[CUE_BALL].p.y = balls[BALL_15].p.y;
     balls[CUE_BALL].v.x = 0.0f;
     balls[CUE_BALL].v.y = 0.0f;
     balls[CUE_BALL].isInit = true;
@@ -67,17 +67,21 @@ internal Entity ballUpdate(Entity *ball, F32 dt)
     return updated;   
 }
 
-internal B8 ballCheckWallCollider(V2DF32 p, F32 radius, P2DF32 a, P2DF32 b)
+/*
+ * TODO(annad): Here it is necessary to explain how it works!!!
+ */ 
+internal B8 ballCheckWallCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
 {
-    if (p.x >= a.x + radius && p.x <= b.x + radius)
-    {
-        if (p.y >= a.y + radius && p.y <= b.y + radius)
-        {
-            return true;
-        }
-    }
+    V2DF32 line = b - a;
+    V2DF32 nx = line.getNormalize(); 
+    V2DF32 ny = {-nx.y, nx.x};
+    V2DF32 p = {
+        (ball->p - a).inner(nx), 
+        (ball->p - a).inner(ny),
+    };
 
-    return false;
+    return (radius >= p.y && 
+        p.x >= -radius && p.x <= line.getLength() + radius);
 }
 
 internal B8 ballCheckTableBoardCollide(Entity *ball, F32 radius, Rect *table, V2DF32 *nvecwall)

@@ -79,25 +79,6 @@ ImageAsset createImageAsset(U8 *bmpAsset)
 
 #include "bill_assets.h"
 
-/*
- * TODO(annad): Here it is necessary to explain how it works!!!
- */ 
-internal B8 ballCheckWallCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
-{
-    V2DF32 line = b - a;
-    V2DF32 nx = line.getNormalize(); 
-    V2DF32 ny = {-nx.y, nx.x};
-    V2DF32 p = {
-        (ball->p - a).inner(nx), 
-        (ball->p - a).inner(ny),
-    };
-
-    EvalPrintF(p.x);
-    EvalPrintF(p.y);
-    return (radius >= p.y && 
-        p.x >= -radius && p.x <= line.getLength() + radius);
-}
-
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -116,16 +97,13 @@ internal void gtick(GameIO *io)
         // Assets
         //
         U8 *assets = (U8*)storage->assets;
-        // Metrics
-        //
-#define BALLDIAM_PER_WIDTH 0.021f // TODO(annad): What the fuck, remove this!!!!
-        gstate->base = (BALLDIAM_PER_WIDTH * (F32)hRenderer->wScreen);
-        gstate->balldiam = (F32)gstate->base;
+        gstate->radius = 0.0105f * (F32)(hRenderer->wScreen);
         // Arena
         // TODO(annad): Memory aligment???
         M_BaseMemory *mVtbl = m_void_base_memory(storage->persistent, storage->persistSize);
         gstate->arena = m_make_arena_reserve(mVtbl, storage->persistSize);
         Assert(gstate->arena.memory != NULL);
+        //
         // Renderer
         //
         hRenderer->size = RCMD_BUFFER_SIZE;
@@ -135,46 +113,55 @@ internal void gtick(GameIO *io)
         //
         // Table
         //
-        table->w = 37 * (S32)gstate->base;
-        table->h = 19 * (S32)gstate->base;
-        table->pos.x = (hRenderer->wScreen - table->w - (S32)gstate->base);
-        table->pos.y = (hRenderer->hScreen - table->h - (S32)gstate->base);
-        table->collider.x = (S32)((F32)table->pos.x + 1.5f * gstate->base);
-        table->collider.y = (S32)((F32)table->pos.y + 1.4f * gstate->base);
-        table->collider.w = (S32)((F32)table->w - (1.5f + 1.5f) * gstate->base);
-        table->collider.h = (S32)((F32)table->h - (1.4f + 1.4f) * gstate->base);
+        table->w = 0.8f * (F32)hRenderer->wScreen;
+        table->h = 0.7f * (F32)hRenderer->hScreen;
+        table->pos.x = (hRenderer->wScreen - table->w - 2 * (S32)gstate->radius);
+        table->pos.y = (hRenderer->hScreen - table->h - 2 * (S32)gstate->radius);
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
         table->img = createImageAsset(tableBitmap);
 
+        V2DF32 screen = {
+            (F32)hRenderer->wScreen,
+            (F32)hRenderer->hScreen
+        };
+
         V2DF32 kTable[6][4] = {
-            { { 2.87f, 1.45f}, { 0.4f,   0.4f}, { 14.15f,  0.0f }, { 0.12f, -0.4f} },
-            { { 1.65f, 0.0f }, { 0.12f,  0.4f}, { 14.15f,  0.0f }, { 0.4f,  -0.4f} },
-            { { 1.3f,  1.2f }, {-0.4f,   0.4f}, { 0.0f,    12.8f}, { 0.4f,   0.4f} },
-            { {-1.3f,  1.2f }, {-0.4f,  -0.4f}, {-14.15f,  0.0f }, {-0.12f,  0.4f} },
-            { {-1.65f, 0.0f }, {-0.12f, -0.4f}, {-14.15f,  0.0f }, {-0.4f,   0.4f} },
-            { {-1.3f, -1.2f }, { 0.4f,  -0.4f}, { 0.0f,   -12.8f}, {-0.4f,  -0.4f} },
+            { { 0.242313f, 0.317708f }, { 0.251098f, 0.333333f }, { 0.559297f, 0.333333f }, { 0.562225f, 0.316406f } },
+            { { 0.598097f, 0.319010f }, { 0.600000f, 0.333333f }, { 0.907760f, 0.333333f }, { 0.917277f, 0.316406f } },
+            { { 0.945827f, 0.363281f }, { 0.937042f, 0.377604f }, { 0.937042f, 0.851562f }, { 0.946559f, 0.867188f } },
+            { { 0.918741f, 0.914062f }, { 0.909224f, 0.897135f }, { 0.600293f, 0.897135f }, { 0.598829f, 0.912760f } },
+            { { 0.561493f, 0.914062f }, { 0.559297f, 0.897135f }, { 0.251098f, 0.897135f }, { 0.243777f, 0.910156f } },
+            { { 0.214495f, 0.865885f }, { 0.223280f, 0.851562f }, { 0.223280f, 0.377604f }, { 0.214495f, 0.364583f } },
         };
 
-        table->boards[0].p[0] = {
-            (F32)table->pos.x + kTable[0][0].x * gstate->base, 
-            (F32)table->pos.y + kTable[0][0].y * gstate->base
-        };
-        table->boards[0].p[1] = table->boards[0].p[0] + kTable[0][1] * gstate->base;
-        table->boards[0].p[2] = table->boards[0].p[1] + kTable[0][2] * gstate->base;
-        table->boards[0].p[3] = table->boards[0].p[2] + kTable[0][3] * gstate->base;
-
-        for (U16 i = 1; i < 6; i += 1)
+        for (U16 i = 0; i < 6; i += 1)
         {
-            table->boards[i].p[0] = table->boards[i-1].p[3] + kTable[i][0] * gstate->base;
-            table->boards[i].p[1] = table->boards[i].p[0]   + kTable[i][1] * gstate->base;
-            table->boards[i].p[2] = table->boards[i].p[1]   + kTable[i][2] * gstate->base;
-            table->boards[i].p[3] = table->boards[i].p[2]   + kTable[i][3] * gstate->base;
+            table->boards[i].p[0] = kTable[i][0] * screen;
+            table->boards[i].p[1] = kTable[i][1] * screen;
+            table->boards[i].p[2] = kTable[i][2] * screen;
+            table->boards[i].p[3] = kTable[i][3] * screen;
         }
-
+    
         //
         // Balls
         //
-        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.626f, 0.71f);
+        ballsInit(&gstate->table, balls, gstate->radius, 0.591667f, 0.718518f);
+        balls[CUE_BALL].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_CUE_BALL_BMP));
+        balls[BALL_1].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_1_BMP));
+        balls[BALL_2].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_2_BMP));
+        balls[BALL_3].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_3_BMP));
+        balls[BALL_4].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_4_BMP));
+        balls[BALL_5].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_5_BMP));
+        balls[BALL_6].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_6_BMP));
+        balls[BALL_7].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_7_BMP));
+        balls[BALL_8].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_EIGHT_BALL_BMP));
+        balls[BALL_9].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_9_BMP));
+        balls[BALL_10].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_10_BMP));
+        balls[BALL_11].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_11_BMP));
+        balls[BALL_12].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_12_BMP));
+        balls[BALL_13].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_13_BMP));
+        balls[BALL_14].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
+        balls[BALL_15].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_15_BMP));
 
         // 
         // CollideEventQueue
@@ -188,7 +175,7 @@ internal void gtick(GameIO *io)
         gstate->isInit = true;
     }
 
-    F32 radius = gstate->balldiam / 2.0f;
+    F32 radius = gstate->radius;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
@@ -202,7 +189,7 @@ internal void gtick(GameIO *io)
     if (devices->keybBtns[KEYB_BTN_RETURN])
     {
         // Reset game
-        ballsInit(&gstate->table, balls, gstate->balldiam / 2.0f, 0.626f, 0.71f);
+        ballsInit(&gstate->table, balls, gstate->radius, 0.591667f, 0.718518f);
     }
 
     if (devices->mouseBtns[MOUSE_BTN_LEFT])
@@ -228,7 +215,7 @@ internal void gtick(GameIO *io)
             cuestick->click = false;
         }
     }
-#if 0
+#if 1
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
@@ -238,6 +225,8 @@ internal void gtick(GameIO *io)
             {
                 Entity *e = &balls[colevent.eid];
                 V2DF32 *nvecwall = (V2DF32*)(colevent.custom);
+                EvalPrint(e->v.x);
+                EvalPrint(e->v.y);
                 e->v -= (*nvecwall) * 2.0f * e->v.inner(*nvecwall);
 #if BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Solve, ball-wall (eid %d, dt %f)", e->id, colevent.dtBefore);
@@ -303,7 +292,9 @@ internal void gtick(GameIO *io)
         Entity *e = &balls[i];
         if (e->isInit) // TODO(annad): For branch prediction optimizations we must 
         {              // sort entities by array with initialized entities and uninitialized!
-            Renderer_pushCmd(hRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)radius);
+            Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, 
+                (S32)(e->p.x - radius), (S32)(e->p.y - radius), (S32)(2.0f * radius), (S32)(2.0f * radius), 
+                e->img.bitmap, e->img.width, e->img.height);
         }
     }
 
