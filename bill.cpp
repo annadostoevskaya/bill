@@ -113,8 +113,8 @@ internal void gtick(GameIO *io)
         //
         // Table
         //
-        table->w = 0.8f * (F32)hRenderer->wScreen;
-        table->h = 0.7f * (F32)hRenderer->hScreen;
+        table->w = (S32)(0.8f * (F32)hRenderer->wScreen);
+        table->h = (S32)(0.7f * (F32)hRenderer->hScreen);
         table->pos.x = (hRenderer->wScreen - table->w - 2 * (S32)gstate->radius);
         table->pos.y = (hRenderer->hScreen - table->h - 2 * (S32)gstate->radius);
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
