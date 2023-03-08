@@ -36,6 +36,47 @@ internal void eventQueuePush(CollideEventQueue *cequeue, CollideEvent *event)
     cequeue->pointer += 1;
 }
 
+internal B8 
+handleTableBoard(Entity *updated, F32 radius, 
+    TableBoard *board, U32 numPoints, 
+    CollideEvent *e)
+{
+    CollideEvent colevent = {};
+    V2DF32 nvecwall = {};
+    for (U32 k = 0; k < numPoints - 1; k += 1)
+    {
+        P2DF32 a = board->p[k];
+        P2DF32 b = board->p[k+1];
+        if (ballCheckWallCollide(updated, radius, a, b, &nvecwall))
+        {
+            colevent.eid = updated->id;
+            StaticAssert(sizeof(colevent.custom.v2df32) == 2 * sizeof(V2DF32));
+            if (colevent.type == COLLIDE_NO)
+            {
+                colevent.custom.v2df32[0] = nvecwall;
+                colevent.type = COLLIDE_BALL_BOARD;
+                colevent.dtBefore = 0.0f;
+            }
+            else
+            {
+                colevent.custom.v2df32[1] = nvecwall;
+            }
+            
+#if BILL_CFG_DEV_MODE
+            DbgPrint("[COLLIDE] >Detected, ball-wall (eid %d, wid %d, dt %f)", updated->id, k, colevent.dtBefore);
+#endif
+        }
+    }
+
+    if (colevent.type == COLLIDE_NO)
+    {
+        return false;
+    }
+
+    *e = colevent;
+    return true;
+}
+
 internal B8
 collideEventPoll(GameState *gstate, CollideEvent *colevent)
 {
@@ -76,9 +117,19 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
         Entity *ball = &balls[i];
         if (!ball->isInit || ball->isUpdated) continue;
         updated = ballUpdate(ball, ball->dtUpdate);
-#if 1
+#if 0
         for (S32 j = 0; j < sizeof(table->boards) / sizeof(table->boards[0]); j += 1)
         {
+            TableBoard *board = &table->boards[j];
+            U32 numPoints = sizeof(TableBoard) / sizeof(V2DF32);
+            if (handleTableBoard(&updated, radius, board, numPoints, &e))
+            {
+                eventQueuePush(queue, &e);
+#if BILL_CFG_DEV_MODE
+                DbgPrint("[COLLIDE] >Detected, ball-board (eid %d, boardid %d, dt %f)", ball->id, j, e.dtBefore);
+#endif
+            }
+#if 0
             for (S32 k = 0; k < sizeof(table->boards[0]) / sizeof(table->boards[0].p[0]) - 1; k += 1)
             {
                 P2DF32 a = table->boards[j].p[k];
@@ -94,19 +145,19 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
                 if (radius >= p.y && p.x >= -radius && 
                     p.x <= line.getLength() + radius)
                 {
-                    printf("{%f,%f}\n", updated.p.x, updated.p.y);
                     e.eid = ball->id;
-                    e.type = COLLIDE_BALL_WALL;
+                    e.type = COLLIDE_BALL_BOARD;
                     e.dtBefore = 0.0f;
-                    StaticAssert(sizeof(V2DF32) <= sizeof(e.custom));
-                    V2DF32 *nvecwall = (V2DF32*)(e.custom);
-                    *nvecwall = ny;
+                    e.custom.v2df32[0] = ny;
+                    // V2DF32 *nvecwall = (V2DF32*)(e.custom);
+                    // *nvecwall = ny;
                     eventQueuePush(queue, &e);
 #if BILL_CFG_DEV_MODE
                     DbgPrint("[COLLIDE] >Detected, ball-wall (eid %d, dt %f)", ball->id, e.dtBefore);
 #endif
                 }
             }
+#endif
         }
 #endif
         for (S32 j = 0; j < BALL_COUNT; j += 1)
@@ -119,10 +170,11 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
                 e.eid = ball->id;
                 e.type = COLLIDE_BALL_BALL;
                 e.dtBefore = ballTimeBeforeBallCollide(ball, b, radius);
-                S32 *ballbeid = (S32*)e.custom;
-                *ballbeid = b->id;
+                e.custom.s32 = b->id;
+                // S32 *ballbeid = (S32*)e.custom;
+                // *ballbeid = b->id;
                 eventQueuePush(queue, &e);
-#if BILL_CFG_DEV_MODE
+#if !BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Detected, ball-ball (a_eid %d, b_eid %d, dt %f)", ball->id, b->id, e.dtBefore);
 #endif
             }

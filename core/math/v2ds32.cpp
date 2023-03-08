@@ -11,13 +11,6 @@ class V2DS32
 public:
     S32 x, y;
     
-    V2DS32& operator=(const V2DS32& rhs)
-    {
-        this->x = rhs.x;
-        this->x = rhs.y;
-        return *this;
-    }
-
     V2DS32& operator+=(const V2DS32& rhs)
     {
         this->x += rhs.x;

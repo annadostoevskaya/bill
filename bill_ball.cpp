@@ -70,18 +70,33 @@ internal Entity ballUpdate(Entity *ball, F32 dt)
 /*
  * TODO(annad): Here it is necessary to explain how it works!!!
  */ 
-internal B8 ballCheckWallCollide(Entity *ball, F32 radius, P2DF32 a, P2DF32 b)
+internal B8 
+ballCheckWallCollide(Entity *ball, F32 radius, 
+    P2DF32 a, P2DF32 b, V2DF32 *nvecwall)
 {
     V2DF32 line = b - a;
-    V2DF32 nx = line.getNormalize(); 
+    V2DF32 nx = line.getNormalize();
     V2DF32 ny = {-nx.y, nx.x};
     V2DF32 p = {
         (ball->p - a).inner(nx), 
         (ball->p - a).inner(ny),
     };
 
-    return (radius >= p.y && 
-        p.x >= -radius && p.x <= line.getLength() + radius);
+    if (radius >= p.y && // FIXME(annad): Are you stupid bastard?
+                         // Wtf you are check collide of ball with equation for rectangle??? 
+        p.x >= -radius && p.x <= line.getLength() + radius)
+    {
+        *nvecwall = ny;
+        EvalPrintF(line.x);
+        EvalPrintF(line.y);
+        EvalPrintF(p.x);
+        EvalPrintF(p.y);
+        EvalPrintF(ball->p.x);
+        EvalPrintF(ball->p.y);
+        return true;
+    }
+    
+    return false;
 }
 
 internal B8 ballCheckTableBoardCollide(Entity *ball, F32 radius, Rect *table, V2DF32 *nvecwall)
@@ -141,7 +156,7 @@ internal F32 ballTimeBeforeBallCollide(Entity *ballA, Entity *ballB, F32 radius)
     if (ballCheckBallCollide(ballA, ballB, radius))
     {
         // NOTE(annad): Already collide!
-#if BILL_CFG_DEV_MODE
+#if !BILL_CFG_DEV_MODE
         DbgPrint("[INFO] Already collide%s", "!");
 #endif
         return 0.0f;

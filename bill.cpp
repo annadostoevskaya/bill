@@ -206,6 +206,7 @@ internal void gtick(GameIO *io)
     {
         if (cuestick->click)
         {
+            printf("========================\n");
             Entity *cueball = &balls[CUE_BALL];
             cueball->v = {
                 (F32)(cuestick->clipos.x - devices->mouseX),
@@ -221,22 +222,52 @@ internal void gtick(GameIO *io)
     {
         switch(colevent.type)
         {
+            case COLLIDE_BALL_BOARD:
+            {
+                Entity *e = &balls[colevent.eid];
+                EvalPrintF(e->v.y);
+#if 0
+                if (e->v.getLength() <= 10.0f) 
+                {
+                    e->v = {};
+                    e->isUpdated = true; // TODO(annad): Idk, where is it really supposed to be?
+                    break;
+                }
+#endif
+                for (U32 i = 0; i < sizeof(colevent.custom.v2df32) / sizeof(V2DF32); i += 1)
+                {
+                    V2DF32 nvecwall = colevent.custom.v2df32[i];
+                    if (nvecwall.getLength()) 
+                    {
+                        e->v -= nvecwall * 2.0f * e->v.inner(nvecwall);
+                        dbg_ForceUpdateScreen();
+#if BILL_CFG_DEV_MODE
+                DbgPrint("[COLLIDE] >Solve, ball-wall (eid %d, wallnum=%d, dt %f)", e->id, i, colevent.dtBefore);
+#endif
+                    }
+                }
+#if BILL_CFG_DEV_MODE
+                DbgPrint("[COLLIDE] >Solve, ball-board (eid %d, dt %f)", e->id, colevent.dtBefore);
+#endif
+
+            } break;
+#if 0
             case COLLIDE_BALL_WALL:
             {
                 Entity *e = &balls[colevent.eid];
-                V2DF32 *nvecwall = (V2DF32*)(colevent.custom);
+                V2DF32 nvecwall = colevent.custom.v2df32[0];
                 EvalPrint(e->v.x);
                 EvalPrint(e->v.y);
-                e->v -= (*nvecwall) * 2.0f * e->v.inner(*nvecwall);
+                e->v -= nvecwall * 2.0f * e->v.inner(nvecwall);
 #if BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Solve, ball-wall (eid %d, dt %f)", e->id, colevent.dtBefore);
 #endif
             } break;
-
+#endif
             case COLLIDE_BALL_BALL:
             {
                 Entity *a = &balls[colevent.eid];
-                Entity *b = &balls[*((S32*)colevent.custom)];
+                Entity *b = &balls[colevent.custom.s32];
                 if (a->v.getLength() <= 10.0f)
                 {
                     a->v = {};
@@ -257,7 +288,7 @@ internal void gtick(GameIO *io)
 
                     ballSolveCollideOneBall(a, b);
                 }
-#if BILL_CFG_DEV_MODE
+#if !BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Solve, ball-ball (a_eid %d, b_eid %d, dt %f)", a->id, b->id, colevent.dtBefore);
 #endif
             } break;
@@ -317,7 +348,8 @@ internal void gtick(GameIO *io)
         {
             P2DF32 a = table->boards[j].p[i];
             P2DF32 b = table->boards[j].p[i+1];
-            B8 isCollide = ballCheckWallCollide(_e, radius, a, b);
+            V2DF32 nvecwall = {};
+            B8 isCollide = ballCheckWallCollide(_e, radius, a, b, &nvecwall);
             if (isCollide)
             {
                 Renderer_pushCmd(hRenderer, 
