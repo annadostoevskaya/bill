@@ -43,7 +43,58 @@ handleTableBoard(Entity *updated, F32 radius,
 {
     CollideEvent colevent = {};
     V2DF32 nvecwall = {};
-    for (U32 k = 0; k < numPoints - 1; k += 1)
+    for (U32 k = 0; k < numPoints - 2; k += 1)
+    {
+        P2DF32 a = board->p[k];
+        P2DF32 b = board->p[k+1];
+        P2DF32 c = board->p[k+2];
+        if (ballCheckLineCollide(updated, radius, a, b, &nvecwall))
+        {
+            colevent.eid = updated->id;
+            StaticAssert(sizeof(colevent.custom.v2df32) == sizeof(V2DF32));
+            colevent.custom.v2df32 = nvecwall;
+            colevent.type = COLLIDE_BALL_WALL;
+            colevent.dtBefore = 0.0f;
+            *e = colevent;
+            return true;
+        }
+
+        if (ballCheckLineCollide(updated, radius, b, c, &nvecwall))
+        {
+            colevent.eid = updated->id;
+            StaticAssert(sizeof(colevent.custom.v2df32) == sizeof(V2DF32));
+            colevent.custom.v2df32 = nvecwall;
+            colevent.type = COLLIDE_BALL_WALL;
+            colevent.dtBefore = 0.0f;
+            *e = colevent;
+            return true;
+        }
+
+        if ((b - updated->p).getLength() <= radius)
+        {
+            V2DF32 lineA = b - a;
+            V2DF32 lineB = c - b;
+            V2DF32 nxA = lineA.getNormalize();
+            V2DF32 nxB = lineB.getNormalize();
+            V2DF32 nyA = { -nxA.y, nxA.x };
+            V2DF32 nyB = { -nxB.y, nxB.x };
+            nvecwall = (nyA + nyB).getNormalize();
+
+            colevent.eid = updated->id;
+            StaticAssert(sizeof(colevent.custom.v2df32) == sizeof(V2DF32));
+            colevent.custom.v2df32 = nvecwall;
+            colevent.type = COLLIDE_BALL_WALL;
+            colevent.dtBefore = 0.0f;
+            *e = colevent;
+            return true;
+        }
+    }
+
+    return false;
+#if 0
+    CollideEvent colevent = {};
+    V2DF32 nvecwall = {};
+    for (U32 k = 0; k < numPoints - 2; k += 1)
     {
         P2DF32 a = board->p[k];
         P2DF32 b = board->p[k+1];
@@ -75,6 +126,7 @@ handleTableBoard(Entity *updated, F32 radius,
 
     *e = colevent;
     return true;
+#endif
 }
 
 internal B8
@@ -117,7 +169,6 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
         Entity *ball = &balls[i];
         if (!ball->isInit || ball->isUpdated) continue;
         updated = ballUpdate(ball, ball->dtUpdate);
-#if 0
         for (S32 j = 0; j < sizeof(table->boards) / sizeof(table->boards[0]); j += 1)
         {
             TableBoard *board = &table->boards[j];
@@ -159,7 +210,7 @@ collideEventPoll(GameState *gstate, CollideEvent *colevent)
             }
 #endif
         }
-#endif
+
         for (S32 j = 0; j < BALL_COUNT; j += 1)
         {
             if (i == j) continue;

@@ -71,6 +71,31 @@ internal Entity ballUpdate(Entity *ball, F32 dt)
  * TODO(annad): Here it is necessary to explain how it works!!!
  */ 
 internal B8 
+ballCheckLineCollide(Entity *ball, F32 radius, 
+    P2DF32 a, P2DF32 b, V2DF32 *nvecwall)
+{
+    V2DF32 line = b - a;
+    V2DF32 nx = line.getNormalize();
+    V2DF32 ny = {-nx.y, nx.x};
+    V2DF32 p = {
+        (ball->p - a).inner(nx), 
+        (ball->p - a).inner(ny),
+    };
+
+    if (radius >= p.y &&
+        p.x >= 0.0f && p.x <= line.getLength())
+    {
+        *nvecwall = ny;
+        return true;
+    }
+    
+    return false;
+}
+
+/*
+ * TODO(annad): Here it is necessary to explain how it works!!!
+ */ 
+internal B8 
 ballCheckWallCollide(Entity *ball, F32 radius, 
     P2DF32 a, P2DF32 b, V2DF32 *nvecwall)
 {

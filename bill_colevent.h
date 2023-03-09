@@ -30,7 +30,7 @@ struct CollideEvent
 
     union {
         S32 s32;
-        V2DF32 v2df32[2];
+        V2DF32 v2df32;
     } custom;
 };
 

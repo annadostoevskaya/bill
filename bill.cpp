@@ -222,6 +222,7 @@ internal void gtick(GameIO *io)
     {
         switch(colevent.type)
         {
+#if 0
             case COLLIDE_BALL_BOARD:
             {
                 Entity *e = &balls[colevent.eid];
@@ -251,11 +252,12 @@ internal void gtick(GameIO *io)
 #endif
 
             } break;
-#if 0
+#endif
+#if 1
             case COLLIDE_BALL_WALL:
             {
                 Entity *e = &balls[colevent.eid];
-                V2DF32 nvecwall = colevent.custom.v2df32[0];
+                V2DF32 nvecwall = colevent.custom.v2df32;
                 EvalPrint(e->v.x);
                 EvalPrint(e->v.y);
                 e->v -= nvecwall * 2.0f * e->v.inner(nvecwall);
@@ -264,6 +266,7 @@ internal void gtick(GameIO *io)
 #endif
             } break;
 #endif
+
             case COLLIDE_BALL_BALL:
             {
                 Entity *a = &balls[colevent.eid];
