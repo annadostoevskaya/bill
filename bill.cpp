@@ -216,44 +216,12 @@ internal void gtick(GameIO *io)
             cuestick->click = false;
         }
     }
-#if 1
+
     CollideEvent colevent = {};
     while (collideEventPoll(gstate, &colevent))
     {
         switch(colevent.type)
         {
-#if 0
-            case COLLIDE_BALL_BOARD:
-            {
-                Entity *e = &balls[colevent.eid];
-                EvalPrintF(e->v.y);
-#if 0
-                if (e->v.getLength() <= 10.0f) 
-                {
-                    e->v = {};
-                    e->isUpdated = true; // TODO(annad): Idk, where is it really supposed to be?
-                    break;
-                }
-#endif
-                for (U32 i = 0; i < sizeof(colevent.custom.v2df32) / sizeof(V2DF32); i += 1)
-                {
-                    V2DF32 nvecwall = colevent.custom.v2df32[i];
-                    if (nvecwall.getLength()) 
-                    {
-                        e->v -= nvecwall * 2.0f * e->v.inner(nvecwall);
-                        dbg_ForceUpdateScreen();
-#if BILL_CFG_DEV_MODE
-                DbgPrint("[COLLIDE] >Solve, ball-wall (eid %d, wallnum=%d, dt %f)", e->id, i, colevent.dtBefore);
-#endif
-                    }
-                }
-#if BILL_CFG_DEV_MODE
-                DbgPrint("[COLLIDE] >Solve, ball-board (eid %d, dt %f)", e->id, colevent.dtBefore);
-#endif
-
-            } break;
-#endif
-#if 1
             case COLLIDE_BALL_WALL:
             {
                 Entity *e = &balls[colevent.eid];
@@ -263,7 +231,6 @@ internal void gtick(GameIO *io)
                 e->v -= nvecwall * 2.0f * e->v.inner(nvecwall);
 #if BILL_CFG_DEV_MODE
                 DbgPrint("[COLLIDE] >Solve, ball-wall (eid %d, dt %f)", e->id, colevent.dtBefore);
-#endif
             } break;
 #endif
 
@@ -303,7 +270,7 @@ internal void gtick(GameIO *io)
             } break;
         }
     }
-#endif
+
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
