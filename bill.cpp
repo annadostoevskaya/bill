@@ -86,6 +86,7 @@ internal void gtick(GameIO *io)
     GameState *gstate = (GameState*)storage->permanent;
     dbg_GameState = gstate;
     RendererHandle *hRenderer = io->hRenderer;
+    Screen *screen = io->screen;
     InputDevices *devices = io->devices;
     // NOTE(annad): Game layer
     Entity *balls = (Entity*)(&gstate->balls);
@@ -174,7 +175,68 @@ internal void gtick(GameIO *io)
 
         gstate->isInit = true;
     }
+#if 0
+    for (U32 i = 0; i < screen->h * screen->w; i += 1)
+    {
+        screen->buf[i] = 0xffffffff;
+    }
 
+    for (U32 i = 0; i < screen->h * screen->w; i += 1)
+    {
+        S32 pixel = 0xffffffff;
+        U8 pa = pixel >> 24 & 0xff;
+        U8 pr = (pixel >> 16 & 0xff);
+        U8 pg = (pixel >> 8 & 0xff);
+        U8 pb = (pixel & 0xff);
+        // x(t)=A-tA+tB | *255
+        // 255*x(T)=255*A-TA+TB
+        U8 br = (screen->buf[i] >> 24 & 0xff);
+        U8 bg = (screen->buf[i] >> 16 & 0xff);
+        U8 bb = (screen->buf[i] >> 8 & 0xff);
+        // printf("%d %d %d\n", br, bg, bb);
+        U32 r = (255*br - pa*br + pa*pr)/255;
+        U32 g = (255*bg - pa*bg + pa*pg)/255;
+        U32 b = (255*bb - pa*bb + pa*pb)/255;
+
+        // printf("%d %d %d\n", r, g, b);
+        screen->buf[i] = b << 8 | g << 16 | r << 24;
+    }
+    
+    F32 a = screen->buf[0] >> 24;
+    printf("%d\n", screen->buf[0] >> 24);
+#else
+    for (U32 i = 0; i < screen->h; i += 1)
+    {
+        for (U32 j = 0; j < screen->w; j += 1)
+        {
+            S32 pixel = table->img.bitmap[i*table->img.width+j];
+            U8 pa = pixel >> 24 & 0xff;
+            U8 pr = (pixel >> 16 & 0xff);
+            U8 pg = (pixel >> 8 & 0xff);
+            U8 pb = (pixel & 0xff);
+            // x(t)=A-tA+tB | *255
+            // 255*x(T)=255*A-TA+TB
+            U8 br = (screen->buf[i] >> 24 & 0xff);
+            U8 bg = (screen->buf[i] >> 16 & 0xff);
+            U8 bb = (screen->buf[i] >> 8 & 0xff);
+            // printf("%d %d %d\n", br, bg, bb);
+            U32 r = (255*br - pa*br + pa*pr)/255;
+            U32 g = (255*bg - pa*bg + pa*pg)/255;
+            U32 b = (255*bb - pa*bb + pa*pb)/255;
+
+            printf("%d %d %d\n", r, g, b);
+            //Assert(false);
+            U8 *px = (U8*)&screen->buf[i*screen->w+j];
+            px[0] = 0;
+            px[1] = r;
+            px[2] = g;
+            px[3] = b;
+            screen->buf[i*screen->w+j] = r << 8 | g << 16 | b << 24;
+            //screen->buf[i*screen->w+j] = pixel;
+        }
+    }
+#endif
+#if 0
     F32 radius = gstate->radius;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
@@ -346,5 +408,6 @@ internal void gtick(GameIO *io)
 #endif
 
     Renderer_pushCmd(hRenderer, RCMD_NULL);
+#endif
 }
 
