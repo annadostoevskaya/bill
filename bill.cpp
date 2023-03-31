@@ -47,25 +47,12 @@ struct BMPInfo
 };
 #pragma pack(pop)
 
-struct ImageAsset
+struct HImage
 {
-    U16 width;
-    U16 height;
+    U16 w;
+    U16 h;
     U32 *bitmap;
 };
-
-ImageAsset createImageAsset(U8 *bmpAsset)
-{
-    BMPHeader *bmpHeader = (BMPHeader*)bmpAsset;
-    BMPInfo *bmpInfo = (BMPInfo*)(bmpAsset + sizeof(BMPHeader));
-    Assert(bmpInfo->bitcount == 32); // NOTE(annad): RGBA ever!
-    ImageAsset imgAsset;
-    imgAsset.width = (U16)bmpInfo->width;
-    imgAsset.height = (U16)bmpInfo->height;
-    imgAsset.bitmap = (U32*)(bmpAsset + bmpHeader->offset);
-
-    return imgAsset;
-}
 
 #include "bill.h"
 #if BILL_CFG_DEV_MODE
@@ -76,8 +63,52 @@ ImageAsset createImageAsset(U8 *bmpAsset)
 #if BILL_CFG_DEV_MODE
 #include "bill_debug.cpp"
 #endif 
-
 #include "bill_assets.h"
+
+HImage createImageHandler(U8 *bmp)
+{
+    BMPHeader *bmpHeader = (BMPHeader*)bmp;
+    BMPInfo *bmpInfo = (BMPInfo*)(bmp + sizeof(BMPHeader));
+    Assert(bmpInfo->bitcount == 32); // NOTE(annad): RGBA ever!
+    HImage himg;
+    himg.w = (U16)bmpInfo->width;
+    himg.h = (U16)bmpInfo->height;
+    himg.bitmap = (U32*)(bmp + bmpHeader->offset);
+
+    return himg;
+}
+
+void screenBlendImg(Screen *screen, HImage *img, P2DS32 p)
+{
+    for (S32 i = 0; i < img->h; i += 1)
+    {
+        for (S32 j = 0; j < img->w; j += 1)
+        {
+            S32 bufidx = (p.y+i)*screen->w+(p.x+j);
+            if (bufidx >= screen->h*screen->w || bufidx < 0)
+            {
+                break;
+            }
+
+            S32 tex = img->bitmap[i*img->w+j];
+            U8 sa = tex >> 24 & 0xff;
+            U8 sr = tex >> 16 & 0xff;
+            U8 sg = tex >> 8 & 0xff;
+            U8 sb = tex & 0xff;
+            // x(t)=A-tA+tB | *255
+            // 255*x(T)=255*A-TA+TB
+            U8 dr = (screen->buf[i] >> 16 & 0xff);
+            U8 dg = (screen->buf[i] >> 8 & 0xff);
+            U8 db = (screen->buf[i] & 0xff);
+            // 0xBBGGRRAA
+            U32 r = (255*dr - sa*dr + sa*sr)/255;
+            U32 g = (255*dg - sa*dg + sa*sg)/255;
+            U32 b = (255*db - sa*db + sa*sb)/255;
+
+            screen->buf[bufidx] = 0xff << 24 | r << 16 | g << 8 | b;
+        }
+    }
+}
 
 internal void gtick(GameIO *io)
 {
@@ -86,6 +117,7 @@ internal void gtick(GameIO *io)
     GameState *gstate = (GameState*)storage->permanent;
     dbg_GameState = gstate;
     RendererHandle *hRenderer = io->hRenderer;
+    Screen *screen = io->screen;
     InputDevices *devices = io->devices;
     // NOTE(annad): Game layer
     Entity *balls = (Entity*)(&gstate->balls);
@@ -118,9 +150,9 @@ internal void gtick(GameIO *io)
         table->pos.x = (hRenderer->wScreen - table->w - 2 * (S32)gstate->radius);
         table->pos.y = (hRenderer->hScreen - table->h - 2 * (S32)gstate->radius);
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
-        table->img = createImageAsset(tableBitmap);
+        table->img = createImageHandler(tableBitmap);
 
-        V2DF32 screen = {
+        V2DF32 screenv = {
             (F32)hRenderer->wScreen,
             (F32)hRenderer->hScreen
         };
@@ -136,36 +168,36 @@ internal void gtick(GameIO *io)
 
         for (U16 i = 0; i < 6; i += 1)
         {
-            table->boards[i].p[0] = kTable[i][0] * screen;
-            table->boards[i].p[1] = kTable[i][1] * screen;
-            table->boards[i].p[2] = kTable[i][2] * screen;
-            table->boards[i].p[3] = kTable[i][3] * screen;
+            table->boards[i].p[0] = kTable[i][0] * screenv;
+            table->boards[i].p[1] = kTable[i][1] * screenv;
+            table->boards[i].p[2] = kTable[i][2] * screenv;
+            table->boards[i].p[3] = kTable[i][3] * screenv;
         }
     
         //
         // Balls
         //
         ballsInit(&gstate->table, balls, gstate->radius, 0.591667f, 0.718518f);
-        balls[CUE_BALL].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_CUE_BALL_BMP));
-        balls[BALL_1].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_1_BMP));
-        balls[BALL_2].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_2_BMP));
-        balls[BALL_3].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_3_BMP));
-        balls[BALL_4].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_4_BMP));
-        balls[BALL_5].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_5_BMP));
-        balls[BALL_6].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_6_BMP));
-        balls[BALL_7].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_7_BMP));
-        balls[BALL_8].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_EIGHT_BALL_BMP));
-        balls[BALL_9].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_9_BMP));
-        balls[BALL_10].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_10_BMP));
-        balls[BALL_11].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_11_BMP));
-        balls[BALL_12].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_12_BMP));
-        balls[BALL_13].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_13_BMP));
-        balls[BALL_14].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
-        balls[BALL_15].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_15_BMP));
+        balls[CUE_BALL].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_CUE_BALL_BMP));
+        balls[BALL_1].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_1_BMP));
+        balls[BALL_2].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_2_BMP));
+        balls[BALL_3].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_3_BMP));
+        balls[BALL_4].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_4_BMP));
+        balls[BALL_5].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_5_BMP));
+        balls[BALL_6].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_6_BMP));
+        balls[BALL_7].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_7_BMP));
+        balls[BALL_8].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_EIGHT_BALL_BMP));
+        balls[BALL_9].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_9_BMP));
+        balls[BALL_10].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_10_BMP));
+        balls[BALL_11].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_11_BMP));
+        balls[BALL_12].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_12_BMP));
+        balls[BALL_13].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_13_BMP));
+        balls[BALL_14].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
+        balls[BALL_15].img = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_15_BMP));
 
         // 
         // CollideEventQueue
-        //
+        // 
         CollideEventQueue cequeue;
         cequeue.count = COLLIDE_EVENT_QUEUE_COUNT;
         cequeue.pointer = 0;
@@ -175,6 +207,20 @@ internal void gtick(GameIO *io)
         gstate->isInit = true;
     }
 
+    HImage test = createImageHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP));
+    for (S32 i = 0; i < screen->h * screen->w; i += 1)
+    {
+        screen->buf[i] = 0xffff;
+    }
+    
+    P2DS32 mouse = {
+        devices->mouseX,
+        devices->mouseY
+    };
+    
+    screenBlendImg(screen, &test, mouse);
+
+#if 0
     F32 radius = gstate->radius;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
@@ -346,5 +392,6 @@ internal void gtick(GameIO *io)
 #endif
 
     Renderer_pushCmd(hRenderer, RCMD_NULL);
+#endif
 }
 

@@ -55,10 +55,19 @@ struct InputDevices
     B8 keybBtns[KEYB_BTN_COUNT];
 };
 
+struct Screen
+{
+    S32 w;
+    S32 h;
+    S32 pitch;
+    U32 *buf;
+};
+
 struct GameIO
 {
     InputDevices *devices;
     RendererHandle *hRenderer;
+    Screen *screen;
     GameStorage *storage;
     Tick *tick;
 };

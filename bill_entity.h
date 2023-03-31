@@ -40,7 +40,9 @@ struct Entity
     V2DF32 p; // 20
     V2DF32 v; // 28
 
-    ImageAsset img; // +8+4
+    HImage img; // +8+4
                     // 28+12 = 40
 };
+
+
 

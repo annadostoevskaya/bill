@@ -21,8 +21,8 @@ Description: <empty>
 
 #define BILL_CFG_FPS            60
 #define BILL_CFG_WINDOW_TITLE   "bill"
-#define BILL_CFG_WIDTH          (1366)
-#define BILL_CFG_HEIGHT         (768)
+#define BILL_CFG_WIDTH          (1920/2)
+#define BILL_CFG_HEIGHT         (1080/2)
 #define BILL_CFG_FULLSCREEN     false
 
 #if _CLI_DEV_MODE
@@ -141,10 +141,20 @@ int main(int, char**)
     InputDevices devices = {};
 
     //
+    // screen
+    //
+    Screen screen = {};
+    screen.w = surface->w;
+    screen.h = surface->h;
+    screen.pitch = surface->pitch;
+    screen.buf = (U32*)surface->pixels;
+
+    //
     // gameIO
     //
     GameIO io = {};
     io.devices = &devices;
+    io.screen = &screen;
     io.hRenderer = &hRenderer;
     io.storage = &storage;
     io.tick = &tick;
@@ -242,8 +252,11 @@ int main(int, char**)
             }
         }
         
+        SDL_LockSurface(surface);
         gtick(&io);
-        SDLRenderer_exec(io.hRenderer);
+        SDL_UnlockSurface(surface);
+
+        // SDLRenderer_exec(io.hRenderer);
         SDL_RenderPresent(sdlRenderer);
         SDL_UpdateWindowSurface(window);
         

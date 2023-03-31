@@ -38,7 +38,7 @@ struct Table
     S32 h;
     TableBoard boards[6];
     Rect collider;
-    ImageAsset img;
+    HImage img;
 };
 
 struct GameState
