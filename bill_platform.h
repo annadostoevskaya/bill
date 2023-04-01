@@ -51,6 +51,8 @@ struct InputDevices
 {
     S32 mouseX;
     S32 mouseY;
+    S32 wheelX;
+    S32 wheelY;
     B8 mouseBtns[MOUSE_BTN_COUNT];
     B8 keybBtns[KEYB_BTN_COUNT];
 };

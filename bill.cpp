@@ -237,10 +237,11 @@ internal void gtick(GameIO *io)
         devices->mouseY
     };
 
-    P2DS32 scalev = {
+    localv P2DS32 scalev = {};
+    scalev.x += 10 * devices->wheelX;
+    scalev.y += 10 * devices->wheelY;
 
-    };
-
+    printf("%d %d\n", scalev.x, scalev.y);
     for (U32 i = 0; i < screen->h; i += 1)
     {
         for (U32 j = 0; j < screen->w; j += 1)
@@ -251,8 +252,8 @@ internal void gtick(GameIO *io)
             };
             
             V2DS32 p = {
-                (S32)(UV.x * (test.w)),
-                (S32)(UV.y * (test.h))
+                (S32)(UV.x * (F32)(test.w + scalev.x)),
+                (S32)(UV.y * (F32)(test.h + scalev.y))
             };
             
             if (p.x < test.w && p.y < test.h && p.x > 0 && p.y > 0)

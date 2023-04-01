@@ -249,6 +249,12 @@ int main(int, char**)
                     devices.mouseX = event.motion.x;
                     devices.mouseY = event.motion.y;
                 } break;
+
+                case SDL_MOUSEWHEEL:
+                {
+                    devices.wheelX = event.wheel.x;
+                    devices.wheelY = event.wheel.y;
+                } break;
             }
         }
         
