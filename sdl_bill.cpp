@@ -182,6 +182,8 @@ int main(int, char**)
 #endif
         SDL_RenderClear(sdlRenderer);
         SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
+
+        devices.dwheel = 0;
         while (SDL_PollEvent(&event))
         {
             switch (event.type)
@@ -198,6 +200,11 @@ int main(int, char**)
                     {
                         devices.keybBtns[KEYB_BTN_RETURN] = false;
                     }
+
+                    if (event.key.keysym.sym == SDLK_LSHIFT)
+                    {
+                        devices.keybBtns[KEYB_BTN_LSHIFT] = false;
+                    }
                 } break;
                 
                 case SDL_KEYDOWN:
@@ -205,6 +212,11 @@ int main(int, char**)
                     if (event.key.keysym.sym == SDLK_RETURN)
                     {
                         devices.keybBtns[KEYB_BTN_RETURN] = true;
+                    }
+
+                    if (event.key.keysym.sym == SDLK_LSHIFT)
+                    {
+                        devices.keybBtns[KEYB_BTN_LSHIFT] = true;
                     }
                 } break;
 
@@ -252,8 +264,7 @@ int main(int, char**)
 
                 case SDL_MOUSEWHEEL:
                 {
-                    devices.wheelX = event.wheel.x;
-                    devices.wheelY = event.wheel.y;
+                    devices.dwheel = event.wheel.y;
                 } break;
             }
         }

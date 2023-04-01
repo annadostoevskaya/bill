@@ -219,10 +219,11 @@ internal void gtick(GameIO *io)
         gstate->isInit = true;
     }
 
-    for (U32 i = 0; i < screen->h * screen->w; i += 1)
+    for (S32 i = 0; i < screen->h * screen->w; i += 1)
     {
         screen->buf[i] = 0xffffffff;
     }
+
     HTexture test = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
     // NOTE(annad): test alpha channel
     //HTexture test = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP));
@@ -238,13 +239,23 @@ internal void gtick(GameIO *io)
     };
 
     localv P2DS32 scalev = {};
-    scalev.x += 10 * devices->wheelX;
-    scalev.y += 10 * devices->wheelY;
+
+    if (devices->dwheel != 0)
+    {
+        if (devices->keybBtns[KEYB_BTN_LSHIFT])
+        {
+            scalev.x += 100 * devices->dwheel;
+        }
+        else
+        {
+            scalev.y += 100 * devices->dwheel;
+        }
+    }
 
     printf("%d %d\n", scalev.x, scalev.y);
-    for (U32 i = 0; i < screen->h; i += 1)
+    for (S32 i = 0; i < screen->h; i += 1)
     {
-        for (U32 j = 0; j < screen->w; j += 1)
+        for (S32 j = 0; j < screen->w; j += 1)
         {
             V2DF32 UV = {
                 (F32)j / (F32)screen->w,

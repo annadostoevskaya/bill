@@ -43,6 +43,8 @@ enum MouseBtn
 enum KeyboardBtn
 {
     KEYB_BTN_RETURN = 0,
+    KEYB_BTN_LSHIFT,
+    // KEYB_BTN_RSHIFT,
     KEYB_BTN_COUNT,
     KEYB_BTN_NULL
 };
@@ -51,8 +53,8 @@ struct InputDevices
 {
     S32 mouseX;
     S32 mouseY;
-    S32 wheelX;
-    S32 wheelY;
+    S32 dwheel;
+    //S32 wheelY;
     B8 mouseBtns[MOUSE_BTN_COUNT];
     B8 keybBtns[KEYB_BTN_COUNT];
 };
