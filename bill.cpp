@@ -47,25 +47,14 @@ struct BMPInfo
 };
 #pragma pack(pop)
 
-struct ImageAsset
+struct HTexture
 {
-    U16 width;
-    U16 height;
+    U16 w;
+    U16 h;
     U32 *bitmap;
+
+    B8 blending;
 };
-
-ImageAsset createImageAsset(U8 *bmpAsset)
-{
-    BMPHeader *bmpHeader = (BMPHeader*)bmpAsset;
-    BMPInfo *bmpInfo = (BMPInfo*)(bmpAsset + sizeof(BMPHeader));
-    Assert(bmpInfo->bitcount == 32); // NOTE(annad): RGBA ever!
-    ImageAsset imgAsset;
-    imgAsset.width = (U16)bmpInfo->width;
-    imgAsset.height = (U16)bmpInfo->height;
-    imgAsset.bitmap = (U32*)(bmpAsset + bmpHeader->offset);
-
-    return imgAsset;
-}
 
 #include "bill.h"
 #if BILL_CFG_DEV_MODE
@@ -76,8 +65,62 @@ ImageAsset createImageAsset(U8 *bmpAsset)
 #if BILL_CFG_DEV_MODE
 #include "bill_debug.cpp"
 #endif 
-
 #include "bill_assets.h"
+
+HTexture createTextureHandler(U8 *bmp)
+{
+    BMPHeader *bmpHeader = (BMPHeader*)bmp;
+    BMPInfo *bmpInfo = (BMPInfo*)(bmp + sizeof(BMPHeader));
+    Assert(bmpInfo->bitcount == 32); // NOTE(annad): RGBA ever!
+    HTexture himg = {};
+    himg.w = (U16)bmpInfo->width;
+    himg.h = (U16)bmpInfo->height;
+    himg.bitmap = (U32*)(bmp + bmpHeader->offset);
+
+    return himg;
+}
+
+void screenDisplayTexture(Screen *screen, HTexture *img, P2DS32 p)
+{
+    for (S32 i = 0; i < img->h; i += 1)
+    {
+        for (S32 j = 0; j < img->w; j += 1)
+        {
+            // NOTE(annad): Upscale?
+            S32 x = (S32)(((F32)j / (F32)img->w) * screen->w);
+            S32 y = (S32)(((F32)i / (F32)img->h) * screen->h);
+            //S32 x = j;
+            //S32 y = i;
+            S32 bufidx = (p.y+y)*screen->w+(p.x+x);
+            if (bufidx >= screen->h*screen->w || bufidx < 0)
+            {
+                break;
+            }
+
+            S32 tex = img->bitmap[i*img->w+j];
+            if (img->blending)
+            {
+                U8 sa = tex >> 24 & 0xff;
+                U8 sr = tex >> 16 & 0xff;
+                U8 sg = tex >> 8 & 0xff;
+                U8 sb = tex & 0xff;
+                // x(t)=A-tA+tB | *255
+                // 255*x(T)=255*A-TA+TB
+                U8 dr = (screen->buf[i] >> 16 & 0xff);
+                U8 dg = (screen->buf[i] >> 8 & 0xff);
+                U8 db = (screen->buf[i] & 0xff);
+                // 0xBBGGRRAA
+                U32 r = (255*dr - sa*dr + sa*sr)/255;
+                U32 g = (255*dg - sa*dg + sa*sg)/255;
+                U32 b = (255*db - sa*db + sa*sb)/255;
+
+                tex = 0xff << 24 | r << 16 | g << 8 | b;
+            }
+
+            screen->buf[bufidx] = tex;
+        }
+    }
+}
 
 internal void gtick(GameIO *io)
 {
@@ -119,9 +162,9 @@ internal void gtick(GameIO *io)
         table->pos.x = (hRenderer->wScreen - table->w - 2 * (S32)gstate->radius);
         table->pos.y = (hRenderer->hScreen - table->h - 2 * (S32)gstate->radius);
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
-        table->img = createImageAsset(tableBitmap);
+        table->img = createTextureHandler(tableBitmap);
 
-        V2DF32 screen = {
+        V2DF32 screenv = {
             (F32)hRenderer->wScreen,
             (F32)hRenderer->hScreen
         };
@@ -137,36 +180,36 @@ internal void gtick(GameIO *io)
 
         for (U16 i = 0; i < 6; i += 1)
         {
-            table->boards[i].p[0] = kTable[i][0] * screen;
-            table->boards[i].p[1] = kTable[i][1] * screen;
-            table->boards[i].p[2] = kTable[i][2] * screen;
-            table->boards[i].p[3] = kTable[i][3] * screen;
+            table->boards[i].p[0] = kTable[i][0] * screenv;
+            table->boards[i].p[1] = kTable[i][1] * screenv;
+            table->boards[i].p[2] = kTable[i][2] * screenv;
+            table->boards[i].p[3] = kTable[i][3] * screenv;
         }
     
         //
         // Balls
         //
         ballsInit(&gstate->table, balls, gstate->radius, 0.591667f, 0.718518f);
-        balls[CUE_BALL].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_CUE_BALL_BMP));
-        balls[BALL_1].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_1_BMP));
-        balls[BALL_2].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_2_BMP));
-        balls[BALL_3].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_3_BMP));
-        balls[BALL_4].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_4_BMP));
-        balls[BALL_5].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_5_BMP));
-        balls[BALL_6].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_6_BMP));
-        balls[BALL_7].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_7_BMP));
-        balls[BALL_8].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_EIGHT_BALL_BMP));
-        balls[BALL_9].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_9_BMP));
-        balls[BALL_10].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_10_BMP));
-        balls[BALL_11].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_11_BMP));
-        balls[BALL_12].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_12_BMP));
-        balls[BALL_13].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_13_BMP));
-        balls[BALL_14].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
-        balls[BALL_15].img = createImageAsset(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_15_BMP));
+        balls[CUE_BALL].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_CUE_BALL_BMP));
+        balls[BALL_1].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_1_BMP));
+        balls[BALL_2].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_2_BMP));
+        balls[BALL_3].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_3_BMP));
+        balls[BALL_4].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_4_BMP));
+        balls[BALL_5].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_5_BMP));
+        balls[BALL_6].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_6_BMP));
+        balls[BALL_7].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_7_BMP));
+        balls[BALL_8].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_EIGHT_BALL_BMP));
+        balls[BALL_9].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_9_BMP));
+        balls[BALL_10].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_10_BMP));
+        balls[BALL_11].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_11_BMP));
+        balls[BALL_12].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_12_BMP));
+        balls[BALL_13].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_13_BMP));
+        balls[BALL_14].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
+        balls[BALL_15].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_15_BMP));
 
         // 
         // CollideEventQueue
-        //
+        // 
         CollideEventQueue cequeue;
         cequeue.count = COLLIDE_EVENT_QUEUE_COUNT;
         cequeue.pointer = 0;
@@ -175,67 +218,52 @@ internal void gtick(GameIO *io)
 
         gstate->isInit = true;
     }
-#if 0
+
     for (U32 i = 0; i < screen->h * screen->w; i += 1)
     {
         screen->buf[i] = 0xffffffff;
     }
-
-    for (U32 i = 0; i < screen->h * screen->w; i += 1)
+    HTexture test = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
+    // NOTE(annad): test alpha channel
+    //HTexture test = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP));
+    test.blending = true;
+    for (S32 i = 0; i < screen->h * screen->w; i += 1)
     {
-        S32 pixel = 0xffffffff;
-        U8 pa = pixel >> 24 & 0xff;
-        U8 pr = (pixel >> 16 & 0xff);
-        U8 pg = (pixel >> 8 & 0xff);
-        U8 pb = (pixel & 0xff);
-        // x(t)=A-tA+tB | *255
-        // 255*x(T)=255*A-TA+TB
-        U8 br = (screen->buf[i] >> 24 & 0xff);
-        U8 bg = (screen->buf[i] >> 16 & 0xff);
-        U8 bb = (screen->buf[i] >> 8 & 0xff);
-        // printf("%d %d %d\n", br, bg, bb);
-        U32 r = (255*br - pa*br + pa*pr)/255;
-        U32 g = (255*bg - pa*bg + pa*pg)/255;
-        U32 b = (255*bb - pa*bb + pa*pb)/255;
-
-        // printf("%d %d %d\n", r, g, b);
-        screen->buf[i] = b << 8 | g << 16 | r << 24;
+        screen->buf[i] = 0xffff;
     }
-    
-    F32 a = screen->buf[0] >> 24;
-    printf("%d\n", screen->buf[0] >> 24);
-#else
+
+    P2DS32 mouse = {
+        devices->mouseX,
+        devices->mouseY
+    };
+
+    P2DS32 scalev = {
+
+    };
+
     for (U32 i = 0; i < screen->h; i += 1)
     {
         for (U32 j = 0; j < screen->w; j += 1)
         {
-            S32 pixel = table->img.bitmap[i*table->img.width+j];
-            U8 pa = pixel >> 24 & 0xff;
-            U8 pr = (pixel >> 16 & 0xff);
-            U8 pg = (pixel >> 8 & 0xff);
-            U8 pb = (pixel & 0xff);
-            // x(t)=A-tA+tB | *255
-            // 255*x(T)=255*A-TA+TB
-            U8 br = (screen->buf[i] >> 24 & 0xff);
-            U8 bg = (screen->buf[i] >> 16 & 0xff);
-            U8 bb = (screen->buf[i] >> 8 & 0xff);
-            // printf("%d %d %d\n", br, bg, bb);
-            U32 r = (255*br - pa*br + pa*pr)/255;
-            U32 g = (255*bg - pa*bg + pa*pg)/255;
-            U32 b = (255*bb - pa*bb + pa*pb)/255;
-
-            printf("%d %d %d\n", r, g, b);
-            //Assert(false);
-            U8 *px = (U8*)&screen->buf[i*screen->w+j];
-            px[0] = 0;
-            px[1] = r;
-            px[2] = g;
-            px[3] = b;
-            screen->buf[i*screen->w+j] = r << 8 | g << 16 | b << 24;
-            //screen->buf[i*screen->w+j] = pixel;
+            V2DF32 UV = {
+                (F32)j / (F32)screen->w,
+                (F32)i / (F32)screen->h,
+            };
+            
+            V2DS32 p = {
+                (S32)(UV.x * (test.w)),
+                (S32)(UV.y * (test.h))
+            };
+            
+            if (p.x < test.w && p.y < test.h && p.x > 0 && p.y > 0)
+            {
+                screen->buf[i*screen->w+j] = test.bitmap[p.y*test.w+p.x];
+            }
         }
     }
-#endif
+
+    //screenDisplayTexture(screen, &test, mouse);
+
 #if 0
     F32 radius = gstate->radius;
     F32 frametime = (F32)io->tick->dt / 1000.0f;

@@ -41,7 +41,7 @@ void dbg_ForceUpdateScreen()
     Table *table = &dbg_GameState->table;
     Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_BMP, 
         table->pos.x, table->pos.y, table->w, table->h, 
-        table->img.bitmap, table->img.width, table->img.height);
+        table->img.bitmap, table->img.w, table->img.h);
 
     F32 radius = dbg_GameState->radius;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
@@ -53,7 +53,7 @@ void dbg_ForceUpdateScreen()
             // Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_CIRCLE, (S32)e->p.x, (S32)e->p.y, (S32)radius);
             Renderer_pushCmd(dbg_HRenderer, RCMD_DRAW_BMP, 
                 (S32)(updated.p.x - radius), (S32)(updated.p.y - radius), (S32)(2.0f * radius), (S32)(2.0f * radius), 
-                updated.img.bitmap, updated.img.width, updated.img.height);
+                updated.img.bitmap, updated.img.w, updated.img.h);
             
         }
     }
