@@ -52,8 +52,6 @@ struct HTexture
     U16 w;
     U16 h;
     U32 *bitmap;
-
-    B8 blending;
 };
 
 #include "bill.h"
@@ -98,7 +96,7 @@ void screenDisplayTexture(Screen *screen, HTexture *img, P2DS32 p)
             }
 
             S32 tex = img->bitmap[i*img->w+j];
-            if (img->blending)
+            // if (img->blending)
             {
                 U8 sa = tex >> 24 & 0xff;
                 U8 sr = tex >> 16 & 0xff;
@@ -121,6 +119,41 @@ void screenDisplayTexture(Screen *screen, HTexture *img, P2DS32 p)
         }
     }
 }
+
+inline U32 textureGetPixelBorder(HTexture *texture, V2DS32 xy)
+{
+    if (xy.x >= texture->w)
+    {
+        xy.x = texture->w - 1;
+    }
+
+    if (xy.x < 0)
+    {
+        xy.x = 0;
+    }
+    
+    if (xy.y >= texture->h)
+    {
+        xy.y = texture->h - 1;
+    }
+
+    if (xy.y < 0)
+    {
+        xy.y = 0;
+    }
+
+    return texture->bitmap[xy.y*texture->w + xy.x];
+}
+
+inline F32 lerp(F32 A, F32 B, F32 t)
+{
+    return (A - t*A + t*B);
+}
+
+struct BilinearSample
+{
+    U32 a, b, c, d;
+};
 
 internal void gtick(GameIO *io)
 {
@@ -224,10 +257,9 @@ internal void gtick(GameIO *io)
         screen->buf[i] = 0xffffffff;
     }
 
-    HTexture test = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
+    HTexture texture = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
     // NOTE(annad): test alpha channel
     //HTexture test = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP));
-    test.blending = true;
     for (S32 i = 0; i < screen->h * screen->w; i += 1)
     {
         screen->buf[i] = 0xffff;
@@ -237,9 +269,8 @@ internal void gtick(GameIO *io)
         devices->mouseX,
         devices->mouseY
     };
-
+    
     localv P2DS32 scalev = {};
-
     if (devices->dwheel != 0)
     {
         if (devices->keybBtns[KEYB_BTN_LSHIFT])
@@ -253,24 +284,68 @@ internal void gtick(GameIO *io)
     }
 
     printf("%d %d\n", scalev.x, scalev.y);
-    for (S32 i = 0; i < screen->h; i += 1)
+    S32 textureW = screen->w;
+    S32 textureH = screen->h;
+
+    Rect clip;
+    clip.x = 0;
+    clip.y = 0;
+    clip.w = screen->w;
+    clip.h = screen->h;
+    F32 kw = clip.w / texture.w;
+    F32 kh = clip.h / texture.h;
+    for (S32 y = clip.y; y < clip.y + clip.h; y += 1)
     {
-        for (S32 j = 0; j < screen->w; j += 1)
+        for (S32 x = clip.x; x < clip.x + clip.w; x += 1)
         {
-            V2DF32 UV = {
-                (F32)j / (F32)screen->w,
-                (F32)i / (F32)screen->h,
+            F32 step = 0.5f;
+            V2DF32 uv = {
+                (F32)x / (F32)clip.w,
+                (F32)y / (F32)clip.h,
             };
             
-            V2DS32 p = {
-                (S32)(UV.x * (F32)(test.w + scalev.x)),
-                (S32)(UV.y * (F32)(test.h + scalev.y))
+            V2DF32 pospx = {
+                (F32)texture.w * uv.x,
+                (F32)texture.h * uv.y
+            };
+
+            F32 bottomY = f32Floor(pospx.y) + 0.5f;
+            F32 topY = f32Ceil(pospx.y) + 0.5f;
+            F32 bottomX = f32Floor(pospx.x) + 0.5f;
+            F32 topX = f32Ceil(pospx.x) + 0.5f;
+
+            V2DS32 pxpos = {
+                (S32)(uv.x * (F32)texture.w),
+                (S32)(uv.y * (F32)texture.h)
             };
             
-            if (p.x < test.w && p.y < test.h && p.x > 0 && p.y > 0)
+            S32 tex = textureGetPixelBorder(&texture, pxpos);
+            S32 texA = textureGetPixelBorder(&texture, pxpos);
+            screen->buf[y*clip.w+x] = tex;
+#if 0
+            V2DF32 uv = {
+                (F32)j / (F32)(textureW + scalev.x),
+                (F32)i / (F32)(textureH + scalev.y),
+            };
+            
+            V2DS32 xy = {
+                (S32)(uv.x * (F32)(test.w)),
+                (S32)(uv.y * (F32)(test.h))
+            };
+            
+            xy += mouse;
+            
+            S32 tex = textureGetPixelBorder(&test, xy);
+            if (enableBL)
             {
-                screen->buf[i*screen->w+j] = test.bitmap[p.y*test.w+p.x];
+                S32 texA = textureGetPixelBorder(&test, xy);
+                S32 texB = textureGetPixelBorder(&test, xy + V2DS32{1, 0});
+                S32 texC = textureGetPixelBorder(&test, xy + V2DS32{0, 1});
+                S32 texD = textureGetPixelBorder(&test, xy + V2DS32{1, 1});
             }
+            
+            screen->buf[i*screen->w+j] = tex;
+#endif
         }
     }
 

@@ -33,6 +33,16 @@ B8 f32EpsCompare(F32 rhs, F32 lhs, F32 eps)
     return f32Abs(rhs - lhs) < eps;
 }
 
+F32 f32Floor(F32 x)
+{
+    return floorf(x);
+}
+
+F32 f32Ceil(F32 x)
+{
+    return ceilf(x);
+}
+
 F32 f32Infinity()
 {
     union { F32 f; U32 u; } r;
