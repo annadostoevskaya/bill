@@ -265,87 +265,50 @@ internal void gtick(GameIO *io)
         screen->buf[i] = 0xffff;
     }
 
-    P2DS32 mouse = {
-        devices->mouseX,
-        devices->mouseY
+    V2DS32 mouse = {
+        devices->mouseX, devices->mouseY
     };
-    
     localv P2DS32 scalev = {};
     if (devices->dwheel != 0)
     {
-        if (devices->keybBtns[KEYB_BTN_LSHIFT])
-        {
-            scalev.x += 100 * devices->dwheel;
-        }
-        else
-        {
-            scalev.y += 100 * devices->dwheel;
-        }
+        scalev.x += 100 * devices->dwheel;
+        scalev.y += 100 * devices->dwheel;
     }
 
-    printf("%d %d\n", scalev.x, scalev.y);
-    S32 textureW = screen->w;
-    S32 textureH = screen->h;
-
-    Rect clip;
-    clip.x = 0;
-    clip.y = 0;
-    clip.w = screen->w;
-    clip.h = screen->h;
-    F32 kw = clip.w / texture.w;
-    F32 kh = clip.h / texture.h;
-    for (S32 y = clip.y; y < clip.y + clip.h; y += 1)
+    for (S32 y = 0; y < screen->h; y += 1)
     {
-        for (S32 x = clip.x; x < clip.x + clip.w; x += 1)
+        for (S32 x = 0; x < screen->w; x += 1)
         {
-            F32 step = 0.5f;
-            V2DF32 uv = {
-                (F32)x / (F32)clip.w,
-                (F32)y / (F32)clip.h,
-            };
-            
-            V2DF32 pospx = {
-                (F32)texture.w * uv.x,
-                (F32)texture.h * uv.y
+            U32 pixel = 0xaaaa00aa;
+
+            V2DF32 vUV = {
+                (F32)x / (F32)screen->w,
+                (F32)y / (F32)screen->h
             };
 
-            F32 bottomY = f32Floor(pospx.y) + 0.5f;
-            F32 topY = f32Ceil(pospx.y) + 0.5f;
-            F32 bottomX = f32Floor(pospx.x) + 0.5f;
-            F32 topX = f32Ceil(pospx.x) + 0.5f;
+            V2DF32 vdenorm = {
+                (vUV.x * (F32)(texture.w + scalev.x)),
+                (vUV.y * (F32)(texture.h + scalev.y)),
+            };
 
-            V2DS32 pxpos = {
-                (S32)(uv.x * (F32)texture.w),
-                (S32)(uv.y * (F32)texture.h)
+            V2DS32 pospx = {
+                (S32)vdenorm.x,
+                (S32)vdenorm.y
             };
-            
-            S32 tex = textureGetPixelBorder(&texture, pxpos);
-            S32 texA = textureGetPixelBorder(&texture, pxpos);
-            screen->buf[y*clip.w+x] = tex;
-#if 0
-            V2DF32 uv = {
-                (F32)j / (F32)(textureW + scalev.x),
-                (F32)i / (F32)(textureH + scalev.y),
+
+            pospx += mouse - V2DS32{
+                scalev.x / screen->w * (screen->w / 2), 
+                scalev.y / screen->h * (screen->h / 2) 
             };
-            
-            V2DS32 xy = {
-                (S32)(uv.x * (F32)(test.w)),
-                (S32)(uv.y * (F32)(test.h))
-            };
-            
-            xy += mouse;
-            
-            S32 tex = textureGetPixelBorder(&test, xy);
-            if (enableBL)
+
+            U32 tex = 0xaaaa00aa;
+            if (pospx.x > 0 && pospx.x < texture.w && pospx.y > 0 && pospx.y < texture.h)
             {
-                S32 texA = textureGetPixelBorder(&test, xy);
-                S32 texB = textureGetPixelBorder(&test, xy + V2DS32{1, 0});
-                S32 texC = textureGetPixelBorder(&test, xy + V2DS32{0, 1});
-                S32 texD = textureGetPixelBorder(&test, xy + V2DS32{1, 1});
+                S32 texelidx = pospx.y * texture.w + pospx.x;
+                tex = texture.bitmap[texelidx];
             }
-            
-            screen->buf[i*screen->w+j] = tex;
-#endif
+
+            screen->buf[y * screen->w + x] = tex;
         }
     }
 
