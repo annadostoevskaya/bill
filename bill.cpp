@@ -120,7 +120,7 @@ void screenDisplayTexture(Screen *screen, HTexture *img, P2DS32 p)
     }
 }
 
-inline U32 textureGetPixelBorder(HTexture *texture, V2DS32 xy)
+U32 textureGetPixelBorder(HTexture *texture, V2DS32 xy)
 {
     if (xy.x >= texture->w)
     {
@@ -141,19 +141,18 @@ inline U32 textureGetPixelBorder(HTexture *texture, V2DS32 xy)
     {
         xy.y = 0;
     }
-
+    
     return texture->bitmap[xy.y*texture->w + xy.x];
 }
 
-inline F32 lerp(F32 A, F32 B, F32 t)
+U32 pxlerp(U32 A, U32 B, F32 t)
 {
-    return (A - t*A + t*B);
+    U8 alpha = (U8)((F32)(A >> 24 & 0xff) * t + (F32)(B >> 24 & 0xff) * (1.0f - t));
+    U8 red = (U8)((F32)(A >> 16 & 0xff) * t + (F32)(B >> 16 & 0xff) * (1.0f - t));
+    U8 green = (U8)((F32)(A >> 8 & 0xff) * t + (F32)(B >> 8 & 0xff) * (1.0f - t));
+    U8 blue = (U8)((F32)(A & 0xff) * t + (F32)(B & 0xff) * (1.0f - t));
+    return alpha << 24 | red << 16 | green << 8 | blue;
 }
-
-struct BilinearSample
-{
-    U32 a, b, c, d;
-};
 
 internal void gtick(GameIO *io)
 {
@@ -268,49 +267,90 @@ internal void gtick(GameIO *io)
     V2DS32 mouse = {
         devices->mouseX, devices->mouseY
     };
+
     localv P2DS32 scalev = {};
     if (devices->dwheel != 0)
     {
-        scalev.x += 100 * devices->dwheel;
-        scalev.y += 100 * devices->dwheel;
+        scalev.x += 50 * devices->dwheel;
+        scalev.y += 50 * devices->dwheel;
     }
 
-    for (S32 y = 0; y < screen->h; y += 1)
+
+    if (devices->keybBtns[KEYB_BTN_RETURN])
     {
-        for (S32 x = 0; x < screen->w; x += 1)
+        for (S32 y = 0; y < screen->h; y += 1)
         {
-            U32 pixel = 0xaaaa00aa;
-
-            V2DF32 vUV = {
-                (F32)x / (F32)screen->w,
-                (F32)y / (F32)screen->h
-            };
-
-            V2DF32 vdenorm = {
-                (vUV.x * (F32)(texture.w + scalev.x)),
-                (vUV.y * (F32)(texture.h + scalev.y)),
-            };
-
-            V2DS32 pospx = {
-                (S32)vdenorm.x,
-                (S32)vdenorm.y
-            };
-
-            pospx += mouse - V2DS32{
-                scalev.x / screen->w * (screen->w / 2), 
-                scalev.y / screen->h * (screen->h / 2) 
-            };
-
-            U32 tex = 0xaaaa00aa;
-            if (pospx.x > 0 && pospx.x < texture.w && pospx.y > 0 && pospx.y < texture.h)
+            for (S32 x = 0; x < screen->w; x += 1)
             {
-                S32 texelidx = pospx.y * texture.w + pospx.x;
-                tex = texture.bitmap[texelidx];
-            }
+                V2DF32 globaluv = {
+                    (F32)x / (F32)screen->w,
+                    (F32)y / (F32)screen->h
+                };
 
-            screen->buf[y * screen->w + x] = tex;
+                V2DF32 vdenorm = {
+                    (F32)mouse.x + (globaluv.x * (F32)(texture.w + scalev.x)),
+                    (F32)mouse.y + (globaluv.y * (F32)(texture.h + scalev.y)),
+                };
+                
+                U32 out = textureGetPixelBorder(&texture, V2DS32{(S32)vdenorm.x, (S32)vdenorm.y});
+                screen->buf[y * screen->w + x] = out;
+            }
         }
     }
+    else
+    {
+        for (S32 y = 0; y < screen->h; y += 1)
+        {
+            for (S32 x = 0; x < screen->w; x += 1)
+            {
+                U32 pixel = 0xaaaa00aa;
+
+                V2DF32 globaluv = {
+                    (F32)x / (F32)screen->w,
+                    (F32)y / (F32)screen->h
+                };
+
+                V2DF32 vdenorm = {
+                    (F32)mouse.x + (globaluv.x * (F32)(texture.w + scalev.x)),
+                    (F32)mouse.y + (globaluv.y * (F32)(texture.h + scalev.y)),
+                };
+                
+                V2DF32 vcell = {
+                    f32Floor(vdenorm.x),
+                    f32Floor(vdenorm.y)
+                };
+                
+                V2DF32 voffset = vdenorm - vcell;
+
+                U32 texTL = textureGetPixelBorder(&texture, V2DS32{
+                    (S32)vcell.x,
+                    (S32)vcell.y 
+                });
+
+                U32 texTR = textureGetPixelBorder(&texture, V2DS32{
+                    (S32)vcell.x + 1,
+                    (S32)vcell.y
+                });
+
+                U32 texBL = textureGetPixelBorder(&texture, V2DS32{
+                    (S32)vcell.x,
+                    (S32)vcell.y + 1,
+                });
+
+                U32 texBR = textureGetPixelBorder(&texture, V2DS32{
+                    (S32)vcell.x + 1,
+                    (S32)vcell.y + 1
+                });
+
+                U32 texTX = pxlerp(texTR, texTL, voffset.x);
+                U32 texBX = pxlerp(texBR, texBL, voffset.x);
+                U32 out = pxlerp(texBX, texTX, voffset.y);
+
+                screen->buf[y * screen->w + x] = out;
+            }
+        }
+    }
+
 
     //screenDisplayTexture(screen, &test, mouse);
 
