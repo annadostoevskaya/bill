@@ -61,9 +61,9 @@ struct InputDevices
 
 struct Screen
 {
-    S32 w;
-    S32 h;
-    S32 pitch;
+    U32 w;
+    U32 h;
+    U32 pitch;
     U32 *buf;
 };
 

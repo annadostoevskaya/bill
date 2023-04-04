@@ -296,6 +296,11 @@ int main(int, char**)
             tick.dt = (S32)(tick.end - tick.start);
         }
         
+        // NOTE(annad): Profile
+        F32 dt = (F32)tick.dt;
+        F32 FPS = 1000.0f / dt;
+        // printf("dt: %f, fps: %f\n", dt, FPS);
+
         tick.start = tick.end;
     }
     

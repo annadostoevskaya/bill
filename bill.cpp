@@ -47,12 +47,7 @@ struct BMPInfo
 };
 #pragma pack(pop)
 
-struct HTexture
-{
-    U16 w;
-    U16 h;
-    U32 *bitmap;
-};
+#include "bill_software_renderer.h"
 
 #include "bill.h"
 #if BILL_CFG_DEV_MODE
@@ -60,6 +55,7 @@ struct HTexture
 #endif 
 #include "bill_ball.cpp"
 #include "bill_colevent.cpp"
+#include "bill_software_renderer.cpp"
 #if BILL_CFG_DEV_MODE
 #include "bill_debug.cpp"
 #endif 
@@ -89,8 +85,8 @@ void screenDisplayTexture(Screen *screen, HTexture *img, P2DS32 p)
             S32 y = (S32)(((F32)i / (F32)img->h) * screen->h);
             //S32 x = j;
             //S32 y = i;
-            S32 bufidx = (p.y+y)*screen->w+(p.x+x);
-            if (bufidx >= screen->h*screen->w || bufidx < 0)
+            U32 bufidx = (p.y+y)*screen->w+(p.x+x);
+            if (bufidx >= screen->h*screen->w)
             {
                 break;
             }
@@ -251,12 +247,50 @@ internal void gtick(GameIO *io)
         gstate->isInit = true;
     }
 
-    for (S32 i = 0; i < screen->h * screen->w; i += 1)
+    for (U32 i = 0; i < screen->h * screen->w; i += 1)
     {
         screen->buf[i] = 0xffffffff;
     }
 
-    HTexture texture = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
+    localv V2DF32 scalev = {1.0f, 1.0f};
+    if (devices->dwheel != 0)
+    {
+        scalev.x += 0.1f * (F32)devices->dwheel;
+        scalev.y += 0.1f * (F32)devices->dwheel;
+    }
+    
+    localv V2DF32 position = {};
+    localv V2DF32 clickpos = {};
+    localv V2DF32 delta = {};
+    if (!devices->mouseBtns[MOUSE_BTN_LEFT])
+    {
+        position += delta;
+        delta = {};
+        clickpos = {};
+    }
+
+    if (devices->mouseBtns[MOUSE_BTN_LEFT])
+    {
+        if (clickpos.getLength() == 0.0f)
+        {
+            clickpos = {
+                (F32)devices->mouseX / (F32)screen->w,
+                (F32)devices->mouseY / (F32)screen->h
+            };
+        }
+        
+        delta = {
+            clickpos.x - ((F32)devices->mouseX / (F32)screen->w),
+            clickpos.y - ((F32)devices->mouseY / (F32)screen->h)
+        };
+
+        printf("x: %f, y: %f\n", position.x + delta.x, position.y + delta.y);
+        printf("w: %f, h: %f\n", scalev.x, scalev.y);
+    }
+
+    renderTexture(screen, &table->img, position + delta, scalev);
+#if 0
+    HTexture texture = table->img;// createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_14_BMP));
     // NOTE(annad): test alpha channel
     //HTexture test = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP));
     for (S32 i = 0; i < screen->h * screen->w; i += 1)
@@ -275,8 +309,7 @@ internal void gtick(GameIO *io)
         scalev.y += 50 * devices->dwheel;
     }
 
-
-    if (devices->keybBtns[KEYB_BTN_RETURN])
+    if (!devices->keybBtns[KEYB_BTN_RETURN])
     {
         for (S32 y = 0; y < screen->h; y += 1)
         {
@@ -303,8 +336,6 @@ internal void gtick(GameIO *io)
         {
             for (S32 x = 0; x < screen->w; x += 1)
             {
-                U32 pixel = 0xaaaa00aa;
-
                 V2DF32 globaluv = {
                     (F32)x / (F32)screen->w,
                     (F32)y / (F32)screen->h
@@ -314,6 +345,8 @@ internal void gtick(GameIO *io)
                     (F32)mouse.x + (globaluv.x * (F32)(texture.w + scalev.x)),
                     (F32)mouse.y + (globaluv.y * (F32)(texture.h + scalev.y)),
                 };
+
+                vdenorm -= V2DF32{0.5f, 0.5f};
                 
                 V2DF32 vcell = {
                     f32Floor(vdenorm.x),
@@ -345,14 +378,26 @@ internal void gtick(GameIO *io)
                 U32 texTX = pxlerp(texTR, texTL, voffset.x);
                 U32 texBX = pxlerp(texBR, texBL, voffset.x);
                 U32 out = pxlerp(texBX, texTX, voffset.y);
+                // NOTE(annad): Alpha!
+                U8 sa = out >> 24 & 0xff;
+                U8 sr = out >> 16 & 0xff;
+                U8 sg = out >> 8 & 0xff;
+                U8 sb = out & 0xff;
+                // x(t)=A-tA+tB | *255
+                // 255*x(T)=255*A-TA+TB
+                U8 dr = (screen->buf[y * screen->w + x] >> 16 & 0xff);
+                U8 dg = (screen->buf[y * screen->w + x] >> 8 & 0xff);
+                U8 db = (screen->buf[y * screen->w + x] & 0xff);
+                // 0xBBGGRRAA
+                U32 r = (255*dr - sa*dr + sa*sr)/255;
+                U32 g = (255*dg - sa*dg + sa*sg)/255;
+                U32 b = (255*db - sa*db + sa*sb)/255;
 
-                screen->buf[y * screen->w + x] = out;
+                screen->buf[y * screen->w + x] = 0xff << 24 | r << 16 | g << 8 | b;
             }
         }
     }
-
-
-    //screenDisplayTexture(screen, &test, mouse);
+#endif
 
 #if 0
     F32 radius = gstate->radius;
