@@ -49,7 +49,7 @@ int main(int, char**)
     Uint32 windowFlags = SDL_WINDOW_SHOWN;
     if (BILL_CFG_FULLSCREEN)
     {
-        windowFlags |= SDL_WINDOW_FULLSCREEN;
+        windowFlags |=  SDL_WINDOW_FULLSCREEN;
     }
 
     SDL_Window *window = SDL_CreateWindow(BILL_CFG_WINDOW_TITLE, 
@@ -299,7 +299,7 @@ int main(int, char**)
         // NOTE(annad): Profile
         F32 dt = (F32)tick.dt;
         F32 FPS = 1000.0f / dt;
-        // printf("dt: %f, fps: %f\n", dt, FPS);
+        printf("dt: %f, fps: %f\n", dt, FPS);
 
         tick.start = tick.end;
     }
