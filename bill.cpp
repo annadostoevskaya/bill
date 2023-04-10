@@ -289,33 +289,15 @@ internal void gtick(GameIO *io)
     }
     
     localv S32 state = 0;
-    if (devices->keybBtns[KEYB_BTN_RETURN])
+    if (!devices->keybBtns[KEYB_BTN_RETURN])
     {
-        state += 1;
+        renderTextureSlow(screen, &table->img, position + delta, scalev);
+    }
+    else
+    {
+        renderTextureFast(screen, &table->img, position + delta, scalev);
     }
 
-    switch (state % 3)
-    {
-        case 0:
-        {
-            renderTextureSlow(screen, &table->img, position + delta, scalev);
-        } break;
-
-        case 1:
-        {
-            renderTextureFast(screen, &table->img, position + delta, scalev);
-        } break;
-
-        case 2:
-        {
-            renderTexture(screen, &table->img, position + delta, scalev);
-        } break;
-
-        default:
-        {
-            Assert(false);
-        }
-    }
 
 #if 0
     F32 radius = gstate->radius;
