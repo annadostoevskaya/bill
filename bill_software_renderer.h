@@ -13,10 +13,21 @@ struct ARGB
 
 struct BilinearSample
 {
-    U32 topLeft;
-    U32 topRight;
-    U32 bottomLeft;
-    U32 bottomRight;
+
+    union {
+        struct {
+            U32 A, B, C, D;
+        };
+        
+
+        struct {
+            U32 topLeft;
+            U32 topRight;
+            U32 bottomLeft;
+            U32 bottomRight;
+        };
+    };
+
 };
 
 struct HTexture
