@@ -34,11 +34,22 @@ textureGetBilinearSample(HTexture *texture, V2DS32 vcell)
 
 U32 __pxlerp(U32 A, U32 B, U32 t)
 {
-    U8 alpha = (U8)((255*(A >> 24 & 0xff) - t*(A >> 24 & 0xff) + t*(B >> 24 & 0xff))/255);
-    U8 red = (U8)((255*(A >> 16 & 0xff) - t*(A >> 16 & 0xff) + t*(B >> 16 & 0xff))/255);
-    U8 green = (U8)((255*(A >> 8 & 0xff) - t*(A >> 8 & 0xff) + t*(B >> 8 & 0xff))/255);
-    U8 blue = (U8)((255*(A & 0xff) - t*(A & 0xff) + t*(B & 0xff))/255);
+#if 0
+    // 74.000000
+    F32 ft = (F32)t / 255.0f;
+    U8 alpha = (U8)((F32)(A >> 24 & 0xff) * ft + (F32)(B >> 24 & 0xff) * (1.0f - ft));
+    U8 red = (U8)((F32)(A >> 16 & 0xff) * ft + (F32)(B >> 16 & 0xff) * (1.0f - ft));
+    U8 green = (U8)((F32)(A >> 8 & 0xff) * ft + (F32)(B >> 8 & 0xff) * (1.0f - ft));
+    U8 blue = (U8)((F32)(A & 0xff) * ft + (F32)(B & 0xff) * (1.0f - ft));
     return alpha << 24 | red << 16 | green << 8 | blue;
+#else
+    // 87.000000
+    U8 alpha = (U8)(((A >> 24 & 0xff)*(255 - t) + t*(B >> 24 & 0xff))/255);
+    U8 red = (U8)(((A >> 16 & 0xff)*(255 - t) + t*(B >> 16 & 0xff))/255);
+    U8 green = (U8)(((A >> 8 & 0xff)*(255 - t) + t*(B >> 8 & 0xff))/255);
+    U8 blue = (U8)(((A & 0xff)*(255 - t) + t*(B & 0xff))/255);
+    return alpha << 24 | red << 16 | green << 8 | blue;
+#endif
 }
 
 #if 0
