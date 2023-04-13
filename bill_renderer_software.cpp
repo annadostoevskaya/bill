@@ -60,73 +60,62 @@ void renderTextureSlow(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vsc
 
 U32 bilerp(BilinearSample *s, V2DF32 voffset)
 {
-    ///////////////////////////////////////////////////////////////////////
+#if 1
     __m256 A = _mm256_mul_ps(
-        _mm256_set_ps(
-            (F32)(s->A >> 24 & 0xff), 
-            (F32)(s->A >> 16 & 0xff), 
-            (F32)(s->A >> 8 & 0xff), 
-            (F32)(s->A & 0xff), 
-
-            (F32)(s->C >> 24 & 0xff), 
-            (F32)(s->C >> 16 & 0xff), 
-            (F32)(s->C >> 8 & 0xff), 
-            (F32)(s->C & 0xff)
+        _mm256_set_m128(
+            _mm_cvtepi32_ps(
+                _mm_and_si128(
+                    _mm_set_epi32(s->A >> 24, s->A >> 16, s->A >> 8, s->A),
+                    _mm_set1_epi32(0xff)
+                )
+            ),
+            _mm_cvtepi32_ps(
+                _mm_and_si128(
+                    _mm_set_epi32(s->C >> 24, s->C >> 16, s->C >> 8, s->C),
+                    _mm_set1_epi32(0xff)
+                )
+            )
         ), 
-
         _mm256_set1_ps(1.0f - voffset.x)
     );
 
     __m256 B = _mm256_mul_ps(
-        _mm256_set_ps(
-            (F32)(s->B >> 24 & 0xff), 
-            (F32)(s->B >> 16 & 0xff), 
-            (F32)(s->B >> 8 & 0xff), 
-            (F32)(s->B & 0xff), 
-
-            (F32)(s->D >> 24 & 0xff), 
-            (F32)(s->D >> 16 & 0xff), 
-            (F32)(s->D >> 8 & 0xff), 
-            (F32)(s->D & 0xff)
-        ),
-
+        _mm256_set_m128(
+            _mm_cvtepi32_ps(
+                _mm_and_si128(
+                    _mm_set_epi32(s->B >> 24, s->B >> 16, s->B >> 8, s->B),
+                    _mm_set1_epi32(0xff)
+                )
+            ),
+            _mm_cvtepi32_ps(
+                _mm_and_si128(
+                    _mm_set_epi32(s->D >> 24, s->D >> 16, s->D >> 8, s->D),
+                    _mm_set1_epi32(0xff)
+                )
+            )
+        ), 
         _mm256_set1_ps(voffset.x)
     );
 
     __m256 x = _mm256_add_ps(A, B);
-    A = _mm256_mul_ps(
-        _mm256_set_ps(
-            x.m256_f32[3],
-            x.m256_f32[2],
-            x.m256_f32[1],
-            x.m256_f32[0],
 
-            0.0f, 0.0f, 0.0f, 0.0f
+    __m128 y = _mm_add_ps(
+        _mm_mul_ps(
+            _mm_set_ps(x.m256_f32[3], x.m256_f32[2], x.m256_f32[1], x.m256_f32[0]),
+            _mm_set1_ps(voffset.y)
         ), 
-
-        _mm256_set1_ps(voffset.y)
+        _mm_mul_ps(
+            _mm_set_ps(x.m256_f32[7], x.m256_f32[6], x.m256_f32[5], x.m256_f32[4]),
+            _mm_set1_ps(1.0f - voffset.y)
+        )
     );
 
-    B = _mm256_mul_ps(
-        _mm256_set_ps(
-            x.m256_f32[7],
-            x.m256_f32[6],
-            x.m256_f32[5],
-            x.m256_f32[4],
-
-            0.0f, 0.0f, 0.0f, 0.0f
-        ), 
-
-        _mm256_set1_ps(1.0f - voffset.y)
-    );
-
-    __m256 y = _mm256_add_ps(A, B);
-    __m256i out = _mm256_cvtps_epi32(y);
-    return out.m256i_u32[7] << 24 | 
-        out.m256i_u32[6] << 16 | 
-        out.m256i_u32[5] << 8 | 
-        out.m256i_u32[4];
-
+    __m128i out = _mm_cvtps_epi32(y);
+    return out.m128i_u32[3] << 24 | 
+        out.m128i_u32[2] << 16 | 
+        out.m128i_u32[1] << 8 | 
+        out.m128i_u32[0];
+#endif
 }
 
 void renderTextureFast(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale)
