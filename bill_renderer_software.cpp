@@ -34,7 +34,7 @@ textureGetBilinearSample(HTexture *texture, V2DS32 vcell)
 
 U32 __pxlerp(U32 A, U32 B, U32 t)
 {
-#if 0
+#if 1
     // 74.000000
     F32 ft = (F32)t / 255.0f;
     U8 alpha = (U8)((F32)(A >> 24 & 0xff) * ft + (F32)(B >> 24 & 0xff) * (1.0f - ft));
@@ -97,7 +97,17 @@ void renderTextureSlow(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vsc
             sample.topLeft = textureGetPixel(texture, vcell);
             sample.topRight = textureGetPixel(texture, vcell + V2DU32{1, 0});
             sample.bottomLeft = textureGetPixel(texture, vcell + V2DU32{0, 1});
-            sample.bottomRight = textureGetPixel(texture, vcell + V2DU32{1, 1});
+            sample.bottomRight = textureGetPixel(texture, vcell + V2DU32{1, 1}); 
+            
+
+            // load top left
+            // load top right
+            //
+            // |r|g|b|a|
+            //
+            // load bottom left
+            // load bottom right
+
             U32 topX = __pxlerp(sample.topRight, sample.topLeft, voffset.x);
             U32 botX = __pxlerp(sample.bottomRight, sample.bottomLeft, voffset.x);
             U32 out = __pxlerp(botX, topX, voffset.y);

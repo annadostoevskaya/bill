@@ -47,7 +47,7 @@ struct BMPInfo
 };
 #pragma pack(pop)
 
-#include "bill_software_renderer.h"
+#include "bill_renderer_software.h"
 
 #include "bill.h"
 #if BILL_CFG_DEV_MODE
@@ -55,7 +55,7 @@ struct BMPInfo
 #endif 
 #include "bill_ball.cpp"
 #include "bill_colevent.cpp"
-#include "bill_software_renderer.cpp"
+#include "bill_renderer_software.cpp"
 #if BILL_CFG_DEV_MODE
 #include "bill_debug.cpp"
 #endif 
