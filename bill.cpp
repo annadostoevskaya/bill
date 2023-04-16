@@ -255,8 +255,8 @@ internal void gtick(GameIO *io)
     localv V2DF32 scalev = {1.0f, 1.0f};
     if (devices->dwheel != 0)
     {
-        scalev.x += 0.01f * (F32)devices->dwheel;
-        scalev.y += 0.01f * (F32)devices->dwheel;
+        scalev.x += 0.1f * (F32)devices->dwheel;
+        scalev.y += 0.1f * (F32)devices->dwheel;
     }
     
     localv V2DF32 position = {};
@@ -289,13 +289,14 @@ internal void gtick(GameIO *io)
     }
     
     localv S32 state = 0;
+    HTexture *test = &balls[BALL_13].img;
     if (!devices->keybBtns[KEYB_BTN_RETURN])
     {
-        renderTextureFast(screen, &table->img, position + delta, scalev);   
+        renderTextureFast(screen, test, position + delta, scalev);   
     }
     else
     {
-        renderTextureSlow(screen, &table->img, position + delta, scalev);
+        renderTextureSlow(screen, test, position + delta, scalev);
     }
 
 

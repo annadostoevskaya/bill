@@ -1,10 +1,8 @@
 @ECHO OFF
 
 WHERE /q cl
-SET ISNOTANNAD=0
 IF NOT %ERRORLEVEL% == 0 (
    CALL "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-   SET ISNOTANNAD=1
 )
 
 SET CL_DEV_OPTS=-D_ENABLED_ASSERT -D_CLI_DEV_MODE
@@ -30,7 +28,6 @@ IF NOT EXIST SDL2.dll IF EXIST ..\3rdparty\SDL2\bin\SDL2.dll (
 
 POPD
 
-:: NOTE(annad): For user whos start .bat file without cl compiler
-IF %ISNOTANNAD%==1 PAUSE
+IF NOT "%USERNAME%" == "annad" PAUSE
 
 EXIT /B %LastError%
