@@ -4,7 +4,7 @@ CC=clang
 SRC="$PWD"
 BUILD_DIR="build"
 SDL_FLAGS=`sdl2-config --cflags --libs`
-OPTIONS="-g -lm $SDL_FLAGS -D_ENABLED_ASSERT -D_CLI_DEV_MODE"
+OPTIONS="-msse4.1 -g -lm $SDL_FLAGS -D_ENABLED_ASSERT -D_CLI_DEV_MODE"
 
 if [ ! -d "./$BUILD_DIR" ]
 then

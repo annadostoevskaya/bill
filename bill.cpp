@@ -289,7 +289,7 @@ internal void gtick(GameIO *io)
     }
     
     localv S32 state = 0;
-    HTexture *test = &balls[BALL_13].img;
+    HTexture *test = &table->img;
     if (!devices->keybBtns[KEYB_BTN_RETURN])
     {
         renderTextureFast(screen, test, position + delta, scalev);   

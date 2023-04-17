@@ -71,14 +71,15 @@ U32 getPixel(HTexture *texture, V2DF32 pos)
         // NOTE(annad): Load the data (2 pixels in one load)
         __m128 ssx = _mm_set_ss(pos.x);
         __m128 ssy = _mm_set_ss(pos.y);
-        __m128 psXY = _mm_unpacklo_ps(ssx, ssy); // 0 0 y x
-        __m128 psXYfloor = _mm_floor_ps(psXY); // SSE4!
-        __m128 psXYfrac = _mm_sub_ps(psXY, psXYfloor);
-        __m128 psXYfrac1 = _mm_sub_ps(_mm_set1_ps(1), psXYfrac);
-        __m128 w_x = _mm_unpacklo_ps(psXYfrac1, psXYfrac);
-               w_x = _mm_movelh_ps(w_x, w_x);
-        __m128 w_y = _mm_shuffle_ps(psXYfrac1, psXYfrac, _MM_SHUFFLE(1, 1, 1, 1));
-        __m128 weight = _mm_mul_ps(w_x, w_y);
+        __m128 psXY = _mm_unpacklo_ps(ssx, ssy); // x y 0 0
+        __m128 psXYfloor = _mm_floor_ps(psXY); // SSE4! x y 0 0
+        __m128 psXYfrac = _mm_sub_ps(psXY, psXYfloor); // x y 0 0 
+        __m128 psXYfrac1 = _mm_sub_ps(_mm_set1_ps(1), psXYfrac); // 1-x 1-y 0 0
+        __m128 w_x = _mm_unpacklo_ps(psXYfrac1, psXYfrac); // x1 x y1 y
+               w_x = _mm_movelh_ps(w_x, w_x); // x1 x x1 x
+        __m128 w_y = _mm_shuffle_ps(psXYfrac1, psXYfrac, _MM_SHUFFLE(1, 1, 1, 1)); // y1 y y1 y
+        __m128 weight = _mm_mul_ps(w_x, w_y); // x1*y1 x*y x1*y1 x*y
+        
         // NOTE(annad): convert RGBA RGBA RGBA RGAB to RRRR GGGG BBBB AAAA (AoS to SoA)
         __m128i p1234 = _mm_unpacklo_epi8(p12, p34);
         __m128i p34xx = _mm_unpackhi_epi64(p1234, _mm_setzero_si128());
@@ -115,11 +116,9 @@ void renderTextureFast(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vsc
         for (U32 x = 0; x < screen->w; x += 1)
         {
             V2DF32 UV = {(F32)x / (F32)screen->w, (F32)y / (F32)screen->h};
-            V2DF32 vdenorm = (UV + pos) * vscale * whTexture;
+            V2DF32 vdenorm = (UV + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
             screen->buf[y*screen->w+x] = getPixel(texture, vdenorm);
         }
     }
 }
-
-
 
