@@ -290,14 +290,7 @@ internal void gtick(GameIO *io)
     
     localv S32 state = 0;
     HTexture *test = &table->img;
-    if (!devices->keybBtns[KEYB_BTN_RETURN])
-    {
-        renderTextureFast(screen, test, position + delta, scalev);   
-    }
-    else
-    {
-        renderTextureSlow(screen, test, position + delta, scalev);
-    }
+    renderTextureFast(screen, test, position + delta, scalev); 
 
 
 #if 0

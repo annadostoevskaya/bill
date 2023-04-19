@@ -9,17 +9,6 @@ Description: <empty>
 // TODO(annad): ??...
 #include <immintrin.h>
 
-U32 textureGetPixel(HTexture *texture, V2DU32 p)
-{
-    U32 out = 0x0;
-    if (p.x < texture->w && p.y < texture->h)
-    {
-        out = texture->bitmap[p.y * texture->w + p.x];
-    }
-    
-    return out;
-}
-
 U32 __pxlerp(U32 A, U32 B, F32 t)
 {
     U8 alpha = (U8)((F32)(A >> 24 & 0xff) * t + (F32)(B >> 24 & 0xff) * (1.0f - t));
@@ -29,36 +18,7 @@ U32 __pxlerp(U32 A, U32 B, F32 t)
     return alpha << 24 | red << 16 | green << 8 | blue;
 }
 
-void renderTextureSlow(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale)
-{
-    V2DF32 whTexture = {(F32)texture->w, (F32)texture->h};
-    for (U32 y = 0; y < screen->h; y += 1)
-    {
-        for (U32 x = 0; x < screen->w; x += 1)
-        {
-            V2DF32 UV = {
-                (F32)x / (F32)screen->w,
-                (F32)y / (F32)screen->h
-            };
-            
-            V2DF32 vdenorm = (UV + pos) * vscale * whTexture;
-            vdenorm -= V2DF32{0.5f, 0.5f};
-            V2DU32 vcell = {(U32)f32Floor(vdenorm.x), (U32)f32Floor(vdenorm.y)};
-            V2DF32 voffset = {(vdenorm.x - (F32)vcell.x), (vdenorm.y - (F32)vcell.y)};
-            // BilinearSample sample;
-            U32 out = textureGetPixel(texture, vcell);
-            // sample.topRight = textureGetPixel(texture, vcell + V2DU32{1, 0});
-            // sample.bottomLeft = textureGetPixel(texture, vcell + V2DU32{0, 1});
-            // sample.bottomRight = textureGetPixel(texture, vcell + V2DU32{1, 1}); 
-            // U32 topX = __pxlerp(sample.topRight, sample.topLeft, voffset.x);
-            // U32 botX = __pxlerp(sample.bottomRight, sample.bottomLeft, voffset.x);
-            // U32 out = __pxlerp(botX, topX, voffset.y);
-            screen->buf[y*screen->w+x] = out;
-        }
-    }
-}
-
-U32 getPixel(HTexture *texture, V2DF32 pos)
+U32 textureGetPixel(HTexture *texture, V2DF32 pos)
 {
     if ((U32)pos.x < texture->w && (U32)pos.y < texture->h)
     {
@@ -79,7 +39,6 @@ U32 getPixel(HTexture *texture, V2DF32 pos)
                w_x = _mm_movelh_ps(w_x, w_x); // x1 x x1 x
         __m128 w_y = _mm_shuffle_ps(psXYfrac1, psXYfrac, _MM_SHUFFLE(1, 1, 1, 1)); // y1 y y1 y
         __m128 weight = _mm_mul_ps(w_x, w_y); // x1*y1 x*y x1*y1 x*y
-        
         // NOTE(annad): convert RGBA RGBA RGBA RGAB to RRRR GGGG BBBB AAAA (AoS to SoA)
         __m128i p1234 = _mm_unpacklo_epi8(p12, p34);
         __m128i p34xx = _mm_unpackhi_epi64(p1234, _mm_setzero_si128());
@@ -113,11 +72,32 @@ void renderTextureFast(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vsc
     V2DF32 whTexture = {(F32)texture->w, (F32)texture->h};
     for (U32 y = 0; y < screen->h; y += 1)
     {
-        for (U32 x = 0; x < screen->w; x += 1)
+        U32 rem = screen->w % 4;
+        for (U32 x = 0; x < screen->w - rem; x += 4)
+        {
+            V2DF32 UV1 = {(F32)x / (F32)screen->w, (F32)y / (F32)screen->h};
+            V2DF32 UV2 = {(F32)(x+1) / (F32)screen->w, (F32)y / (F32)screen->h};
+            V2DF32 UV3 = {(F32)(x+2) / (F32)screen->w, (F32)y / (F32)screen->h};
+            V2DF32 UV4 = {(F32)(x+3) / (F32)screen->w, (F32)y / (F32)screen->h};
+
+            V2DF32 vdenorm1 = (UV1 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
+            V2DF32 vdenorm2 = (UV2 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
+            V2DF32 vdenorm3 = (UV3 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
+            V2DF32 vdenorm4 = (UV4 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
+
+            screen->buf[y*screen->w+x] = texPixel1;
+            screen->buf[y*screen->w+x+1] = texPixel2;
+            screen->buf[y*screen->w+x+2] = texPixel3;
+            screen->buf[y*screen->w+x+3] = texPixel4;
+        }
+
+        for (U32 x = screen->w - rem; x < screen->w; x += 1)
         {
             V2DF32 UV = {(F32)x / (F32)screen->w, (F32)y / (F32)screen->h};
             V2DF32 vdenorm = (UV + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
-            screen->buf[y*screen->w+x] = getPixel(texture, vdenorm);
+            U32 texPixel = textureGetPixel(texture, vdenorm);
+            U32 bufPixel = screen->buf[y*screen->w+x];
+            screen->buf[y*screen->w+x] = texPixel;
         }
     }
 }
