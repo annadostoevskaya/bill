@@ -7,16 +7,7 @@ Description: <empty>
 */
 
 // TODO(annad): ??...
-#include <immintrin.h>
-
-U32 __pxlerp(U32 A, U32 B, F32 t)
-{
-    U8 alpha = (U8)((F32)(A >> 24 & 0xff) * t + (F32)(B >> 24 & 0xff) * (1.0f - t));
-    U8 red = (U8)((F32)(A >> 16 & 0xff) * t + (F32)(B >> 16 & 0xff) * (1.0f - t));
-    U8 green = (U8)((F32)(A >> 8 & 0xff) * t + (F32)(B >> 8 & 0xff) * (1.0f - t));
-    U8 blue = (U8)((F32)(A & 0xff) * t + (F32)(B & 0xff) * (1.0f - t));
-    return alpha << 24 | red << 16 | green << 8 | blue;
-}
+#include <emmintrin.h>
 
 U32 textureGetPixel(HTexture *texture, V2DF32 pos)
 {
@@ -67,7 +58,7 @@ U32 textureGetPixel(HTexture *texture, V2DF32 pos)
     return 0x0;
 }
 
-void renderTextureFast(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale)
+void textureRender(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale)
 {
     V2DF32 whTexture = {(F32)texture->w, (F32)texture->h};
     for (U32 y = 0; y < screen->h; y += 1)
@@ -81,44 +72,19 @@ void renderTextureFast(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vsc
             // NOTE(annad): Blending x=a*t+b(1.0f-t);
             __m128i alpha = _mm_set1_epi32(pixelA >> 24 & 0xff);
             __m128i alpha1 = _mm_sub_epi32(_mm_set1_epi32(0xff), alpha);
-            __m128i a = _mm_unpacklo_epi16(
-                _mm_unpacklo_epi8(
-                    _mm_set1_epi32(pixelA),
-                    _mm_setzero_si128()
-                ),
-
-                _mm_setzero_si128()
-            );
-
-            __m128i b = _mm_unpacklo_epi16(
-                _mm_unpacklo_epi8(
-                    _mm_set1_epi32(pixelB),
-                    _mm_setzero_si128()
-                ),
-
-                _mm_setzero_si128()
-            );
-            
-            U32 out = _mm_cvtsi128_si32(
-                _mm_packus_epi16(
-                    _mm_packus_epi32(
-                        _mm_srli_epi32(
-                            _mm_add_epi32(
-                                _mm_mul_epi32(a, alpha), 
-                                _mm_mul_epi32(b, alpha1)
-                            ),
-
-                            8
-                        ),
-                        
-                        _mm_setzero_si128()
-                    ),
-                    
-                    _mm_setzero_si128()
-                )
-            );
-            
-            screen->buf[y*screen->w+x] = out;
+            __m128i a = _mm_set1_epi32(pixelA);
+            a = _mm_unpacklo_epi8(a, _mm_setzero_si128());
+            a = _mm_unpacklo_epi16(a, _mm_setzero_si128());
+            a = _mm_mullo_epi16(a, alpha);
+            __m128i b = _mm_set1_epi32(pixelB);
+            b = _mm_unpacklo_epi8(b, _mm_setzero_si128());
+            b =  _mm_unpacklo_epi16(b, _mm_setzero_si128());
+            b = _mm_mullo_epi16(b, alpha1);
+            __m128i out = _mm_add_epi32(a, b);
+            out = _mm_srli_epi32(out, 8);
+            out = _mm_packus_epi32(out, _mm_setzero_si128());
+            out = _mm_packus_epi16(out, _mm_setzero_si128());
+            screen->buf[y*screen->w+x] = _mm_cvtsi128_si32(out);
         }
     }
 }

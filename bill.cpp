@@ -74,82 +74,6 @@ HTexture createTextureHandler(U8 *bmp)
     return himg;
 }
 
-void screenDisplayTexture(Screen *screen, HTexture *img, P2DS32 p)
-{
-    for (S32 i = 0; i < img->h; i += 1)
-    {
-        for (S32 j = 0; j < img->w; j += 1)
-        {
-            // NOTE(annad): Upscale?
-            S32 x = (S32)(((F32)j / (F32)img->w) * screen->w);
-            S32 y = (S32)(((F32)i / (F32)img->h) * screen->h);
-            //S32 x = j;
-            //S32 y = i;
-            U32 bufidx = (p.y+y)*screen->w+(p.x+x);
-            if (bufidx >= screen->h*screen->w)
-            {
-                break;
-            }
-
-            S32 tex = img->bitmap[i*img->w+j];
-            // if (img->blending)
-            {
-                U8 sa = tex >> 24 & 0xff;
-                U8 sr = tex >> 16 & 0xff;
-                U8 sg = tex >> 8 & 0xff;
-                U8 sb = tex & 0xff;
-                // x(t)=A-tA+tB | *255
-                // 255*x(T)=255*A-TA+TB
-                U8 dr = (screen->buf[i] >> 16 & 0xff);
-                U8 dg = (screen->buf[i] >> 8 & 0xff);
-                U8 db = (screen->buf[i] & 0xff);
-                // 0xBBGGRRAA
-                U32 r = (255*dr - sa*dr + sa*sr)/255;
-                U32 g = (255*dg - sa*dg + sa*sg)/255;
-                U32 b = (255*db - sa*db + sa*sb)/255;
-
-                tex = 0xff << 24 | r << 16 | g << 8 | b;
-            }
-
-            screen->buf[bufidx] = tex;
-        }
-    }
-}
-
-U32 textureGetPixelBorder(HTexture *texture, V2DS32 xy)
-{
-    if (xy.x >= texture->w)
-    {
-        xy.x = texture->w - 1;
-    }
-
-    if (xy.x < 0)
-    {
-        xy.x = 0;
-    }
-    
-    if (xy.y >= texture->h)
-    {
-        xy.y = texture->h - 1;
-    }
-
-    if (xy.y < 0)
-    {
-        xy.y = 0;
-    }
-    
-    return texture->bitmap[xy.y*texture->w + xy.x];
-}
-
-U32 pxlerp(U32 A, U32 B, F32 t)
-{
-    U8 alpha = (U8)((F32)(A >> 24 & 0xff) * t + (F32)(B >> 24 & 0xff) * (1.0f - t));
-    U8 red = (U8)((F32)(A >> 16 & 0xff) * t + (F32)(B >> 16 & 0xff) * (1.0f - t));
-    U8 green = (U8)((F32)(A >> 8 & 0xff) * t + (F32)(B >> 8 & 0xff) * (1.0f - t));
-    U8 blue = (U8)((F32)(A & 0xff) * t + (F32)(B & 0xff) * (1.0f - t));
-    return alpha << 24 | red << 16 | green << 8 | blue;
-}
-
 internal void gtick(GameIO *io)
 {
     // NOTE(annad): Platform layer
@@ -189,7 +113,7 @@ internal void gtick(GameIO *io)
         table->h = (S32)(0.7f * (F32)hRenderer->hScreen);
         table->pos.x = (hRenderer->wScreen - table->w - 2 * (S32)gstate->radius);
         table->pos.y = (hRenderer->hScreen - table->h - 2 * (S32)gstate->radius);
-        U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
+        U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP);
         table->img = createTextureHandler(tableBitmap);
 
         V2DF32 screenv = {
@@ -285,7 +209,7 @@ internal void gtick(GameIO *io)
     
     localv S32 state = 0;
     HTexture *test = &table->img;
-    renderTextureFast(screen, test, position + delta, scalev); 
+    textureRender(screen, test, position + delta, scalev); 
 
 
 #if 0
