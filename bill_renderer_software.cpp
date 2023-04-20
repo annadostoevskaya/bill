@@ -28,7 +28,7 @@ U32 textureGetPixel(HTexture *texture, V2DF32 pos)
         // NOTE(annad): load the data, 2px in one load
         __m128i p12 = _mm_loadl_epi64((const __m128i*)&p0[0*texture->w]);
         __m128i p34 = _mm_loadl_epi64((const __m128i*)&p0[1*texture->w]);
-        // NOTE(annad): Load the data (2 pixels in one load)
+        // NOTE(annad): calc weight
         __m128 ssx = _mm_set_ss(pos.x);
         __m128 ssy = _mm_set_ss(pos.y);
         __m128 psXY = _mm_unpacklo_ps(ssx, ssy); // x y 0 0
@@ -72,32 +72,53 @@ void renderTextureFast(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vsc
     V2DF32 whTexture = {(F32)texture->w, (F32)texture->h};
     for (U32 y = 0; y < screen->h; y += 1)
     {
-        U32 rem = screen->w % 4;
-        for (U32 x = 0; x < screen->w - rem; x += 4)
-        {
-            V2DF32 UV1 = {(F32)x / (F32)screen->w, (F32)y / (F32)screen->h};
-            V2DF32 UV2 = {(F32)(x+1) / (F32)screen->w, (F32)y / (F32)screen->h};
-            V2DF32 UV3 = {(F32)(x+2) / (F32)screen->w, (F32)y / (F32)screen->h};
-            V2DF32 UV4 = {(F32)(x+3) / (F32)screen->w, (F32)y / (F32)screen->h};
-
-            V2DF32 vdenorm1 = (UV1 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
-            V2DF32 vdenorm2 = (UV2 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
-            V2DF32 vdenorm3 = (UV3 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
-            V2DF32 vdenorm4 = (UV4 + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
-
-            screen->buf[y*screen->w+x] = texPixel1;
-            screen->buf[y*screen->w+x+1] = texPixel2;
-            screen->buf[y*screen->w+x+2] = texPixel3;
-            screen->buf[y*screen->w+x+3] = texPixel4;
-        }
-
-        for (U32 x = screen->w - rem; x < screen->w; x += 1)
+        for (U32 x = 0; x < screen->w; x += 1)
         {
             V2DF32 UV = {(F32)x / (F32)screen->w, (F32)y / (F32)screen->h};
             V2DF32 vdenorm = (UV + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
-            U32 texPixel = textureGetPixel(texture, vdenorm);
-            U32 bufPixel = screen->buf[y*screen->w+x];
-            screen->buf[y*screen->w+x] = texPixel;
+            U32 pixelA = textureGetPixel(texture, vdenorm);
+            U32 pixelB = screen->buf[y*screen->w+x];
+            // NOTE(annad): Blending x=a*t+b(1.0f-t);
+            __m128i alpha = _mm_set1_epi32(pixelA >> 24 & 0xff);
+            __m128i alpha1 = _mm_sub_epi32(_mm_set1_epi32(0xff), alpha);
+            __m128i a = _mm_unpacklo_epi16(
+                _mm_unpacklo_epi8(
+                    _mm_set1_epi32(pixelA),
+                    _mm_setzero_si128()
+                ),
+
+                _mm_setzero_si128()
+            );
+
+            __m128i b = _mm_unpacklo_epi16(
+                _mm_unpacklo_epi8(
+                    _mm_set1_epi32(pixelB),
+                    _mm_setzero_si128()
+                ),
+
+                _mm_setzero_si128()
+            );
+            
+            U32 out = _mm_cvtsi128_si32(
+                _mm_packus_epi16(
+                    _mm_packus_epi32(
+                        _mm_srli_epi32(
+                            _mm_add_epi32(
+                                _mm_mul_epi32(a, alpha), 
+                                _mm_mul_epi32(b, alpha1)
+                            ),
+
+                            8
+                        ),
+                        
+                        _mm_setzero_si128()
+                    ),
+                    
+                    _mm_setzero_si128()
+                )
+            );
+            
+            screen->buf[y*screen->w+x] = out;
         }
     }
 }

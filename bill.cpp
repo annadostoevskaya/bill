@@ -247,11 +247,6 @@ internal void gtick(GameIO *io)
         gstate->isInit = true;
     }
 
-    for (U32 i = 0; i < screen->h * screen->w; i += 1)
-    {
-        screen->buf[i] = 0xffffffff;
-    }
-
     localv V2DF32 scalev = {1.0f, 1.0f};
     if (devices->dwheel != 0)
     {
