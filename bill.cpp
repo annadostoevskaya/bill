@@ -19,7 +19,6 @@ Description: <empty>
 #include "core/memory.h"
 #include "core/memory_void.cpp"
 #include "core/memory.cpp"
-#include "bill_renderer.cpp"
 
 #pragma pack(push, 1)
 struct BMPHeader
@@ -56,9 +55,6 @@ struct BMPInfo
 #include "bill_ball.cpp"
 #include "bill_colevent.cpp"
 #include "bill_renderer_software.cpp"
-#if BILL_CFG_DEV_MODE
-#include "bill_debug.cpp"
-#endif 
 #include "bill_assets.h"
 
 HTexture createTextureHandler(U8 *bmp)

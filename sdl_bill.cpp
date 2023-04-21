@@ -13,7 +13,6 @@ Description: <empty>
 # include <Windows.h>
 #endif
 #include <stdarg.h>
-#include "bill_renderer.h"
 #include "bill_platform.h"
 
 // NOTE(annad): On anon structures
@@ -31,7 +30,6 @@ Description: <empty>
 # define BILL_CFG_DEV_MODE      false
 #endif
 
-#include "sdl_renderer.cpp"
 #include "bill.cpp"
 
 int main(int, char**)
