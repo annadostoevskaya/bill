@@ -21,8 +21,8 @@ Description: <empty>
 
 #define BILL_CFG_FPS            60
 #define BILL_CFG_WINDOW_TITLE   "bill"
-#define BILL_CFG_WIDTH          (1920/4)
-#define BILL_CFG_HEIGHT         (1080/4)
+#define BILL_CFG_WIDTH          (1920/2)
+#define BILL_CFG_HEIGHT         (1080/2)
 #define BILL_CFG_FULLSCREEN     false
 
 #if _CLI_DEV_MODE
@@ -127,14 +127,6 @@ int main(int, char**)
 
     assetsBundle->close(assetsBundle);
 
-    // 
-    // renderer
-    // 
-    RendererHandle hRenderer = {};
-    hRenderer.ctx = (void*)sdlRenderer;
-    hRenderer.wScreen = BILL_CFG_WIDTH;
-    hRenderer.hScreen = BILL_CFG_HEIGHT;
-
     //
     // input
     //
@@ -155,7 +147,6 @@ int main(int, char**)
     GameIO io = {};
     io.devices = &devices;
     io.screen = &screen;
-    io.hRenderer = &hRenderer;
     io.storage = &storage;
     io.tick = &tick;
 
@@ -165,7 +156,6 @@ int main(int, char**)
     //
     dbg_SdlRenderer = sdlRenderer;
     dbg_Window = window;
-    dbg_HRenderer = &hRenderer;
     dbg_GameIO = &io;
     dbg_GlobalFrameCounter = 0;
 #endif

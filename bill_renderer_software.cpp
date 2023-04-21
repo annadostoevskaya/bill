@@ -66,7 +66,7 @@ void textureRender(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale)
         for (U32 x = 0; x < screen->w; x += 1)
         {
             V2DF32 UV = {(F32)x / (F32)screen->w, (F32)y / (F32)screen->h};
-            V2DF32 vdenorm = (UV + pos) * vscale * whTexture - V2DF32{1.0f, 1.0f};
+            V2DF32 vdenorm = (UV - pos) / vscale * whTexture - V2DF32{1.0f, 1.0f};
             U32 pixelA = textureGetPixel(texture, vdenorm);
             U32 pixelB = screen->buf[y*screen->w+x];
             // NOTE(annad): Blending x=a*t+b(1.0f-t);
@@ -88,4 +88,5 @@ void textureRender(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale)
         }
     }
 }
+
 

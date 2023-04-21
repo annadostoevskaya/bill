@@ -80,7 +80,6 @@ internal void gtick(GameIO *io)
     GameStorage *storage = io->storage;
     GameState *gstate = (GameState*)storage->permanent;
     dbg_GameState = gstate;
-    RendererHandle *hRenderer = io->hRenderer;
     Screen *screen = io->screen;
     InputDevices *devices = io->devices;
     // NOTE(annad): Game layer
@@ -93,32 +92,25 @@ internal void gtick(GameIO *io)
         // Assets
         //
         U8 *assets = (U8*)storage->assets;
-        gstate->radius = 0.0105f * (F32)(hRenderer->wScreen);
+        gstate->radius = 0.0105f * (F32)(screen->w);
         // Arena
         // TODO(annad): Memory aligment???
         M_BaseMemory *mVtbl = m_void_base_memory(storage->persistent, storage->persistSize);
         gstate->arena = m_make_arena_reserve(mVtbl, storage->persistSize);
         Assert(gstate->arena.memory != NULL);
         //
-        // Renderer
-        //
-        hRenderer->size = RCMD_BUFFER_SIZE;
-        hRenderer->byteCode = (U8*)m_arena_push(&gstate->arena, hRenderer->size);
-        Assert(hRenderer->byteCode != NULL);
-        
-        //
         // Table
         //
-        table->w = (S32)(0.8f * (F32)hRenderer->wScreen);
-        table->h = (S32)(0.7f * (F32)hRenderer->hScreen);
-        table->pos.x = (hRenderer->wScreen - table->w - 2 * (S32)gstate->radius);
-        table->pos.y = (hRenderer->hScreen - table->h - 2 * (S32)gstate->radius);
+        table->w = (S32)(0.8f * (F32)screen->w);
+        table->h = (S32)(0.7f * (F32)screen->h);
+        table->pos.x = (screen->w - table->w - 1 * (S32)gstate->radius);
+        table->pos.y = (screen->h - table->h - 1 * (S32)gstate->radius);
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP);
         table->img = createTextureHandler(tableBitmap);
 
         V2DF32 screenv = {
-            (F32)hRenderer->wScreen,
-            (F32)hRenderer->hScreen
+            (F32)screen->w,
+            (F32)screen->h
         };
 
         V2DF32 kTable[6][4] = {
@@ -170,7 +162,7 @@ internal void gtick(GameIO *io)
 
         gstate->isInit = true;
     }
-
+#if 0
     localv V2DF32 scalev = {1.0f, 1.0f};
     if (devices->dwheel != 0)
     {
@@ -210,9 +202,9 @@ internal void gtick(GameIO *io)
     localv S32 state = 0;
     HTexture *test = &table->img;
     textureRender(screen, test, position + delta, scalev); 
+#endif
 
-
-#if 0
+#if 1
     F32 radius = gstate->radius;
     F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
@@ -320,7 +312,75 @@ internal void gtick(GameIO *io)
         }
     }
     
-    // TODO(annad): srcrect...
+    textureRender(screen, &table->img, 
+        V2DF32{(F32)table->pos.x / (F32)screen->w, (F32)table->pos.y/(F32)screen->h}, 
+        V2DF32{(F32)table->w/(F32)screen->w, (F32)table->h/(F32)screen->h}
+    );
+
+    for (U32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Entity *e = &balls[i];
+        if (e->isInit) 
+        {   
+            // TODO(annad): For branch prediction optimizations we must 
+            // sort entities by array with initialized entities and uninitialized!
+            textureRender(screen, &e->img, 
+                V2DF32{e->p.x / (F32)screen->w, e->p.y / (F32)screen->h},
+                V2DF32{2.0f * gstate->radius / (F32)screen->w, 2.0f * gstate->radius / (F32)screen->h}
+            );
+        }
+    }
+
+#if BILL_CFG_DEV_MODE
+    Entity *_e = &balls[CUE_BALL];
+    for (U32 j = 0; j < sizeof(table->boards) / sizeof(table->boards[0]); j += 1)
+    {
+        for (U32 i = 0; i < sizeof(table->boards[0]) / sizeof(table->boards[0].p[0]) - 1; i += 1)
+        {
+            P2DF32 a = table->boards[j].p[i];
+            P2DF32 b = table->boards[j].p[i+1];
+            U32 c = 0xffffffff;
+
+            V2DF32 nvecwall = {};
+            B8 isCollide = ballCheckWallCollide(_e, radius, a, b, &nvecwall);
+            if (isCollide)
+            {
+                c = 0xffff0000;
+            }
+
+            // dbg_line(screen, 
+            //     V2DS32{(S32)a.x, (S32)a.y}, 
+            //     V2DS32{(S32)b.x, (S32)b.y}, 
+            //     c
+            // );
+
+            if (isCollide)
+            {
+                c = 0xffff0000;
+            }
+        }
+    }
+
+#if 0
+    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
+        table->collider.x, table->collider.y, 
+        table->collider.w, table->collider.h);
+#endif
+#endif
+
+#if 0
+    for (U32 i = 0; i < BALL_COUNT; i += 1)
+    {
+        Entity *e = &balls[i];
+
+            Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, 
+                (S32)(e->p.x - radius), (S32)(e->p.y - radius), (S32)(2.0f * radius), (S32)(2.0f * radius), 
+                e->img.bitmap, e->img.width, e->img.height);
+        }
+    }
+#endif
+
+#if 0
     Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, 
         table->pos.x, table->pos.y, table->w, table->h, 
         table->img.bitmap, table->img.width, table->img.height);
@@ -347,43 +407,8 @@ internal void gtick(GameIO *io)
                 (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
         Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
     }
-
-#if BILL_CFG_DEV_MODE
-    Entity *_e = &balls[CUE_BALL];
-    for (U32 j = 0; j < sizeof(table->boards) / sizeof(table->boards[0]); j += 1)
-    {
-        for (U32 i = 0; i < sizeof(table->boards[0]) / sizeof(table->boards[0].p[0]) - 1; i += 1)
-        {
-            P2DF32 a = table->boards[j].p[i];
-            P2DF32 b = table->boards[j].p[i+1];
-            V2DF32 nvecwall = {};
-            B8 isCollide = ballCheckWallCollide(_e, radius, a, b, &nvecwall);
-            if (isCollide)
-            {
-                Renderer_pushCmd(hRenderer, 
-                    RCMD_SET_RENDER_COLOR, 
-                    0xff, 0x00, 0x00, 0xff);
-            }
-
-            Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-                (S32)a.x, (S32)a.y, 
-                (S32)b.x, (S32)b.y);
-
-            if (isCollide)
-            {
-                Renderer_pushCmd(hRenderer, 
-                    RCMD_SET_RENDER_COLOR, 
-                    0xff, 0xff, 0xff, 0xff);
-            }
-        }
-    }
-
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
-        table->collider.x, table->collider.y, 
-        table->collider.w, table->collider.h);
-#endif
-
     Renderer_pushCmd(hRenderer, RCMD_NULL);
+#endif
 #endif
 }
 

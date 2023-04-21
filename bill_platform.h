@@ -70,7 +70,6 @@ struct Screen
 struct GameIO
 {
     InputDevices *devices;
-    RendererHandle *hRenderer;
     Screen *screen;
     GameStorage *storage;
     Tick *tick;
