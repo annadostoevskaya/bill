@@ -9,7 +9,7 @@ SET CPP=clang++
 SET SRC=%cd%
 SET SDL_OPTS=-I %SRC%\3rdparty\SDL2\include\ -L %SRC%\3rdparty\SDL2\lib\ -lSDL2 -lSDL2main -lShell32
 SET DEV_OPTS=-D _ENABLED_ASSERT -D _CLI_DEV_MODE
-SET OPTIONS=-O1 -std=c++11 -msse4.1 -g %DEV_OPTS% %SDL_OPTS%
+SET OPTIONS=-Ofast -std=c++11 -msse4.1 -g %DEV_OPTS% %SDL_OPTS%
 
 IF NOT EXIST build MKDIR build
 PUSHD build

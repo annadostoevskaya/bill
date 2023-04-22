@@ -89,4 +89,3 @@ void textureRender(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale)
     }
 }
 
-

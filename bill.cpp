@@ -99,8 +99,8 @@ internal void gtick(GameIO *io)
         //
         table->w = (S32)(0.8f * (F32)screen->w);
         table->h = (S32)(0.7f * (F32)screen->h);
-        table->pos.x = (screen->w - table->w - 1 * (S32)gstate->radius);
-        table->pos.y = (screen->h - table->h - 1 * (S32)gstate->radius);
+        table->pos.x = (screen->w - table->w - 2 * (S32)gstate->radius);
+        table->pos.y = (screen->h - table->h - 2 * (S32)gstate->radius);
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP);
         table->img = createTextureHandler(tableBitmap);
 
@@ -321,7 +321,7 @@ internal void gtick(GameIO *io)
             // TODO(annad): For branch prediction optimizations we must 
             // sort entities by array with initialized entities and uninitialized!
             textureRender(screen, &e->img, 
-                V2DF32{e->p.x / (F32)screen->w, e->p.y / (F32)screen->h},
+                V2DF32{(e->p.x - gstate->radius) / (F32)screen->w, (e->p.y - gstate->radius) / (F32)screen->h},
                 V2DF32{2.0f * gstate->radius / (F32)screen->w, 2.0f * gstate->radius / (F32)screen->h}
             );
         }
@@ -338,17 +338,20 @@ internal void gtick(GameIO *io)
             U32 c = 0xffffffff;
 
             V2DF32 nvecwall = {};
-            B8 isCollide = ballCheckWallCollide(_e, radius, a, b, &nvecwall);
+            
+            B8 isCollide = ballCheckLineCollide(_e, gstate->radius, a, b, &nvecwall);
             if (isCollide)
             {
                 c = 0xffff0000;
             }
-
-            // dbg_line(screen, 
-            //     V2DS32{(S32)a.x, (S32)a.y}, 
-            //     V2DS32{(S32)b.x, (S32)b.y}, 
-            //     c
-            // );
+            
+            S32 l = (b - a).getLength();
+            for (U32 i = 0; i < l; i += 1)
+            {
+                S32 x = a.x + (S32)((F32)i * ((F32)(b.x - a.x)/(F32)l));
+                S32 y = a.y + (S32)((F32)i * ((F32)(b.y - a.y)/(F32)l));
+                screen->buf[y*screen->w+x] = c;
+            }
 
             if (isCollide)
             {
