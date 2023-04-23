@@ -37,3 +37,7 @@ struct HTexture
     U32 *bitmap;
 };
 
+
+U32 textureGetPixel(HTexture *texture, V2DF32 pos);
+void textureRender(Screen *screen, HTexture *texture, V2DF32 pos, V2DF32 vscale);
+

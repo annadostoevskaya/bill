@@ -8,42 +8,42 @@ Description: <empty>
 
 #include <math.h>
 
-F32 f32Square(F32 x)
+inline F32 f32Square(F32 x)
 {
     return x * x;
 }
 
-F32 f32Sqrt(F32 x)
+inline F32 f32Sqrt(F32 x)
 {
     return sqrtf(x);
 }
 
-F32 f32Abs(F32 x)
+inline F32 f32Abs(F32 x)
 {
     return fabsf(x);
 }
 
-F32 f32Round(F32 x)
+inline F32 f32Round(F32 x)
 {    
     return roundf(x);
 }
 
-B8 f32EpsCompare(F32 rhs, F32 lhs, F32 eps)
+inline B8 f32EpsCompare(F32 rhs, F32 lhs, F32 eps)
 {
     return f32Abs(rhs - lhs) < eps;
 }
 
-F32 f32Floor(F32 x)
+inline F32 f32Floor(F32 x)
 {
     return floorf(x);
 }
 
-F32 f32Ceil(F32 x)
+inline F32 f32Ceil(F32 x)
 {
     return ceilf(x);
 }
 
-F32 f32Infinity()
+inline F32 f32Infinity()
 {
     union { F32 f; U32 u; } r;
     r.u = 0x7f800000;

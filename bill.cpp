@@ -54,7 +54,6 @@ struct BMPInfo
 #endif 
 #include "bill_ball.cpp"
 #include "bill_colevent.cpp"
-#include "bill_renderer_software.cpp"
 #include "bill_assets.h"
 
 HTexture createTextureHandler(U8 *bmp)

@@ -7,6 +7,11 @@ Description: <empty>
 */
 
 // TODO(annad): ??...
+#include "core/base.h"
+#include "core/mmath.h"
+#include "bill_platform.h"
+#include "bill_renderer_software.h"
+#include <smmintrin.h>
 #include <emmintrin.h>
 
 U32 textureGetPixel(HTexture *texture, V2DF32 pos)
