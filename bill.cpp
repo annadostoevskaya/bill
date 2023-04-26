@@ -19,33 +19,7 @@ Description: <empty>
 #include "core/memory.h"
 #include "core/memory_void.cpp"
 #include "core/memory.cpp"
-
-#pragma pack(push, 1)
-struct BMPHeader
-{
-    U16 type; // 2
-    U32 size; // 6
-    U32 RESERVED; // 10
-    U32 offset; // 14 bytes
-};
-
-struct BMPInfo
-{
-    U32 size;
-    S32 width;
-    S32 height;
-    U16 planes; // STUB
-    U16 bitcount;
-    U32 compression; // STUB
-    U32 imgsize;
-    S32 xpxperMeter; // STUB
-    S32 ypxperMeter; // STUB
-    U32 colorsUsed; // STUB
-    U32 colorsImportant; // STUB // 40 
-    U32 BGRA[1]; // STUB // 44 bytes
-};
-#pragma pack(pop)
-
+#include "bill_bitmap.h"
 #include "bill_renderer_software.h"
 
 #include "bill.h"
@@ -55,19 +29,6 @@ struct BMPInfo
 #include "bill_ball.cpp"
 #include "bill_colevent.cpp"
 #include "bill_assets.h"
-
-HTexture createTextureHandler(U8 *bmp)
-{
-    BMPHeader *bmpHeader = (BMPHeader*)bmp;
-    BMPInfo *bmpInfo = (BMPInfo*)(bmp + sizeof(BMPHeader));
-    Assert(bmpInfo->bitcount == 32); // NOTE(annad): RGBA ever!
-    HTexture himg = {};
-    himg.w = (U16)bmpInfo->width;
-    himg.h = (U16)bmpInfo->height;
-    himg.bitmap = (U32*)(bmp + bmpHeader->offset);
-
-    return himg;
-}
 
 internal void gtick(GameIO *io)
 {
@@ -130,6 +91,7 @@ internal void gtick(GameIO *io)
         //
         ballsInit(&gstate->table, balls, gstate->radius, 0.591667f, 0.718518f);
         balls[CUE_BALL].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_CUE_BALL_BMP));
+        balls[BALL_8].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_EIGHT_BALL_BMP));
         balls[BALL_1].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_1_BMP));
         balls[BALL_2].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_2_BMP));
         balls[BALL_3].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_3_BMP));
@@ -137,7 +99,6 @@ internal void gtick(GameIO *io)
         balls[BALL_5].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_5_BMP));
         balls[BALL_6].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_6_BMP));
         balls[BALL_7].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_7_BMP));
-        balls[BALL_8].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_EIGHT_BALL_BMP));
         balls[BALL_9].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_9_BMP));
         balls[BALL_10].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_10_BMP));
         balls[BALL_11].img = createTextureHandler(((U8*)storage->assets + (size_t)ASSETS_BUNDLE_BALL_11_BMP));

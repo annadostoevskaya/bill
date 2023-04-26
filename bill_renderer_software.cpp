@@ -11,8 +11,21 @@ Description: <empty>
 #include "core/mmath.h"
 #include "bill_platform.h"
 #include "bill_renderer_software.h"
+#include "bill_bitmap.h"
 #include <smmintrin.h>
-#include <emmintrin.h>
+
+HTexture createTextureHandler(U8 *bmp)
+{
+    BMPHeader *bmpHeader = (BMPHeader*)bmp;
+    BMPInfo *bmpInfo = (BMPInfo*)(bmp + sizeof(BMPHeader));
+    Assert(bmpInfo->bitcount == 32); // NOTE(annad): RGBA ever!
+    HTexture himg = {};
+    himg.w = (U16)bmpInfo->width;
+    himg.h = (U16)bmpInfo->height;
+    himg.bitmap = (U32*)(bmp + bmpHeader->offset);
+
+    return himg;
+}
 
 U32 textureGetPixel(HTexture *texture, V2DF32 pos)
 {
