@@ -10,7 +10,7 @@ Description: <empty>
 # pragma warning(disable: 4505)
 # pragma warning(disable: 5189)
 # pragma warning(disable: 4127)
-# pragma warning(disable: 4189)
+#pragma warning(disable: 4189)
 # pragma warning(disable: 4100)
 # pragma warning(disable: 4702)
 #endif 
@@ -29,6 +29,19 @@ Description: <empty>
 #include "bill_ball.cpp"
 #include "bill_colevent.cpp"
 #include "bill_assets.h"
+
+#include "dev/p2df32_pull.cpp"
+
+void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3)
+{
+    for (F32 t = 0.0f; t < 1.0f; t += 0.001f)
+    {
+        V2DF32 p = (p1*(1.0f-t) + p2*t)*(1.0f-t) + (p2*(1.0f-t)+p3*t)*t;
+        S32 x = (S32)p.x;
+        S32 y = (S32)p.y;
+        s->buf[y*s->w+x] = 0xffffffff;
+    }
+}
 
 internal void gtick(GameIO *io)
 {
@@ -272,7 +285,7 @@ internal void gtick(GameIO *io)
         V2DF32{(F32)table->pos.x / (F32)screen->w, (F32)table->pos.y/(F32)screen->h}, 
         V2DF32{(F32)table->w/(F32)screen->w, (F32)table->h/(F32)screen->h}
     );
-
+#if 1
     for (U32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
@@ -286,6 +299,7 @@ internal void gtick(GameIO *io)
             );
         }
     }
+#endif
 
 #if BILL_CFG_DEV_MODE
     Entity *_e = &balls[CUE_BALL];
@@ -320,53 +334,56 @@ internal void gtick(GameIO *io)
         }
     }
 
-#if 0
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, 
-        table->collider.x, table->collider.y, 
-        table->collider.w, table->collider.h);
-#endif
-#endif
-
-#if 0
-    for (U32 i = 0; i < BALL_COUNT; i += 1)
+    //////////////////////////////////////////////////
+    // B(t) = (1-t)[(1-t)P1+tP2] + t[(1-t)P2+tP3], 0 <= t <= 1
+    globalv P2DF32_pull curve = {};
+    if (devices->mouseBtns[MOUSE_BTN_LEFT] == true)
     {
-        Entity *e = &balls[i];
+        V2DF32 P = {(F32)devices->mouseX, (F32)devices->mouseY};
+        P2DF32_pull_push(&curve, P);
+    }
 
-            Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, 
-                (S32)(e->p.x - radius), (S32)(e->p.y - radius), (S32)(2.0f * radius), (S32)(2.0f * radius), 
-                e->img.bitmap, e->img.width, e->img.height);
+    V2DF32 P1_5{718.000000,660.000000};
+    V2DF32 P2_5{742.000000,631.000000};
+    V2DF32 P3_5{768.000000,658.000000};
+    V2DF32 _shift = V2DF32{(F32)devices->mouseX, 
+        (F32)devices->mouseY};
+    V2DF32 P1_2 = P1_5 + _shift - V2DF32{700.0f, 600.0f};
+    V2DF32 P2_2 = P2_5 + _shift - V2DF32{700.0f, 600.0f};
+    V2DF32 P3_2 = P3_5 + _shift - V2DF32{700.0f, 600.0f};
+    debug_draw_bcurve(screen, P1_5, P2_5, P3_5);
+    debug_draw_bcurve(screen, P1_2, P2_2, P3_2);
+
+    if (curve.cursor == P2DF32_pull_size(&curve))
+    {
+        V2DF32 P1 = curve.buffer[0];
+        V2DF32 P2 = curve.buffer[2];
+        V2DF32 P3 = curve.buffer[1];
+        globalv B8 print_f = false;
+        if (!print_f)
+        {
+            printf("p1{%f,%f}\n", P1.x, P1.y);
+            printf("p2{%f,%f}\n", P2.x, P2.y);
+            printf("p3{%f,%f}\n", P3.x, P3.y);
+            print_f = true;
+        }
+        
+        debug_draw_bcurve(screen, P1, P2, P3);
+    }
+    else if (curve.cursor == P2DF32_pull_size(&curve) - 1)
+    {
+        V2DF32 P1 = curve.buffer[0];
+        V2DF32 P3 = curve.buffer[1];
+        V2DF32 P2 = {(F32)devices->mouseX, (F32)devices->mouseY};
+        for (F32 t = 0.0f; t < 1.0f; t += 0.001f)
+        {
+            V2DF32 P = (P1*(1.0f-t) + P2*t)*(1.0f-t) + (P2*(1.0f-t)+P3*t)*t;
+            S32 x = (S32)P.x;
+            S32 y = (S32)P.y;
+            screen->buf[y*screen->w+x] = 0xffffffff;
         }
     }
-#endif
-
-#if 0
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, 
-        table->pos.x, table->pos.y, table->w, table->h, 
-        table->img.bitmap, table->img.width, table->img.height);
-    Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
-    Renderer_pushCmd(hRenderer, RCMD_DRAW_RECT, table->pos.x, table->pos.y, table->w, table->h);
-    for (S32 i = 0; i < BALL_COUNT; i += 1)
-    {
-        Entity *e = &balls[i];
-        if (e->isInit) // TODO(annad): For branch prediction optimizations we must 
-        {              // sort entities by array with initialized entities and uninitialized!
-            Renderer_pushCmd(hRenderer, RCMD_DRAW_BMP, 
-                (S32)(e->p.x - radius), (S32)(e->p.y - radius), (S32)(2.0f * radius), (S32)(2.0f * radius), 
-                e->img.bitmap, e->img.width, e->img.height);
-        }
-    }
-
-    if (cuestick->click)
-    {
-        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0x00, 0x00, 0xff);
-        Renderer_pushCmd(hRenderer, RCMD_DRAW_LINE, 
-                (S32)balls[CUE_BALL].p.x,
-                (S32)balls[CUE_BALL].p.y,
-                (S32)balls[CUE_BALL].p.x + cuestick->clipos.x - devices->mouseX,
-                (S32)balls[CUE_BALL].p.y + cuestick->clipos.y - devices->mouseY);
-        Renderer_pushCmd(hRenderer, RCMD_SET_RENDER_COLOR, 0xff, 0xff, 0xff, 0xff);
-    }
-    Renderer_pushCmd(hRenderer, RCMD_NULL);
+    //////////////////////////////////////////////////
 #endif
 #endif
 }

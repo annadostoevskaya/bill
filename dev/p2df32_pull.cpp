@@ -8,7 +8,7 @@ Description: <empty>
 
 struct P2DF32_pull
 {
-    P2DF32 buffer[2];
+    P2DF32 buffer[3];
     U32 cursor;
 };
 
@@ -36,6 +36,7 @@ void P2DF32_pull_print(P2DF32_pull *pull)
     }
 }
 
+#if 0
 void P2DF32_pull_draw(RendererHandle *hRenderer, Entity *e, F32 radius, P2DF32_pull *pull)
 {
     for (U32 i = 1; i < P2DF32_pull_size(pull); i += 1)
@@ -68,4 +69,10 @@ void P2DF32_pull_draw(RendererHandle *hRenderer, Entity *e, F32 radius, P2DF32_p
             (S32)pull->buffer[pull->cursor - 1].x, (S32)pull->buffer[pull->cursor - 1].y,
             (S32)pull->buffer[0].x, (S32)pull->buffer[0].y);
     }
+}
+#endif
+
+void P2DF32_pull_draw_bezier_curves(Screen *s, P2DF32_pull *pull)
+{
+    
 }
