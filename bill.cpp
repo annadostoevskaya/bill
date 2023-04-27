@@ -336,53 +336,32 @@ internal void gtick(GameIO *io)
 
     //////////////////////////////////////////////////
     // B(t) = (1-t)[(1-t)P1+tP2] + t[(1-t)P2+tP3], 0 <= t <= 1
-    globalv P2DF32_pull curve = {};
-    if (devices->mouseBtns[MOUSE_BTN_LEFT] == true)
-    {
-        V2DF32 P = {(F32)devices->mouseX, (F32)devices->mouseY};
-        P2DF32_pull_push(&curve, P);
-    }
-
+    //
+    V2DF32 P1_1{274.000000,262.000000};
+    V2DF32 P2_1{309.000000,257.000000};
+    V2DF32 P3_1{309.000000,227.000000};
+    V2DF32 P1_2{718.000000,228.000000};
+    V2DF32 P2_2{746.000000,253.000000};
+    V2DF32 P3_2{765.000000,229.000000};
+    V2DF32 P1_3{1172.000000,228.000000};
+    V2DF32 P2_3{1182.000000,258.000000};
+    V2DF32 P3_3{1211.000000,261.000000};
+    V2DF32 P1_4{1212.000000,623.000000};
+    V2DF32 P2_4{1177.000000,633.000000};
+    V2DF32 P3_4{1175.000000,657.000000};
     V2DF32 P1_5{718.000000,660.000000};
     V2DF32 P2_5{742.000000,631.000000};
     V2DF32 P3_5{768.000000,658.000000};
-    V2DF32 _shift = V2DF32{(F32)devices->mouseX, 
-        (F32)devices->mouseY};
-    V2DF32 P1_2 = P1_5 + _shift - V2DF32{700.0f, 600.0f};
-    V2DF32 P2_2 = P2_5 + _shift - V2DF32{700.0f, 600.0f};
-    V2DF32 P3_2 = P3_5 + _shift - V2DF32{700.0f, 600.0f};
-    debug_draw_bcurve(screen, P1_5, P2_5, P3_5);
+    V2DF32 P1_6{312.000000,654.000000};
+    V2DF32 P2_6{308.000000,633.000000};
+    V2DF32 P3_6{275.000000,622.000000};
+    debug_draw_bcurve(screen, P1_1, P2_1, P3_1);
     debug_draw_bcurve(screen, P1_2, P2_2, P3_2);
+    debug_draw_bcurve(screen, P1_3, P2_3, P3_3);
+    debug_draw_bcurve(screen, P1_4, P2_4, P3_4);
+    debug_draw_bcurve(screen, P1_5, P2_5, P3_5);
+    debug_draw_bcurve(screen, P1_6, P2_6, P3_6);
 
-    if (curve.cursor == P2DF32_pull_size(&curve))
-    {
-        V2DF32 P1 = curve.buffer[0];
-        V2DF32 P2 = curve.buffer[2];
-        V2DF32 P3 = curve.buffer[1];
-        globalv B8 print_f = false;
-        if (!print_f)
-        {
-            printf("p1{%f,%f}\n", P1.x, P1.y);
-            printf("p2{%f,%f}\n", P2.x, P2.y);
-            printf("p3{%f,%f}\n", P3.x, P3.y);
-            print_f = true;
-        }
-        
-        debug_draw_bcurve(screen, P1, P2, P3);
-    }
-    else if (curve.cursor == P2DF32_pull_size(&curve) - 1)
-    {
-        V2DF32 P1 = curve.buffer[0];
-        V2DF32 P3 = curve.buffer[1];
-        V2DF32 P2 = {(F32)devices->mouseX, (F32)devices->mouseY};
-        for (F32 t = 0.0f; t < 1.0f; t += 0.001f)
-        {
-            V2DF32 P = (P1*(1.0f-t) + P2*t)*(1.0f-t) + (P2*(1.0f-t)+P3*t)*t;
-            S32 x = (S32)P.x;
-            S32 y = (S32)P.y;
-            screen->buf[y*screen->w+x] = 0xffffffff;
-        }
-    }
     //////////////////////////////////////////////////
 #endif
 #endif
