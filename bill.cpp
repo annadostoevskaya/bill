@@ -43,7 +43,7 @@ void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3)
     }
 }
 
-internal void gtick(GameIO *io)
+internal void gtick(GameIO *io, F32 dt)
 {
     // NOTE(annad): Platform layer
     GameStorage *storage = io->storage;
@@ -175,13 +175,12 @@ internal void gtick(GameIO *io)
 
 #if 1
     F32 radius = gstate->radius;
-    F32 frametime = (F32)io->tick->dt / 1000.0f;
     for (S32 i = 0; i < BALL_COUNT; i += 1)
     {
         if (balls[i].isInit)
         {
             balls[i].isUpdated = false;
-            balls[i].dtUpdate = frametime;
+            balls[i].dtUpdate = dt;
         }
     }
 

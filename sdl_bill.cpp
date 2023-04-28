@@ -18,7 +18,7 @@ Description: <empty>
 // NOTE(annad): On anon structures
 #pragma warning(disable : 4201)
 
-#define BILL_CFG_FPS            60
+#define BILL_CFG_FPS            30.0f
 #define BILL_CFG_WINDOW_TITLE   "bill"
 #define BILL_CFG_WIDTH          (1280)
 #define BILL_CFG_HEIGHT         (720)
@@ -78,8 +78,8 @@ int main(int, char**)
         return -1;
     }
     
-    S32 targetFramesPerSeconds = BILL_CFG_FPS;
-    S32 targetMsPerFrame = 1000 / targetFramesPerSeconds;
+    F32 framepersec = BILL_CFG_FPS;
+    F32 msperframe = 1000.0f / framepersec;
     
     //
     // dt
@@ -258,7 +258,7 @@ int main(int, char**)
         }
         
         SDL_LockSurface(surface);
-        gtick(&io);
+        gtick(&io, 30.0f/1000.0f);
         SDL_UnlockSurface(surface);
 
         // SDLRenderer_exec(io.hRenderer);
@@ -270,7 +270,7 @@ int main(int, char**)
         //
         tick.end = SDL_GetTicks();
         tick.dt = (S32)(tick.end - tick.start);
-        S32 frame_delay_time = (Uint32)(targetMsPerFrame - tick.dt);
+        S32 frame_delay_time = (S32)((S32)msperframe - tick.dt);
         if(frame_delay_time > 0)
         {
             SDL_Delay((Uint32)frame_delay_time);
@@ -278,7 +278,7 @@ int main(int, char**)
         
         tick.end = SDL_GetTicks();
         tick.dt = (S32)(tick.end - tick.start);
-        while(tick.dt < targetMsPerFrame)
+        while(tick.dt < msperframe)
         {
             tick.end = SDL_GetTicks();
             tick.dt = (S32)(tick.end - tick.start);

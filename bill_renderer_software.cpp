@@ -29,7 +29,7 @@ HTexture createTextureHandler(U8 *bmp)
 
 U32 textureGetPixel(HTexture *texture, V2DF32 pos)
 {
-    if ((U32)pos.x < texture->w && (U32)pos.y < texture->h)
+    if ((U32)pos.x < texture->w && (U32)pos.y < texture->h - 1)
     {
         // IMPORTANT(annad): Source code http://fastcpp.blogspot.com/2011/06/bilinear-pixel-interpolation-using-sse.html
         // NOTE(annad): pointer to first pixel
