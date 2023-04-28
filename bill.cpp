@@ -43,6 +43,17 @@ void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3)
     }
 }
 
+void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3, U32 c)
+{
+    for (F32 t = 0.0f; t < 1.0f; t += 0.001f)
+    {
+        V2DF32 p = (p1*(1.0f-t) + p2*t)*(1.0f-t) + (p2*(1.0f-t)+p3*t)*t;
+        S32 x = (S32)p.x;
+        S32 y = (S32)p.y;
+        s->buf[y*s->w+x] = c;
+    }
+}
+
 internal void gtick(GameIO *io, F32 dt)
 {
     // NOTE(annad): Platform layer
@@ -336,9 +347,9 @@ internal void gtick(GameIO *io, F32 dt)
     //////////////////////////////////////////////////
     // B(t) = (1-t)[(1-t)P1+tP2] + t[(1-t)P2+tP3], 0 <= t <= 1
     //
-    V2DF32 P1_1{274.000000,262.000000};
-    V2DF32 P2_1{309.000000,257.000000};
-    V2DF32 P3_1{309.000000,227.000000};
+    // V2DF32 P1_1{274.000000,262.000000};
+    // V2DF32 P2_1{309.000000,257.000000};
+    // V2DF32 P3_1{309.000000,227.000000};
     V2DF32 P1_2{718.000000,228.000000};
     V2DF32 P2_2{746.000000,253.000000};
     V2DF32 P3_2{765.000000,229.000000};
@@ -354,12 +365,35 @@ internal void gtick(GameIO *io, F32 dt)
     V2DF32 P1_6{312.000000,654.000000};
     V2DF32 P2_6{308.000000,633.000000};
     V2DF32 P3_6{275.000000,622.000000};
-    debug_draw_bcurve(screen, P1_1, P2_1, P3_1);
     debug_draw_bcurve(screen, P1_2, P2_2, P3_2);
     debug_draw_bcurve(screen, P1_3, P2_3, P3_3);
     debug_draw_bcurve(screen, P1_4, P2_4, P3_4);
     debug_draw_bcurve(screen, P1_5, P2_5, P3_5);
     debug_draw_bcurve(screen, P1_6, P2_6, P3_6);
+
+    V2DF32 P1_1{0.0f,0.0f};
+    V2DF32 P2_1{1280.0f/2.0f,720.0f};
+    V2DF32 P3_1{1280.0f,0.0f};
+    //V2DF32 P1_1{500.0f + 0.0f,0.0f};
+    //V2DF32 P2_1{500.0f + 1280.0f/2.0f,720.0f/2.0f};
+    //V2DF32 P3_1{500.0f + 0.0f,720.0f};
+
+    B8 isCollide = false;
+    V2DF32 _a = P3_1 - 2.0f * P2_1 + P1_1;
+    V2DF32 _b = 2.0f * (P2_1 - P1_1);
+    V2DF32 _c = P1_1 - balls[CUE_BALL].p;
+    V2DF32 D = _b * _b - 4.0f * _a * _c;
+    V2DF32 sqrtD = V2DF32{f32Sqrt(D.x), f32Sqrt(D.y)};
+    V2DF32 t1 = (_b + sqrtD) / 2.0f * _a;
+    V2DF32 t2 = (_b - sqrtD) / 2.0f * _a;
+    
+    printf("t1{%f,%f}\n", t1.x, t1.y);
+    printf("t2{%f,%f}\n", t2.x, t2.y);
+    debug_draw_bcurve(screen, P1_1, P2_1, P3_1);
+    if (isCollide)
+    {
+        debug_draw_bcurve(screen, P1_1, P2_1, P3_1, 0xff00ffff);
+    }
 
     //////////////////////////////////////////////////
 #endif

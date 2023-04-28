@@ -63,6 +63,12 @@ public:
         return lhs;
     }
 
+    friend V2DF32 operator*(const F32 rhs, V2DF32 lhs)
+    {
+        lhs *= rhs;
+        return lhs;
+    }
+
     V2DF32& operator/=(const V2DF32& rhs)
     {
         this->x /= rhs.x;
@@ -70,7 +76,26 @@ public:
         return *this;
     }
 
+    V2DF32& operator/=(const F32 rhs)
+    {
+        this->x /= rhs;
+        this->y /= rhs;
+        return *this;
+    }
+
     friend V2DF32 operator/(V2DF32 lhs, const V2DF32& rhs)
+    {
+        lhs /= rhs;
+        return lhs;
+    }
+
+    friend V2DF32 operator/(V2DF32 lhs, const F32 rhs)
+    {
+        lhs /= rhs;
+        return lhs;
+    }
+
+    friend V2DF32 operator/(const F32 rhs, V2DF32 lhs)
     {
         lhs /= rhs;
         return lhs;
