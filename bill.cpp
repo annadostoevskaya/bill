@@ -34,13 +34,53 @@ Description: <empty>
 
 void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3)
 {
+    //for (F32 t = -10.0f; t < 10.0f; t += 0.001f)
     for (F32 t = 0.0f; t < 1.0f; t += 0.001f)
     {
         V2DF32 p = (p1*(1.0f-t) + p2*t)*(1.0f-t) + (p2*(1.0f-t)+p3*t)*t;
         S32 x = (S32)p.x;
         S32 y = (S32)p.y;
-        s->buf[y*s->w+x] = 0xffffffff;
+        if (y*s->w+x < s->w*s->h - 1)
+        {
+            s->buf[y*s->w+x] = 0xffffffff;
+        }
     }
+}
+
+
+void debug_draw_xy(Screen *s, S32 x, S32 y)
+{
+    for(S32 i = 0; i < s->w; i += 1)
+    {
+        S32 idx = y*s->w+i;
+        if (idx < s->w*s->h - 1) 
+            s->buf[idx] = 0xffffffff;
+    }
+
+    for(S32 i = 0; i < s->h; i += 1)
+    {
+        S32 idx = i*s->w+x;
+        if (idx < s->w*s->h - 1) 
+            s->buf[idx] = 0xffffffff;
+    }   
+}
+
+void debug_draw_xy(Screen *s, S32 x, S32 y, U32 c)
+{
+
+    for(S32 i = 0; i < s->w; i += 1)
+    {
+        S32 idx = y*s->w+i;
+        if (idx < s->w*s->h - 1) 
+            s->buf[idx] = c;
+    }
+
+    for(S32 i = 0; i < s->h; i += 1)
+    {
+        S32 idx = i*s->w+x;
+        if (idx < s->w*s->h - 1) 
+            s->buf[idx] = c;
+    }   
 }
 
 void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3, U32 c)
@@ -365,30 +405,34 @@ internal void gtick(GameIO *io, F32 dt)
     V2DF32 P1_6{312.000000,654.000000};
     V2DF32 P2_6{308.000000,633.000000};
     V2DF32 P3_6{275.000000,622.000000};
-    debug_draw_bcurve(screen, P1_2, P2_2, P3_2);
-    debug_draw_bcurve(screen, P1_3, P2_3, P3_3);
-    debug_draw_bcurve(screen, P1_4, P2_4, P3_4);
-    debug_draw_bcurve(screen, P1_5, P2_5, P3_5);
-    debug_draw_bcurve(screen, P1_6, P2_6, P3_6);
-
-    V2DF32 P1_1{0.0f,0.0f};
-    V2DF32 P2_1{1280.0f/2.0f,720.0f};
-    V2DF32 P3_1{1280.0f,0.0f};
-    //V2DF32 P1_1{500.0f + 0.0f,0.0f};
-    //V2DF32 P2_1{500.0f + 1280.0f/2.0f,720.0f/2.0f};
-    //V2DF32 P3_1{500.0f + 0.0f,720.0f};
-
+    // debug_draw_bcurve(screen, P1_2, P2_2, P3_2);
+    //debug_draw_bcurve(screen, P1_3, P2_3, P3_3);
+    //debug_draw_bcurve(screen, P1_4, P2_4, P3_4);
+    //debug_draw_bcurve(screen, P1_5, P2_5, P3_5);
+    //debug_draw_bcurve(screen, P1_6, P2_6, P3_6);
+    V2DF32 P1_1 = V2DF32{0.0f,0.0f};
+    V2DF32 P2_1 = V2DF32{1280.0f/2,720.0f/2};
+    V2DF32 P3_1 = V2DF32{1280.0f,0.0f};
     B8 isCollide = false;
-    V2DF32 _a = P3_1 - 2.0f * P2_1 + P1_1;
-    V2DF32 _b = 2.0f * (P2_1 - P1_1);
+    V2DF32 _a = P1_1 - 2.0f * P2_1 + P3_1;
+    V2DF32 _b = 2.0f * (P1_1 - P2_1);
     V2DF32 _c = P1_1 - balls[CUE_BALL].p;
     V2DF32 D = _b * _b - 4.0f * _a * _c;
     V2DF32 sqrtD = V2DF32{f32Sqrt(D.x), f32Sqrt(D.y)};
     V2DF32 t1 = (_b + sqrtD) / 2.0f * _a;
     V2DF32 t2 = (_b - sqrtD) / 2.0f * _a;
-    
-    printf("t1{%f,%f}\n", t1.x, t1.y);
-    printf("t2{%f,%f}\n", t2.x, t2.y);
+    t1 *= V2DF32{1.0f, -1.0f};
+    debug_draw_xy(screen, (S32)balls[CUE_BALL].p.x, (S32)balls[CUE_BALL].p.y);
+    debug_draw_xy(screen, (S32)t1.x, (S32)t1.y, 0xff00ffff);//blue
+    debug_draw_xy(screen, (S32)t2.x, (S32)t2.y, 0xffff00ff);// purple
+    F32 d_t1 = (t1 - balls[CUE_BALL].p).getLength();
+    F32 d_t2 = (t2 - balls[CUE_BALL].p).getLength();
+    if (d_t1<radius || d_t2<radius)
+    {
+        printf("iscollide");
+    }
+    printf("t1  {%0.2f,   %0.2f}     -    t2  {%0.2f,   %0.2f}\n", t1.x, t1.y, t2.x, t2.y);
+    // printf("is collide? %f\n", t);
     debug_draw_bcurve(screen, P1_1, P2_1, P3_1);
     if (isCollide)
     {
