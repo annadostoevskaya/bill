@@ -37,9 +37,22 @@ struct Table
     S32 w;
     S32 h;
     TableBoard boards[6];
-    Rect collider;
+    Rect gamezone;
     HTexture img;
 };
+
+struct BCurve
+{
+    V2DF32 start;
+    V2DF32 control;
+    V2DF32 end;
+};
+
+inline V2DF32 bcurveGetDot(BCurve *bc, F32 t)
+{
+    return (bc->start * (1.0f - t) + bc->control * t) 
+        * (1.0f-t) + (bc->control * (1.0f - t) + bc->end * t) * t;
+}
 
 struct GameState
 {
@@ -51,6 +64,7 @@ struct GameState
 
     CueStick cuestick;
     CollideEventQueue cequeue;
+    BCurve pockets[6];
 
     F32 radius;
     B8 isInit;

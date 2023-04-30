@@ -32,12 +32,12 @@ Description: <empty>
 
 #include "dev/p2df32_pull.cpp"
 
-void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3)
+void debug_draw_bcurve(Screen *s, BCurve *bc)
 {
     //for (F32 t = -10.0f; t < 10.0f; t += 0.001f)
     for (F32 t = 0.0f; t < 1.0f; t += 0.001f)
     {
-        V2DF32 p = (p1*(1.0f-t) + p2*t)*(1.0f-t) + (p2*(1.0f-t)+p3*t)*t;
+        V2DF32 p = (bc->start*(1.0f-t) + bc->control*t)*(1.0f-t) + (bc->control*(1.0f-t)+bc->end*t)*t;
         S32 x = (S32)p.x;
         S32 y = (S32)p.y;
         if (y*s->w+x < s->w*s->h - 1)
@@ -47,6 +47,19 @@ void debug_draw_bcurve(Screen *s, V2DF32 p1, V2DF32 p2, V2DF32 p3)
     }
 }
 
+B8 ballCheckCollidePocket(Entity *ball, F32 radius, BCurve *pocket)
+{
+    for (F32 t = 0.0f; t <= 1.0f; t += 0.1f)
+    {
+        V2DF32 dot = bcurveGetDot(pocket, t);
+        if ((dot - ball->p).getLength() < radius / 4.0f) // NOTE(annad):  we want the ball to end up in the hole only when it actually falls into it.
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 void debug_draw_xy(Screen *s, S32 x, S32 y)
 {
@@ -128,11 +141,15 @@ internal void gtick(GameIO *io, F32 dt)
         U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP);
         table->img = createTextureHandler(tableBitmap);
 
+
+        //
+        // Load level geometry
+        //
         V2DF32 screenv = {
             (F32)screen->w,
             (F32)screen->h
         };
-
+        
         V2DF32 kTable[6][4] = {
             { { 0.242313f, 0.317708f }, { 0.251098f, 0.333333f }, { 0.559297f, 0.333333f }, { 0.562225f, 0.316406f } },
             { { 0.598097f, 0.319010f }, { 0.600000f, 0.333333f }, { 0.907760f, 0.333333f }, { 0.917277f, 0.316406f } },
@@ -150,6 +167,22 @@ internal void gtick(GameIO *io, F32 dt)
             table->boards[i].p[3] = kTable[i][3] * screenv;
         }
     
+        BCurve pockets[6] = {
+            { {274.0f,  262.0f}, {309.0f,  257.0f}, {309.0f,  227.0f} },
+            { {718.0f,  228.0f}, {746.0f,  253.0f}, {765.0f,  229.0f} },
+            { {1172.0f, 228.0f}, {1182.0f, 258.0f}, {1211.0f, 261.0f} },
+            { {1212.0f, 623.0f}, {1177.0f, 633.0f}, {1175.0f, 657.0f} },
+            { {718.0f,  660.0f}, {742.0f,  631.0f}, {768.0f,  658.0f} },
+            { {312.0f,  654.0f}, {308.0f,  633.0f}, {275.0f,  622.0f} }
+        };
+
+        for (U16 i = 0; i < sizeof(pockets) / sizeof(pockets[0]); i += 1)
+        {
+            gstate->pockets[i] = pockets[i];
+        }
+
+        gstate->table.gamezone = {274, 226, 938, 432};
+
         //
         // Balls
         //
@@ -255,7 +288,7 @@ internal void gtick(GameIO *io, F32 dt)
     {
         if (cuestick->click)
         {
-            printf("========================\n");
+            // printf("========================\n");
             Entity *cueball = &balls[CUE_BALL];
             cueball->v = {
                 (F32)(cuestick->clipos.x - devices->mouseX),
@@ -339,6 +372,16 @@ internal void gtick(GameIO *io, F32 dt)
     for (U32 i = 0; i < BALL_COUNT; i += 1)
     {
         Entity *e = &balls[i];
+
+        for (U32 j = 0; j < sizeof(gstate->pockets) / sizeof(gstate->pockets[0]); j += 1)
+        {
+            debug_draw_bcurve(screen, &gstate->pockets[j]);
+            if (ballCheckCollidePocket(e, gstate->radius, &gstate->pockets[j]) || ballCheckOutOfGame(e, gstate->radius, &gstate->table.gamezone))
+            {
+                e->isInit = false;
+            }
+        }
+
         if (e->isInit) 
         {   
             // TODO(annad): For branch prediction optimizations we must 
@@ -352,6 +395,39 @@ internal void gtick(GameIO *io, F32 dt)
 #endif
 
 #if BILL_CFG_DEV_MODE
+    V2DF32 gamezone[4];
+    Rect *gz = &gstate->table.gamezone;
+    *gz = {
+        274, 226, 938, 432
+    };
+    
+    gamezone[0] = V2DF32{(F32)gz->x, (F32)gz->y};
+    gamezone[1] = V2DF32{(F32)gz->x+(F32)gz->w, (F32)gz->y};
+    gamezone[2] = V2DF32{(F32)gz->x+(F32)gz->w, (F32)gz->y+(F32)gz->h};
+    gamezone[3] = V2DF32{(F32)gz->x, (F32)gz->y+(F32)gz->h};
+    for (U32 i = 0; i < 4; i += 1)
+    {
+        V2DF32 a, b;
+        if (i == 3)
+        {
+            b = gamezone[0];
+            a = gamezone[3];
+        }
+        else
+        {
+            a = gamezone[i];
+            b = gamezone[i+1];
+        }
+
+        S32 l = (b - a).getLength();
+        for (U32 i = 0; i < l; i += 1)
+        {
+            S32 x = a.x + (S32)((F32)i * ((F32)(b.x - a.x)/(F32)l));
+            S32 y = a.y + (S32)((F32)i * ((F32)(b.y - a.y)/(F32)l));
+            screen->buf[y*screen->w+x] = 0xffffffff;
+        }
+    }
+
     Entity *_e = &balls[CUE_BALL];
     for (U32 j = 0; j < sizeof(table->boards) / sizeof(table->boards[0]); j += 1)
     {
@@ -383,63 +459,6 @@ internal void gtick(GameIO *io, F32 dt)
             }
         }
     }
-
-    //////////////////////////////////////////////////
-    // B(t) = (1-t)[(1-t)P1+tP2] + t[(1-t)P2+tP3], 0 <= t <= 1
-    //
-    // V2DF32 P1_1{274.000000,262.000000};
-    // V2DF32 P2_1{309.000000,257.000000};
-    // V2DF32 P3_1{309.000000,227.000000};
-    V2DF32 P1_2{718.000000,228.000000};
-    V2DF32 P2_2{746.000000,253.000000};
-    V2DF32 P3_2{765.000000,229.000000};
-    V2DF32 P1_3{1172.000000,228.000000};
-    V2DF32 P2_3{1182.000000,258.000000};
-    V2DF32 P3_3{1211.000000,261.000000};
-    V2DF32 P1_4{1212.000000,623.000000};
-    V2DF32 P2_4{1177.000000,633.000000};
-    V2DF32 P3_4{1175.000000,657.000000};
-    V2DF32 P1_5{718.000000,660.000000};
-    V2DF32 P2_5{742.000000,631.000000};
-    V2DF32 P3_5{768.000000,658.000000};
-    V2DF32 P1_6{312.000000,654.000000};
-    V2DF32 P2_6{308.000000,633.000000};
-    V2DF32 P3_6{275.000000,622.000000};
-    // debug_draw_bcurve(screen, P1_2, P2_2, P3_2);
-    //debug_draw_bcurve(screen, P1_3, P2_3, P3_3);
-    //debug_draw_bcurve(screen, P1_4, P2_4, P3_4);
-    //debug_draw_bcurve(screen, P1_5, P2_5, P3_5);
-    //debug_draw_bcurve(screen, P1_6, P2_6, P3_6);
-    V2DF32 P1_1 = V2DF32{0.0f,0.0f};
-    V2DF32 P2_1 = V2DF32{1280.0f/2,720.0f/2};
-    V2DF32 P3_1 = V2DF32{1280.0f,0.0f};
-    B8 isCollide = false;
-    V2DF32 _a = P1_1 - 2.0f * P2_1 + P3_1;
-    V2DF32 _b = 2.0f * (P1_1 - P2_1);
-    V2DF32 _c = P1_1 - balls[CUE_BALL].p;
-    V2DF32 D = _b * _b - 4.0f * _a * _c;
-    V2DF32 sqrtD = V2DF32{f32Sqrt(D.x), f32Sqrt(D.y)};
-    V2DF32 t1 = (_b + sqrtD) / 2.0f * _a;
-    V2DF32 t2 = (_b - sqrtD) / 2.0f * _a;
-    t1 *= V2DF32{1.0f, -1.0f};
-    debug_draw_xy(screen, (S32)balls[CUE_BALL].p.x, (S32)balls[CUE_BALL].p.y);
-    debug_draw_xy(screen, (S32)t1.x, (S32)t1.y, 0xff00ffff);//blue
-    debug_draw_xy(screen, (S32)t2.x, (S32)t2.y, 0xffff00ff);// purple
-    F32 d_t1 = (t1 - balls[CUE_BALL].p).getLength();
-    F32 d_t2 = (t2 - balls[CUE_BALL].p).getLength();
-    if (d_t1<radius || d_t2<radius)
-    {
-        printf("iscollide");
-    }
-    printf("t1  {%0.2f,   %0.2f}     -    t2  {%0.2f,   %0.2f}\n", t1.x, t1.y, t2.x, t2.y);
-    // printf("is collide? %f\n", t);
-    debug_draw_bcurve(screen, P1_1, P2_1, P3_1);
-    if (isCollide)
-    {
-        debug_draw_bcurve(screen, P1_1, P2_1, P3_1, 0xff00ffff);
-    }
-
-    //////////////////////////////////////////////////
 #endif
 #endif
 }

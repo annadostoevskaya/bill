@@ -124,33 +124,25 @@ ballCheckWallCollide(Entity *ball, F32 radius,
     return false;
 }
 
-internal B8 ballCheckTableBoardCollide(Entity *ball, F32 radius, Rect *table, V2DF32 *nvecwall)
+internal B8 ballCheckOutOfGame(Entity *ball, F32 radius, Rect *gamezone)
 {
-    if (ball->p.x >= (F32)(table->x + table->w) - radius)
+    if (ball->p.x >= (F32)(gamezone->x + gamezone->w) - radius)
     {
-        nvecwall->x = -1.0f;
-        nvecwall->y =  0.0f;
         return true;
     }
 
-    if (ball->p.x <= (F32)table->x + radius)
+    if (ball->p.x <= (F32)gamezone->x + radius)
     {
-        nvecwall->x = 1.0f;
-        nvecwall->y = 0.0f;
         return true;
     }
 
-    if (ball->p.y <= (F32)table->y + radius)
+    if (ball->p.y <= (F32)gamezone->y + radius)
     {
-        nvecwall->x =  0.0f;
-        nvecwall->y = -1.0f;
         return true;
     }
 
-    if (ball->p.y >= (F32)(table->y + table->h) - radius)
+    if (ball->p.y >= (F32)(gamezone->y + gamezone->h) - radius)
     {
-        nvecwall->x = 0.0f;
-        nvecwall->y = 1.0f;
         return true;
     }
 
