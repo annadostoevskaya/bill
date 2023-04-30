@@ -138,7 +138,7 @@ internal void gtick(GameIO *io, F32 dt)
         table->h = (S32)(0.7f * (F32)screen->h);
         table->pos.x = (screen->w - table->w - 2 * (S32)gstate->radius);
         table->pos.y = (screen->h - table->h - 2 * (S32)gstate->radius);
-        U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TEST_ALPHA_BMP);
+        U8 *tableBitmap = ((U8*)storage->assets + (size_t)ASSETS_BUNDLE_TABLE_BMP);
         table->img = createTextureHandler(tableBitmap);
 
 
